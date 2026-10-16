@@ -251,3 +251,9 @@ export async function createTestPage(
   if (error) throw new Error('Não foi possível criar a página de teste.')
   return id
 }
+
+/** Título gravado no banco (null se a página não existe), para conferir o que o app salvou. */
+export async function savedTitle(session: ApiSession, pageId: string): Promise<string | null> {
+  const { data } = await session.client.from('pages').select('title').eq('id', pageId).maybeSingle()
+  return data?.title ?? null
+}

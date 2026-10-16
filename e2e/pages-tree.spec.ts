@@ -6,6 +6,7 @@ import {
   newRunPrefix,
   removePagesByIds,
   removePagesWithPrefix,
+  savedTitle,
   sortKeySequence,
   type ApiSession,
 } from './support/pages-api'
@@ -231,6 +232,30 @@ test.describe('árvore de páginas', () => {
     await openNavigation(page)
     await expect(item(page, b)).toBeVisible()
     await expect.poll(() => visibleTitles(page, run.prefix)).toEqual([b, a])
+  })
+
+  test('keeps the title typed right before a reload (desktop)', async ({ page, run }, testInfo) => {
+    test.skip(testInfo.project.name !== 'desktop', 'O aviso de sair da página só existe no desktop.')
+    const title = `${run.prefix}recarrega`
+    const id = await createTestPage(run.api, { title, sortKey: sortKeySequence()() })
+    // Com texto pendente o navegador mostra o aviso de "sair da página"; o teste aceita o diálogo.
+    // O Chromium só o mostra depois de interação real do usuário: por isso click() e pressSequentially().
+    const dialogs: string[] = []
+    page.on('dialog', (dialog) => {
+      dialogs.push(dialog.type())
+      void dialog.accept()
+    })
+    await page.goto(`/p/${id}`)
+    await expect(titleField(page)).toHaveValue(title)
+
+    await titleField(page).click()
+    await titleField(page).press('End') // o clique põe o cursor no meio do texto
+    await titleField(page).pressSequentially('!')
+    await page.reload() // bem antes dos 600 ms do debounce
+
+    await expect(titleField(page)).toHaveValue(`${title}!`)
+    await expect.poll(() => savedTitle(run.api, id)).toBe(`${title}!`)
+    expect(dialogs).toEqual(['beforeunload'])
   })
 
   test('changes the icon of a page from the page header', async ({ page, run }) => {
