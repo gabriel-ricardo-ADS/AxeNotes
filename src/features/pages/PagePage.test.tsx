@@ -1,6 +1,7 @@
 import { act, screen, waitFor, within } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { TITLE_DEBOUNCE_MS } from '@/features/pages/components/PageTitle'
+import { FOCUS_TITLE_STATE } from '@/features/pages/routes'
 import { useTreeUiStore } from '@/features/workspace/tree-ui-store'
 import {
   dbPage,
@@ -273,6 +274,43 @@ describe('título da página', () => {
     expect(await screen.findByRole('heading', { level: 1, name: 'Leituras' })).toBeInTheDocument()
     expect(screen.queryByRole('textbox', { name: 'Título da página' })).not.toBeInTheDocument()
     expect(screen.queryByRole('button', { name: /ícone/i })).not.toBeInTheDocument()
+  })
+})
+
+describe('foco do título em página nova', () => {
+  const openNewPage = () => renderApp({ pathname: `/p/${CHILD}`, state: FOCUS_TITLE_STATE })
+
+  it('keeps taking the focus back for a moment, until the user does something', async () => {
+    vi.useFakeTimers({ shouldAdvanceTime: true })
+    try {
+      openNewPage()
+      const field = await titleField()
+      await act(async () => {
+        await vi.advanceTimersByTimeAsync(10)
+      })
+      expect(field).toHaveFocus()
+
+      // Algo (a gaveta do mobile) tira o foco: o título insiste em pegá-lo de volta.
+      act(() => {
+        field.blur()
+      })
+      await act(async () => {
+        await vi.advanceTimersByTimeAsync(150)
+      })
+      expect(field).toHaveFocus()
+
+      // O usuário agiu (abriu o "Renomear" da sidebar, por exemplo): o foco não é mais roubado.
+      act(() => {
+        document.body.dispatchEvent(new Event('pointerdown', { bubbles: true }))
+        field.blur()
+      })
+      await act(async () => {
+        await vi.advanceTimersByTimeAsync(1000)
+      })
+      expect(field).not.toHaveFocus()
+    } finally {
+      vi.useRealTimers()
+    }
   })
 })
 

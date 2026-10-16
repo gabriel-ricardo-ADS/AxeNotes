@@ -60,7 +60,9 @@ export function PageTitle({ pageId, title, editable, focusOnMount }: PageTitlePr
   }, [value])
 
   // Página recém-criada pelo menu: foca o título. No mobile a gaveta ainda está fechando (a armadilha
-  // de foco do diálogo e o "devolver foco ao ☰" disputam o foco), então insiste por um instante.
+  // de foco do diálogo e o "devolver foco ao ☰" disputam o foco), então insiste por um instante. A
+  // primeira ação do usuário (toque, clique ou tecla) encerra a insistência: senão ela roubaria o foco
+  // de um campo que ele acabou de abrir (por exemplo, renomear na sidebar).
   useEffect(() => {
     if (!focusOnMount) return
     const timers = [0, 120, 250, 400, 700].map((delay) =>
@@ -69,10 +71,17 @@ export function PageTitle({ pageId, title, editable, focusOnMount }: PageTitlePr
         if (area && document.activeElement !== area) area.focus()
       }, delay),
     )
-    return () => {
+    const stop = () => {
       timers.forEach((timer) => {
         window.clearTimeout(timer)
       })
+    }
+    document.addEventListener('pointerdown', stop, true)
+    document.addEventListener('keydown', stop, true)
+    return () => {
+      stop()
+      document.removeEventListener('pointerdown', stop, true)
+      document.removeEventListener('keydown', stop, true)
     }
   }, [focusOnMount])
 
