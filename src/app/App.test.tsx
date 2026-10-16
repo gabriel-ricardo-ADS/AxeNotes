@@ -53,10 +53,12 @@ describe('layout (desktop)', () => {
     expect(screen.queryByRole('button', { name: 'Abrir menu' })).not.toBeInTheDocument()
   })
 
-  it('renders the home page title in the content area', () => {
+  it('renders the home page title in the content area', async () => {
     renderApp()
 
-    expect(screen.getByRole('heading', { level: 1, name: 'Página inicial' })).toBeInTheDocument()
+    expect(
+      await screen.findByRole('heading', { level: 1, name: 'Página inicial' }),
+    ).toBeInTheDocument()
   })
 
   it('shows the not found page for unknown routes', () => {

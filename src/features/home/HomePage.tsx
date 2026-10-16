@@ -1,11 +1,19 @@
-import { t } from '@/i18n'
+import { PageScreen } from '@/features/pages/PagePage'
+import { NoHomePage, PageLoadError, PageLoading } from '@/features/pages/components/PageStatus'
+import { useHomePage } from '@/features/workspace/hooks/use-home-page'
 
-/** Página inicial vazia da Fase 0; o conteúdo real chega com as páginas (Fase 1). */
+/** Rota "/": mostra a página inicial do workspace (criada na primeira vez, se ainda não existe). */
 export function HomePage() {
-  return (
-    <div className="mx-auto w-full max-w-content px-6 py-10 md:px-16 md:py-16">
-      <h1 className="text-title font-bold text-strong">{t('home.title')}</h1>
-      <p className="mt-4 text-muted-foreground">{t('home.empty')}</p>
-    </div>
-  )
+  const home = useHomePage()
+
+  switch (home.status) {
+    case 'loading':
+      return <PageLoading />
+    case 'error':
+      return <PageLoadError onRetry={home.retry} />
+    case 'missing':
+      return <NoHomePage />
+    case 'ready':
+      return <PageScreen pageId={home.pageId} />
+  }
 }
