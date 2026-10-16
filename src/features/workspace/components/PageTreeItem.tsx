@@ -44,9 +44,10 @@ export interface PageTreeItemProps {
   onKeyDown: (event: KeyboardEvent<HTMLLIElement>, item: FlatItem, openMenu: () => void) => void
 }
 
-// Fica escondido até passar o mouse/focar só onde há hover de verdade; no toque aparece sempre.
-const revealOnHover =
-  '[@media(hover:hover)]:opacity-0 [@media(hover:hover)]:group-hover/row:opacity-100 [@media(hover:hover)]:group-focus-within/row:opacity-100 data-[state=open]:opacity-100'
+// Com mouse, o grupo de ações fica sobreposto à direita da linha e só aparece ao passar o mouse ou
+// focar (não rouba espaço do título). No toque (sem hover) fica na própria linha, sempre visível.
+const actionsClass =
+  'flex shrink-0 items-center [@media(hover:hover)]:absolute [@media(hover:hover)]:inset-y-0 [@media(hover:hover)]:right-0 [@media(hover:hover)]:rounded-tag [@media(hover:hover)]:bg-hover [@media(hover:hover)]:opacity-0 [@media(hover:hover)]:group-hover/row:opacity-100 [@media(hover:hover)]:group-focus-within/row:opacity-100 data-[open=true]:opacity-100'
 
 const smallButton =
   'flex h-11 w-9 shrink-0 items-center justify-center rounded-tag text-muted-foreground hover:bg-hover hover:text-strong md:h-7 md:w-6 md:pointer-coarse:h-11 md:pointer-coarse:w-9'
@@ -195,7 +196,7 @@ export function PageTreeItem(props: PageTreeItemProps) {
       )}
 
       {canEdit && !renaming ? (
-        <span className="flex shrink-0 items-center">
+        <span data-open={menuOpen} className={actionsClass}>
           <button
             ref={setActivatorNodeRef}
             {...attributes}
@@ -205,7 +206,6 @@ export function PageTreeItem(props: PageTreeItemProps) {
             className={cn(
               smallButton,
               'hidden cursor-grab [@media(hover:hover)]:flex',
-              revealOnHover,
             )}
           >
             <GripVerticalIcon className="size-4" aria-hidden="true" />
@@ -217,7 +217,7 @@ export function PageTreeItem(props: PageTreeItemProps) {
             onClick={() => {
               props.onCreateChild(page.id)
             }}
-            className={cn(smallButton, revealOnHover)}
+            className={smallButton}
           >
             <PlusIcon className="size-4" aria-hidden="true" />
           </button>
@@ -227,7 +227,7 @@ export function PageTreeItem(props: PageTreeItemProps) {
                 type="button"
                 tabIndex={tabIndex}
                 aria-label={t('workspace.tree.menu', { title })}
-                className={cn(smallButton, revealOnHover)}
+                className={smallButton}
               >
                 <EllipsisIcon className="size-4" aria-hidden="true" />
               </button>
