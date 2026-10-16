@@ -1,0 +1,67 @@
+/*
+ * Tokens visuais do AxeNotes (skill design-axenotes). Valores aproximados das referências da
+ * cliente, mantendo contraste AA. Componentes nunca usam hex: só estas variáveis (via Tailwind).
+ * O tema escuro é o padrão; o tema claro (V1) entra como :root[data-theme='light'].
+ */
+:root,
+:root[data-theme='dark'] {
+  color-scheme: dark;
+
+  /* superfícies */
+  --bg: #191919; /* fundo da página */
+  --bg-sidebar: #202020;
+  --bg-hover: #2c2c2c;
+  --bg-elevated: #252525; /* menus, popovers, cards */
+  --border: #2f2f2f;
+
+  /* texto */
+  --text: #d4d4d4;
+  --text-strong: #ffffffcf;
+  --text-muted: #9b9b9b;
+  --text-faint: #7f7f7f;
+
+  /* ação */
+  --accent: #2383e2; /* botão "Nova", links ativos, foco */
+  --accent-hover: #0077d4;
+  --danger: #eb5757;
+
+  /* cores nomeadas: texto | fundo de bloco/título | etiqueta (select/status) */
+  --c-default-text: #d4d4d4;
+  --c-default-block: transparent;
+  --c-default-tag: #373737;
+  --c-gray-text: #9b9b9b;
+  --c-gray-block: #2f2f2f;
+  --c-gray-tag: #5a5a5a;
+  --c-brown-text: #ba856f;
+  --c-brown-block: #4a3228;
+  --c-brown-tag: #603b2c;
+  --c-orange-text: #c77d48;
+  --c-orange-block: #5c3b23;
+  --c-orange-tag: #854c1d;
+  --c-yellow-text: #ca9849;
+  --c-yellow-block: #564328;
+  --c-yellow-tag: #89632a;
+  --c-green-text: #529e72;
+  --c-green-block: #243d30;
+  --c-green-tag: #2b593f;
+  --c-blue-text: #5e87c9;
+  --c-blue-block: #143a4e;
+  --c-blue-tag: #28456c;
+  --c-purple-text: #9d68d3;
+  --c-purple-block: #3c2d49;
+  --c-purple-tag: #492f64;
+  --c-pink-text: #d15796;
+  --c-pink-block: #4e2c3c;
+  --c-pink-tag: #69314c;
+  --c-red-text: #df5452;
+  --c-red-block: #522e2a;
+  --c-red-tag: #6e3630;
+
+  /* forma e movimento */
+  --r-tag: 4px; /* etiquetas e botões */
+  --r-card: 6px; /* cards e menus */
+  --r-popover: 8px; /* popovers grandes */
+  --duration-ui: 150ms;
+  --content-width: 900px; /* largura de leitura da página */
+  --sidebar-width: 15rem; /* 240 px */
+}
