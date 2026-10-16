@@ -40,6 +40,8 @@ SMTP (Brevo ou Resend) para o OTP.
   Página: ícone, título, breadcrumb, "Editada há…". Busca Ctrl+K por título.
 - Seed com dados fictícios e 2 usuários de teste.
 - e2e passa a rodar no CI.
+- Dividida em partes (um PR cada). **T2 — banco e RLS** (`supabase/`: migrações, seed e testes em
+  PGlite; sem telas) está em PR; o restante (cliente, auth, sidebar, árvore, busca Ctrl+K) vem depois.
 **Pronto quando:** teste de RLS (Postgres local/PGlite) prova que usuário B não vê o workspace de
 A, e que um viewer não edita; árvore funciona no desktop e no mobile. Nada é aplicado no
 Supabase remoto sem o ok do Gabriel (DECISÃO-015).
