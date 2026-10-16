@@ -1,0 +1,38 @@
+# dependências e build
+node_modules/
+dist/
+dev-dist/
+coverage/
+*.tsbuildinfo
+
+# ambiente (nunca versionar)
+.env
+.env.local
+.env.*.local
+.env.production
+
+# testes e verificação visual
+.screenshots/
+playwright-report/
+test-results/
+blob-report/
+
+# referências visuais da cliente (dados pessoais — ficam só local e no Projeto)
+docs/reference/*
+!docs/reference/.gitkeep
+
+# Supabase local
+supabase/.branches/
+supabase/.temp/
+
+# Capacitor (fase 10)
+android/app/build/
+ios/App/Pods/
+
+# Claude Code (config pessoal)
+.claude/settings.local.json
+CLAUDE.local.md
+
+# sistema
+.DS_Store
+Thumbs.db

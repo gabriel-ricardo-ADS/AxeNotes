@@ -1,0 +1,15 @@
+{
+  "recommendations": [
+    "anthropic.claude-code",
+    "dbaeumer.vscode-eslint",
+    "esbenp.prettier-vscode",
+    "bradlc.vscode-tailwindcss",
+    "eamodio.gitlens",
+    "usernamehw.errorlens",
+    "yoavbls.pretty-ts-errors",
+    "vitest.explorer",
+    "ms-playwright.playwright",
+    "github.vscode-pull-request-github",
+    "mikestead.dotenv"
+  ]
+}
