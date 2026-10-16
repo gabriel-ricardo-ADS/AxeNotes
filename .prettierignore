@@ -1,0 +1,17 @@
+node_modules
+dist
+dev-dist
+coverage
+playwright-report
+test-results
+blob-report
+.screenshots
+axenotes-kit
+docs/reference
+pnpm-lock.yaml
+src/components/ui
+
+# Documentação e config do Claude/VS Code são mantidas à mão; o Prettier não reformata.
+*.md
+.claude
+.vscode

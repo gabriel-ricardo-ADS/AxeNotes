@@ -36,3 +36,6 @@ CLAUDE.local.md
 # sistema
 .DS_Store
 Thumbs.db
+
+# kit local de referências (contém dados pessoais da cliente)
+axenotes-kit/

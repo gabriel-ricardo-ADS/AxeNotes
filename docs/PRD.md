@@ -40,7 +40,8 @@ e no celular.
 ## 3. Funcionalidades detalhadas
 
 ### 3.1 Conta, dispositivos e usuários (MVP)
-- Login por e-mail + senha e "link mágico" (Supabase Auth). Sessão persistente.
+- Login por e-mail + senha + código OTP de 6 dígitos (Supabase Auth). **Sem link mágico**
+  (problema no PWA do iOS, DECISÃO-014). Sessão persistente.
 - Arquitetura multiusuário desde o início: cada conta tem um workspace; workspaces têm membros
   com papéis (dono, editor, leitor). No MVP a UI mostra só o workspace pessoal.
 - V1: convidar pessoas para o workspace ou para uma página; link público somente leitura.
@@ -49,13 +50,14 @@ e no celular.
 - Indicador discreto de "Salvando… / Salvo" e de "sem conexão".
 
 ### 3.2 Sidebar / navegação (MVP)
-- Busca rápida (Ctrl/Cmd+K): busca por título e conteúdo, com acentos ignorados.
+- Busca rápida (Ctrl/Cmd+K): busca por título, com acentos ignorados. A busca por conteúdo chega
+  com o editor (Fase 2, DECISÃO-019).
 - "Página inicial" (página definida como home), Favoritos (estrela), Recentes, Páginas (árvore).
 - Árvore: expandir/recolher, criar subpágina pelo "+", reordenar e mover arrastando,
   menu "…" (renomear, duplicar, mover para, favoritar, excluir → Lixeira).
 - Lixeira com restaurar / excluir definitivamente.
 - "Próximos eventos" (V1): próximos itens da agenda com bolinha colorida e horário.
-- Mobile: sidebar vira gaveta (abre por botão e gesto de arrastar da borda).
+- Mobile: sidebar vira gaveta, aberta **só pelo botão ☰** (sem gesto de arrastar da borda).
 - Recolher sidebar no desktop; largura ajustável.
 
 ### 3.3 Página (MVP)
@@ -74,7 +76,8 @@ Interações obrigatórias (ver docs/UI-REFERENCE.md):
 - Menu "/" com busca ("Digite para filtrar"), agrupado: Blocos básicos, Mídia, Bases, Avançados;
   atalhos markdown (`#`, `##`, `###`, `-`, `1.`, `[]`, `>`, ```` ``` ````, `---`).
 - Menu do bloco: busca de ações, Transformar em ▸, Cor ▸ (texto e fundo), Link para o bloco,
-  Duplicar (Ctrl+D), Mover para (outra página), Excluir (Del); rodapé "Última edição por … em …".
+  Duplicar (Ctrl+D), Excluir (Del); rodapé "Última edição por … em …". "Mover para (outra
+  página)" fica para a V1 (DECISÃO-021).
 - Barra de formatação ao selecionar texto: negrito, itálico, sublinhado, tachado, código, link,
   cor do texto/fundo.
 
@@ -92,14 +95,16 @@ Tipos de bloco:
   (abre ao clicar, com propriedades no topo e conteúdo livre embaixo).
 - Tipos de propriedade — MVP: Título, Texto, Número, Seleção, Seleção múltipla, Status
   (com grupos A fazer / Em andamento / Concluído), Data (com intervalo e horário opcional),
-  Caixa de seleção, URL, Arquivo/Imagem (usado como capa), Avaliação (1–5 estrelas, ícone
-  configurável: estrela ou coração). V1: E-mail, Telefone, Pessoa, Criado em / Editado em,
+  Caixa de seleção, URL, Arquivo/Imagem (usado como capa; aceita URL e upload), Avaliação (1–5
+  com ícone configurável: estrela ou coração, e destaque ❤️ opcional). O formato da data é
+  configurável por propriedade (DECISÃO-020). V1: E-mail, Telefone, Pessoa, Criado em / Editado em,
   Relação, Fórmula simples, Rollup (contar/somar).
 - Opções de seleção com cores (paleta fixa: padrão, cinza, marrom, laranja, amarelo, verde,
   azul, roxo, rosa, vermelho).
 - Visualizações (abas no topo, cada uma com nome e ícone) — MVP: Tabela, Galeria.
   V1: Quadro (kanban por status/seleção), Calendário, Lista.
-- Em cada vista: filtros (e/ou), ordenação, agrupamento (V1), propriedades visíveis e ordem,
+- Em cada vista: filtros (e/ou), ordenação, agrupamento por status/seleção (MVP), propriedades
+  visíveis e ordem,
   largura de coluna, busca, "Nova" (botão azul) com template padrão, contagem de linhas no rodapé.
 - Tabela: edição inline das células, adicionar coluna "+", arrastar colunas, rolagem horizontal
   com cabeçalho e primeira coluna fixos, adicionar linha "+ Nova página".
