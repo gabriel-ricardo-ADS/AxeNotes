@@ -38,7 +38,8 @@ export function useHomePage(): HomePageState {
     },
     enabled: needsCreation && userId !== undefined,
     retry: false,
-    staleTime: Infinity,
+    // Sem cache entre usos: se a página inicial um dia for apagada, a criação roda de novo.
+    staleTime: 0,
   })
 
   if (workspaceQuery.isError) {
@@ -50,7 +51,7 @@ export function useHomePage(): HomePageState {
   if (!needsCreation) return { status: 'missing' }
 
   if (creation.isError) return { status: 'error', retry: () => void creation.refetch() }
-  if (creation.isSuccess) {
+  if (creation.isSuccess && !creation.isFetching) {
     return creation.data === null ? { status: 'missing' } : { status: 'ready', pageId: creation.data }
   }
   return { status: 'loading' }

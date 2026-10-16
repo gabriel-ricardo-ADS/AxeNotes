@@ -3,6 +3,7 @@ import { useQueryClient } from '@tanstack/react-query'
 import { useCallback, useEffect, useMemo, useRef, useState, type ReactNode } from 'react'
 import { signOut as apiSignOut, subscribeToAuthChanges } from '@/features/auth/api/auth'
 import { AuthContext, type AuthContextValue, type AuthStatus } from '@/features/auth/auth-context'
+import { useTreeUiStore } from '@/features/workspace/tree-ui-store'
 
 interface SessionState {
   status: AuthStatus
@@ -26,7 +27,11 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     return subscribeToAuthChanges((event, session) => {
       const nextUserId = session?.user.id ?? null
       const changedUser = currentUserId.current !== null && currentUserId.current !== nextUserId
-      if (event === 'SIGNED_OUT' || changedUser) queryClient.clear()
+      if (event === 'SIGNED_OUT' || changedUser) {
+        queryClient.clear()
+        // Estado de interface da árvore (em memória) também não passa de uma conta para a outra.
+        useTreeUiStore.getState().bindUser(session?.user.id)
+      }
       currentUserId.current = nextUserId
 
       // PASSWORD_RECOVERY é só reforço: a tela de recuperação já marca `recovering` por conta própria.

@@ -155,6 +155,7 @@ class FakeQuery implements PromiseLike<QueryResult> {
   private max: number | null = null
   private single = false
   private returning = false
+  private continuation = false
 
   constructor(
     private readonly table: Table,
@@ -182,6 +183,11 @@ class FakeQuery implements PromiseLike<QueryResult> {
   }
   eq(column: string, value: unknown) {
     this.filters.push((row) => row[column] === value)
+    return this
+  }
+  gt(column: string, value: unknown) {
+    this.continuation = true
+    this.filters.push((row) => String(row[column]) > String(value))
     return this
   }
   is(column: string, value: unknown) {
@@ -239,10 +245,11 @@ class FakeQuery implements PromiseLike<QueryResult> {
       const doomed = matches.filter((row) => this.table !== 'pages' || row.trashed_at != null)
       fakeDb.tables[this.table] = rows.filter((row) => !doomed.includes(row))
       fakeDb.writes.push({ op: 'delete', table: this.table, payload: null })
-      return { data: null, error: null }
+      return { data: this.returning ? doomed.map((row) => ({ ...row })) : null, error: null }
     }
 
-    fakeDb.selects.push(this.table)
+    // Um "carregamento" conta uma vez: os lotes seguintes de uma lista (cursor `gt`) não somam.
+    if (!this.continuation) fakeDb.selects.push(this.table)
     let result = matches.map((row) => ({ ...row }))
     if (this.sorting) {
       const { column, ascending } = this.sorting

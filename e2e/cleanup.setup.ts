@@ -9,6 +9,11 @@ setup('remove leftover e2e pages of test user 1', async () => {
 
   const session = await apiSessionBySignIn()
   const { removed, skipped } = await removePagesWithPrefix(session, E2E_PREFIX, MAX_LEFTOVERS)
+  if (skipped > 0) {
+    throw new Error(
+      `${String(skipped)} subárvore(s) "e2e-…" têm páginas sem o prefixo e não foram apagadas. Confira o usuário de teste 1.`,
+    )
+  }
   console.log(`Limpeza inicial: ${String(removed)} subárvore(s) removida(s), ${String(skipped)} ignorada(s).`)
   await session.client.auth.signOut({ scope: 'local' })
 })

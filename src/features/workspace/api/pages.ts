@@ -28,20 +28,30 @@ function toPageRow(raw: unknown): PageRow {
   }
 }
 
-/** Todas as páginas do workspace fora da lixeira (só o necessário para a árvore). */
+/**
+ * Todas as páginas do workspace fora da lixeira (só o necessário para a árvore). Paginação por cursor
+ * (`id > último`): inserir ou apagar entre dois lotes não pula nem repete linhas. O fim é quando o lote
+ * vem vazio, então um `max_rows` do servidor menor que BATCH também não trunca a lista.
+ */
 export async function fetchPages(workspaceId: string): Promise<PageRow[]> {
-  const rows: PageRow[] = []
-  for (let from = 0; ; from += BATCH) {
-    const { data, error } = await supabase
+  const rows = new Map<string, PageRow>()
+  let cursor: string | null = null
+  for (;;) {
+    let query = supabase
       .from('pages')
       .select(PAGE_COLUMNS)
       .eq('workspace_id', workspaceId)
       .is('trashed_at', null)
       .order('id', { ascending: true })
-      .range(from, from + BATCH - 1)
+      .limit(BATCH)
+    if (cursor !== null) query = query.gt('id', cursor)
+    const { data, error } = await query
     if (error) throw new Error('pages_fetch_failed')
-    rows.push(...(data as unknown[]).map(toPageRow))
-    if (data.length < BATCH) return rows
+    const batch = (data as unknown[]).map(toPageRow)
+    for (const row of batch) rows.set(row.id, row)
+    const last = batch[batch.length - 1]
+    if (last === undefined) return [...rows.values()]
+    cursor = last.id
   }
 }
 
@@ -93,7 +103,7 @@ export interface PagePatch {
 
 /** Atualiza só as colunas permitidas ao cliente (parent_id, title, icon, sort_key). */
 export async function updatePage(pageId: string, patch: PagePatch): Promise<void> {
-  const { error } = await supabase
+  const { data, error } = await supabase
     .from('pages')
     .update({
       ...(patch.parentId !== undefined && { parent_id: patch.parentId }),
@@ -102,13 +112,17 @@ export async function updatePage(pageId: string, patch: PagePatch): Promise<void
       ...(patch.sortKey !== undefined && { sort_key: patch.sortKey }),
     })
     .eq('id', pageId)
+    .select('id')
   if (error) throw new Error('pages_update_failed')
+  // A RLS não dá erro quando barra: a consulta só não atinge linha nenhuma (leitor, página apagada
+  // em outra aba, página na lixeira). Isso precisa virar erro, ou o cache otimista ficaria errado.
+  if (data.length === 0) throw new Error('pages_update_failed')
 }
 
 /** Manda para a lixeira e apaga em definitivo (o banco só deixa apagar quem já está na lixeira). */
 export async function trashAndDeletePage(pageId: string): Promise<void> {
   const trashed = await supabase.rpc('trash_page', { p_page_id: pageId })
   if (trashed.error) throw new Error('pages_trash_failed')
-  const { error } = await supabase.from('pages').delete().eq('id', pageId)
-  if (error) throw new Error('pages_delete_failed')
+  const { data, error } = await supabase.from('pages').delete().eq('id', pageId).select('id')
+  if (error || data.length === 0) throw new Error('pages_delete_failed')
 }

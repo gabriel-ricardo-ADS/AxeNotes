@@ -195,6 +195,23 @@ export async function removePagesWithPrefix(
   return { removed, skipped }
 }
 
+/**
+ * Apaga páginas pelos ids (e, em cascata, as subpáginas). Serve para as páginas que o próprio teste
+ * criou pela interface com título vazio: se ele falhar antes de digitar o prefixo, a limpeza por
+ * prefixo não as acharia. Só entram ids vistos nos POSTs feitos pelo navegador DESTE teste.
+ */
+export async function removePagesByIds(session: ApiSession, ids: readonly string[]): Promise<void> {
+  for (const id of ids) {
+    // Só título vazio (nunca digitado) ou com o prefixo: a "Página inicial" que o app cria sozinho
+    // no primeiro acesso também passa por um POST, e essa NÃO se apaga.
+    const { data } = await session.client.from('pages').select('title').eq('id', id).maybeSingle()
+    if (data === null || !(data.title === '' || data.title.startsWith(E2E_PREFIX))) continue
+    const trashed = await session.client.rpc('trash_page', { p_page_id: id })
+    if (trashed.error) continue
+    await session.client.from('pages').delete().eq('id', id)
+  }
+}
+
 /** Cria uma página de teste (como o app faria), com o prefixo no título. Devolve o id. */
 export async function createTestPage(
   session: ApiSession,

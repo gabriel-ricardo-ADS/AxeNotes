@@ -245,6 +245,26 @@ describe('árvore com falhas', () => {
     expect(dbPage(MOVIES)?.title).toBe('Filmes')
   })
 
+  it('treats an update that reaches no row (blocked by RLS or deleted elsewhere) as a failure', async () => {
+    const user = userEvent.setup()
+    renderApp()
+    await treeitem('Filmes')
+    // Outra aba apagou a página: o UPDATE do banco não dá erro, só não atinge linha nenhuma.
+    fakeDb.tables.pages = fakeDb.tables.pages.filter((row) => row.id !== MOVIES)
+
+    await user.click(screen.getByRole('button', { name: 'Mais ações de Filmes' }))
+    await user.click(await screen.findByRole('menuitem', { name: 'Renomear' }))
+    const field = await screen.findByRole('textbox', { name: 'Novo nome da página' })
+    await user.clear(field)
+    await user.type(field, 'Cinema{Enter}')
+
+    expect(await screen.findByRole('alert')).toHaveTextContent('Não foi possível renomear a página.')
+    // A lista é recarregada do servidor depois da falha: a página apagada em outra aba some.
+    await waitFor(() => {
+      expect(screen.queryByRole('treeitem', { name: 'Filmes' })).not.toBeInTheDocument()
+    })
+  })
+
   it('puts the page back where it was when moving fails', async () => {
     const user = userEvent.setup()
     renderApp()

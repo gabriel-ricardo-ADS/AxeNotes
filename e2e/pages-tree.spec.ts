@@ -4,6 +4,7 @@ import {
   apiSession,
   createTestPage,
   newRunPrefix,
+  removePagesByIds,
   removePagesWithPrefix,
   type ApiSession,
 } from './support/pages-api'
@@ -19,14 +20,25 @@ interface Run {
 }
 
 const test = base.extend<{ run: Run }>({
-  // eslint-disable-next-line no-empty-pattern -- o Playwright exige o objeto de fixtures aqui
-  run: async ({}, provide, testInfo) => {
+  run: async ({ page }, provide, testInfo) => {
     const project = testInfo.project.name
     const api = await apiSession(project)
     const prefix = newRunPrefix(project)
+    // Páginas criadas pela interface nascem com título vazio: guarda os ids dos POSTs deste teste.
+    const created: string[] = []
+    page.on('request', (request) => {
+      if (request.method() !== 'POST' || !request.url().includes('/rest/v1/pages')) return
+      try {
+        const body = JSON.parse(request.postData() ?? '{}') as { id?: unknown }
+        if (typeof body.id === 'string') created.push(body.id)
+      } catch {
+        // corpo que não é JSON: ignora
+      }
+    })
     try {
       await provide({ prefix, api })
     } finally {
+      await removePagesByIds(api, created)
       await removePagesWithPrefix(api, prefix)
     }
   },
