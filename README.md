@@ -31,6 +31,7 @@ pnpm dev                     # http://localhost:5173
 | `pnpm typecheck` / `pnpm lint` / `pnpm format` | tipos, ESLint e Prettier |
 | `pnpm test` | testes unitários (Vitest) |
 | `pnpm e2e` | testes de ponta a ponta (Playwright: desktop, iPhone e iPad) |
+| `pnpm screenshots [rota ...]` | prints desktop/iPhone/iPad em `.screenshots/` (com `pnpm dev` rodando) |
 | `pnpm run license:check` | falha se alguma dependência não for compatível com GPL-3.0 |
 
 Na primeira vez, instale os navegadores do e2e: `pnpm exec playwright install chromium webkit`.

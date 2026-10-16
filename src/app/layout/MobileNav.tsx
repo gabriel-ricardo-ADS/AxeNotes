@@ -1,0 +1,50 @@
+import { MenuIcon } from 'lucide-react'
+import { useState } from 'react'
+import { Sidebar } from '@/app/layout/Sidebar'
+import {
+  Sheet,
+  SheetContent,
+  SheetDescription,
+  SheetHeader,
+  SheetTitle,
+  SheetTrigger,
+} from '@/components/ui/sheet'
+import { t } from '@/i18n'
+
+/** Barra superior do mobile com o botão ☰, que abre a sidebar numa gaveta. Só pelo botão. */
+export function MobileNav() {
+  const [open, setOpen] = useState(false)
+
+  return (
+    <Sheet open={open} onOpenChange={setOpen}>
+      <header className="flex h-12 shrink-0 items-center gap-1 border-b px-1 pt-[env(safe-area-inset-top)] box-content">
+        <SheetTrigger asChild>
+          <button
+            type="button"
+            aria-label={t('layout.openMenu')}
+            className="flex size-11 items-center justify-center rounded-tag text-muted-foreground hover:bg-hover"
+          >
+            <MenuIcon className="size-5" aria-hidden="true" />
+          </button>
+        </SheetTrigger>
+        <span className="font-semibold text-strong">{t('app.name')}</span>
+      </header>
+
+      <SheetContent
+        side="left"
+        showCloseButton={false}
+        className="w-[min(18rem,85vw)] bg-sidebar pt-[env(safe-area-inset-top)] pb-[env(safe-area-inset-bottom)]"
+      >
+        <SheetHeader className="sr-only">
+          <SheetTitle>{t('layout.sidebar.drawerTitle')}</SheetTitle>
+          <SheetDescription>{t('layout.sidebar.drawerDescription')}</SheetDescription>
+        </SheetHeader>
+        <Sidebar
+          onNavigate={() => {
+            setOpen(false)
+          }}
+        />
+      </SheetContent>
+    </Sheet>
+  )
+}

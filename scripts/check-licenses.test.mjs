@@ -45,6 +45,12 @@ describe('isLicenseAllowed', () => {
     expect(isLicenseAllowed('CC-BY-4.0', 'caniuse-lite')).toBe(true)
     expect(isLicenseAllowed('CC-BY-4.0', 'other-package')).toBe(false)
   })
+
+  it('accepts OFL-1.1 only for the Inter font package', () => {
+    expect(isLicenseAllowed('OFL-1.1')).toBe(false)
+    expect(isLicenseAllowed('OFL-1.1', '@fontsource-variable/inter')).toBe(true)
+    expect(isLicenseAllowed('OFL-1.1', '@fontsource/roboto')).toBe(false)
+  })
 })
 
 describe('findViolations', () => {
