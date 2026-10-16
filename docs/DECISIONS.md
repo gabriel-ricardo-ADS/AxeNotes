@@ -143,3 +143,10 @@ O Gabriel conecta a conta. O deploy completo (PWA, redirect URLs do Auth) contin
 **DECIDIDA**
 - **Backup semanal na Fase 6**, para um destino **privado**. Nunca no repositório público.
 - "Mover bloco para outra página" fica para a **V1** (sai do menu do bloco do MVP).
+
+### DECISÃO-022 — Fonte Inter (OFL-1.1) é a única exceção de licença de fonte
+**DECIDIDA** — Gabriel, 2026-10-15, ao abrir o PR 2 da Fase 0. A fonte Inter vem do pacote
+`@fontsource-variable/inter`, sob a SIL Open Font License 1.1. Ela não está na lista geral de
+licenças compatíveis com GPL-3.0, então foi aprovada **só para esse pacote**, em
+`PACKAGE_EXCEPTIONS` de `scripts/check-licenses.mjs`. Qualquer outro pacote em OFL-1.1 (ou outra
+fonte) continua barrado pelo `pnpm run license:check` e precisa de nova aprovação.

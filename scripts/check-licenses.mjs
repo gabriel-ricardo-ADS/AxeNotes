@@ -33,6 +33,9 @@ const PACKAGE_EXCEPTIONS = {
   // Dados de compatibilidade de navegadores usados só por ferramentas de desenvolvimento
   // (browserslist, via eslint-plugin-react-hooks). Não entra no bundle do app.
   'caniuse-lite': ['CC-BY-4.0'],
+  // Fonte Inter (SIL Open Font License 1.1), aprovada pelo Gabriel só para este pacote
+  // (DECISÃO-022). A OFL permite usar e redistribuir a fonte junto com software GPL.
+  '@fontsource-variable/inter': ['OFL-1.1'],
 }
 
 /** Divide uma expressão SPDX em tokens: parênteses, AND, OR e identificadores. */
