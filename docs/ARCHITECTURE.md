@@ -39,8 +39,9 @@ Licenças: toda dependência precisa ser compatível com GPL-3.0 (DECISÃO-003).
 
 ```
 src/
-  app/            # rotas, providers, layout raiz, error boundary
-  components/ui/  # shadcn/ui
+  app/            # rotas, providers, error boundary
+    layout/       # AppLayout: sidebar fixa (>= 768 px) ou gaveta pelo ☰ (MobileNav) + conteúdo
+  components/ui/  # shadcn/ui (hoje só o Sheet, adaptado: animações próprias, sem tw-animate-css)
   features/
     auth/         # login, sessão
     workspace/    # workspaces, membros, sidebar, árvore, busca, favoritos, recentes, lixeira
@@ -54,14 +55,16 @@ src/
     ai/           # configurações de provedor, chamadas ao proxy
     sharing/      # convites, papéis, links públicos, presença
     settings/
-  lib/            # supabase client, query client, database.types.ts, fractional-index, utils
-  i18n/pt-BR.ts
-  styles/         # tokens.css
+  hooks/          # hooks genéricos (use-media-query)
+  lib/            # supabase client, query client, database.types.ts, fractional-index, utils (cn)
+  i18n/           # pt-BR.ts (todos os textos) + index.ts (t() com chaves tipadas)
+  styles/         # tokens.css (variáveis do tema) + index.css (Tailwind v4, @theme, base)
+  test/           # helpers de teste (ex.: stub de matchMedia)
 supabase/
   migrations/  functions/  tests/  seed.sql   # seed só com dados fictícios
 workers/
   sync/           # Cloudflare Worker + Durable Object do Yjs (fase de colaboração)
-e2e/
+e2e/              # specs do Playwright + screenshot.ts (pnpm screenshots)
 public/
 ```
 
