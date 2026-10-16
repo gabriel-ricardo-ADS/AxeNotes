@@ -22,6 +22,8 @@ const TITLE_MAX = 500
 interface UpdateInput {
   id: string
   patch: PagePatch
+  /** Salvamento ao sair da página: envia com `keepalive`, usando este token. */
+  keepaliveToken?: string
 }
 
 interface UpdateContext {
@@ -104,7 +106,8 @@ export function usePageMutations() {
 
   const updateMutation = useMutation({
     scope: WRITE_SCOPE,
-    mutationFn: ({ id, patch }: UpdateInput) => updatePage(id, patch),
+    mutationFn: ({ id, patch, keepaliveToken }: UpdateInput) =>
+      updatePage(id, patch, keepaliveToken === undefined ? undefined : { keepaliveToken }),
     onMutate: async ({ id, patch }: UpdateInput): Promise<UpdateContext> => {
       await queryClient.cancelQueries({ queryKey: pagesKey })
       const previous = readPages().find((row) => row.id === id) ?? null
@@ -161,10 +164,22 @@ export function usePageMutations() {
     }
   }
 
-  /** `silent`: o chamador mostra o erro do jeito dele (o campo de título da página). */
-  function renamePage(id: string, title: string, options?: { silent?: boolean }) {
+  /**
+   * `silent`: o chamador mostra o erro do jeito dele (o campo de título da página). `keepalive`: a
+   * página está sendo fechada ou recarregada; o envio sobrevive a isso (se houver sessão).
+   */
+  function renamePage(
+    id: string,
+    title: string,
+    options?: { silent?: boolean; keepalive?: boolean },
+  ) {
+    const keepaliveToken = options?.keepalive === true ? session?.access_token : undefined
     return runUpdate(
-      { id, patch: { title: title.slice(0, TITLE_MAX) } },
+      {
+        id,
+        patch: { title: title.slice(0, TITLE_MAX) },
+        ...(keepaliveToken !== undefined && { keepaliveToken }),
+      },
       t('workspace.errors.rename'),
       options?.silent ?? false,
     )
