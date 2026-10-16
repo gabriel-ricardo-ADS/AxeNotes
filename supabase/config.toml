@@ -1,0 +1,11 @@
+# Configuração mínima do Supabase CLI. O projeto remoto é configurado pelo painel; este arquivo só
+# diz ao CLI onde estão as migrações e a seed (a seed roda apenas no `supabase db reset` local).
+project_id = "axenotes"
+
+[db]
+# Mesma versão principal do Postgres do projeto remoto (Settings → Infrastructure).
+major_version = 17
+
+[db.seed]
+enabled = true
+sql_paths = ["./seed.sql"]
