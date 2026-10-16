@@ -1,9 +1,24 @@
-// Tela provisória da Fase 0 (PR 1). O layout real (sidebar/gaveta) entra no PR 2,
-// junto com o i18n: por isso o texto ainda não passa por src/i18n/pt-BR.ts.
+import { BrowserRouter, Route, Routes } from 'react-router'
+import { AppLayout } from '@/app/layout/AppLayout'
+import { NotFoundPage } from '@/app/NotFoundPage'
+import { HomePage } from '@/features/home/HomePage'
+
+/** Rotas do app, separadas do roteador para os testes usarem um MemoryRouter. */
+export function AppRoutes() {
+  return (
+    <Routes>
+      <Route element={<AppLayout />}>
+        <Route index element={<HomePage />} />
+        <Route path="*" element={<NotFoundPage />} />
+      </Route>
+    </Routes>
+  )
+}
+
 export function App() {
   return (
-    <main>
-      <h1>AxeNotes</h1>
-    </main>
+    <BrowserRouter>
+      <AppRoutes />
+    </BrowserRouter>
   )
 }

@@ -1,0 +1,47 @@
+import { HouseIcon } from 'lucide-react'
+import { NavLink } from 'react-router'
+import { t } from '@/i18n'
+import { cn } from '@/lib/utils'
+
+interface SidebarProps {
+  /** Chamado ao ativar um link; a gaveta mobile usa para se fechar. */
+  onNavigate?: () => void
+}
+
+/** Conteúdo da sidebar, igual na barra fixa (desktop) e na gaveta (mobile). */
+export function Sidebar({ onNavigate }: SidebarProps) {
+  return (
+    <nav
+      aria-label={t('layout.sidebar.label')}
+      className="flex h-full flex-col gap-5 overflow-y-auto px-2 py-3 text-ui"
+    >
+      <p className="px-2 font-semibold text-strong">{t('app.name')}</p>
+
+      <ul className="flex flex-col gap-0.5">
+        <li>
+          <NavLink
+            to="/"
+            end
+            onClick={onNavigate}
+            className={({ isActive }) =>
+              cn(
+                'flex min-h-11 items-center gap-2 rounded-tag px-2 text-muted-foreground transition-colors duration-(--duration-ui) hover:bg-hover md:min-h-8',
+                isActive && 'bg-hover font-medium text-strong',
+              )
+            }
+          >
+            <HouseIcon className="size-4 shrink-0" aria-hidden="true" />
+            {t('layout.sidebar.home')}
+          </NavLink>
+        </li>
+      </ul>
+
+      <section aria-labelledby="sidebar-recents">
+        <h2 id="sidebar-recents" className="px-2 pb-1 text-meta font-medium text-muted-foreground">
+          {t('layout.sidebar.recents')}
+        </h2>
+        <p className="px-2 text-muted-foreground">{t('layout.sidebar.recentsEmpty')}</p>
+      </section>
+    </nav>
+  )
+}
