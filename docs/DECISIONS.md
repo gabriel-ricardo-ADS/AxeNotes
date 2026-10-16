@@ -198,4 +198,7 @@ transferência antes. Até lá, a exclusão de contas só é feita à mão pelo 
 - **Estado de expansão** da árvore fica em memória (Zustand), sem `localStorage`, até o logout limpar stores
   persistidas.
 - **`date-fns`** (MIT) para "Editada há…" em pt-BR.
+- **Nota (correção pós-T3b):** arrastar para uma posição entre dois irmãos com a MESMA `sort_key` é recusado
+  com aviso (`planMove` → `tie`); antes o app gravava uma chave inócua e a ordem não mudava. Rebalancear
+  as chaves empatadas (reescrever vizinhas, escritas não atômicas) NÃO foi decidido: pendente com o Gabriel.
 
