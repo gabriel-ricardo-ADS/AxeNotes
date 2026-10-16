@@ -11,12 +11,13 @@ const uiDevices = {
 }
 
 // Cada projeto de UI depende de um "setup" que faz 1 login e salva o storageState; os testes que
-// precisam estar deslogados limpam o estado com test.use().
+// precisam estar deslogados limpam o estado com test.use(). Todos esperam o projeto "cleanup", que
+// remove sobras "e2e-…" do usuário de teste 1 antes de qualquer teste escrever.
 const uiProjects = Object.entries(uiDevices).flatMap(([name, use]): Project[] => [
-  { name: `${name}-setup`, testMatch: /auth\.setup\.ts/, use },
+  { name: `${name}-setup`, testMatch: /auth\.setup\.ts/, dependencies: ['cleanup'], use },
   {
     name,
-    testIgnore: [/auth\.setup\.ts/, /rls-smoke\.spec\.ts/],
+    testIgnore: [/auth\.setup\.ts/, /rls-smoke\.spec\.ts/, /cleanup\.setup\.ts/],
     dependencies: [`${name}-setup`],
     use: { ...use, ...(hasE2ECredentials ? { storageState: authFile(name) } : {}) },
   },
@@ -35,6 +36,7 @@ export default defineConfig({
     locale: 'pt-BR',
   },
   projects: [
+    { name: 'cleanup', testMatch: /cleanup\.setup\.ts/ },
     ...uiProjects,
     // Smoke de RLS no projeto real (só leitura): fala direto com a API, sem navegador.
     { name: 'api', testMatch: /rls-smoke\.spec\.ts/ },
