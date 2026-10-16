@@ -43,7 +43,7 @@ src/
     layout/       # AppLayout: sidebar fixa (>= 768 px) ou gaveta pelo ☰ (MobileNav) + conteúdo
   components/ui/  # shadcn/ui (hoje só o Sheet, adaptado: animações próprias, sem tw-animate-css)
   features/
-    auth/         # login, sessão
+    auth/         # entrar, criar conta, código OTP, recuperar senha, AuthProvider (sessão), guardas
     workspace/    # workspaces, membros, sidebar, árvore, busca, favoritos, recentes, lixeira
     pages/        # tela da página: capa, ícone, título, breadcrumb, editor
     editor/       # BlockNote, schema, blocos customizados, menus pt-BR, Yjs
@@ -56,7 +56,8 @@ src/
     sharing/      # convites, papéis, links públicos, presença
     settings/
   hooks/          # hooks genéricos (use-media-query)
-  lib/            # supabase client, query client, database.types.ts, fractional-index, utils (cn)
+  lib/            # supabase.ts (cliente tipado; env validada em supabase-env.ts), query-client.ts,
+                  # database.types.ts (gerado), fractional-index, utils (cn)
   i18n/           # pt-BR.ts (todos os textos) + index.ts (t() com chaves tipadas)
   styles/         # tokens.css (variáveis do tema) + index.css (Tailwind v4, @theme, base)
   test/           # helpers de teste (ex.: stub de matchMedia)
@@ -64,7 +65,8 @@ supabase/
   migrations/  functions/  tests/  seed.sql   # seed só com dados fictícios
 workers/
   sync/           # Cloudflare Worker + Durable Object do Yjs (fase de colaboração)
-e2e/              # specs do Playwright + screenshot.ts (pnpm screenshots)
+e2e/              # specs do Playwright (auth.setup.ts salva a sessão por projeto; rls-smoke.spec.ts lê o
+                  # projeto real) + screenshot.ts (pnpm screenshots)
 public/
 ```
 

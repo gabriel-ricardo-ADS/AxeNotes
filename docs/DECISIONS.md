@@ -100,6 +100,26 @@ por e-mail. **Sem link mágico**, por causa do problema que ele causa no PWA no 
 - SMTP gratuito (Brevo ou Resend) configurado pelo Gabriel **antes da tela de login** (Fase 1).
 - Substitui o "link mágico" do PRD 3.1 e da Fase 1 do roadmap.
 
+**Esclarecimento (Fase 1, T3a — como o fluxo foi implementado):**
+1. *Criar conta:* nome + e-mail + senha → `signUp` → tela do código (6 dígitos) →
+   `verifyOtp({ type: 'signup' })` → entra.
+2. *Entrar:* e-mail + senha (`signInWithPassword`), sessão persistente. **O código não é pedido a cada
+   login**; só confirma o cadastro e a recuperação de senha. Conta existente mas não confirmada → tela do
+   código com "Reenviar código" (espera de 60 s entre reenvios, além do limite do servidor).
+3. *Esqueci a senha:* e-mail → `resetPasswordForEmail` → código (`verifyOtp({ type: 'recovery' })`) →
+   nova senha (`updateUser`) → entra. O Supabase não tem `resend` de recuperação: reenviar chama
+   `resetPasswordForEmail` de novo.
+4. *Sair:* `signOut({ scope: 'local' })` — só este aparelho (o padrão, `global`, derrubaria todos); limpa o
+   cache do TanStack Query.
+- Respostas que não revelam contas: login errado mostra sempre "E-mail ou senha incorretos."; o pedido de
+  recuperação responde igual exista a conta ou não; a tela do código diz "se o e-mail estiver correto".
+- Senha: mínimo de 8 caracteres e máximo de 72 **bytes** (limite do bcrypt), validados no cliente (zod).
+- Durante a recuperação o código aceito já abre sessão; a tela marca `recovering` (antes de verificar,
+  desfeito se falhar) para a guarda "só deslogado" não tirar a pessoa da etapa da nova senha. Recarregar
+  nessa etapa deixa a pessoa logada no app sem ter trocado a senha (já provou posse do e-mail).
+- `/codigo` aberta sem `location.state` (PWA do iOS reaberto) pede o e-mail antes do código. O e-mail
+  viaja pelo `location.state`, nunca pela URL.
+
 ### DECISÃO-015 — Supabase, testes de RLS e remoto
 **DECIDIDA** — o projeto Supabase ainda não existe; o Gabriel cria **antes da Fase 1**.
 - Testes de RLS rodam em Postgres local ou PGlite, sem depender do projeto remoto.

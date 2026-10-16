@@ -10,8 +10,10 @@ argument-hint: "[rota ou página a verificar, ex.: /p/home]"
    prefira abrir no painel Browser; em thread de nuvem, use Playwright headless.
 2. Se a rota precisa de login, use o usuário de teste do seed (`E2E_EMAIL` / `E2E_PASSWORD` do
    ambiente) — nunca dados reais.
-3. Gere os prints com o script `e2e/screenshot.ts` (crie se não existir) para a rota
-   `$ARGUMENTS` (ou as rotas afetadas pela mudança):
+3. Gere os prints com o script `e2e/screenshot.ts` (`pnpm screenshots`; sem argumentos tira as telas de
+   autenticação deslogado e o app logado; com rotas, só elas, já logado se houver `E2E_*`) para a rota
+   `$ARGUMENTS` (ou as rotas afetadas pela mudança). Os prints logados mostram o nome do usuário de teste:
+   não os envie para PR, issue ou chat público:
    - `desktop`: viewport 1440×900, tema escuro
    - `mobile`: viewport 390×844 (iPhone, WebKit), `isMobile: true`, `hasTouch: true`
    - `tablet`: viewport 820×1180 (iPad, WebKit), `hasTouch: true` — quando a tela mudar de layout
