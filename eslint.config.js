@@ -18,6 +18,7 @@ export default tseslint.config(
       'axenotes-kit',
       'docs/reference',
       'src/components/ui', // código gerado pelo shadcn/ui
+      'src/lib/database.types.ts', // gerado pelo Supabase CLI
     ],
   },
   {
