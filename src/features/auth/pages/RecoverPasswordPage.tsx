@@ -2,7 +2,12 @@ import { useMutation } from '@tanstack/react-query'
 import { useState, type SyntheticEvent } from 'react'
 import { Link } from 'react-router'
 import { Button } from '@/components/ui/button'
-import { requestPasswordReset, updatePassword, verifyRecoveryCode } from '@/features/auth/api/auth'
+import {
+  requestPasswordReset,
+  signOutOtherSessions,
+  updatePassword,
+  verifyRecoveryCode,
+} from '@/features/auth/api/auth'
 import { useAuth } from '@/features/auth/auth-context'
 import { AuthCard } from '@/features/auth/components/AuthLayout'
 import { CodeInput } from '@/features/auth/components/CodeInput'
@@ -52,7 +57,13 @@ export function RecoverPasswordPage() {
     mutationFn: (values: { email: string; code: string }) =>
       verifyRecoveryCode(values.email, values.code),
   })
-  const save = useMutation({ mutationFn: updatePassword })
+  const save = useMutation({
+    mutationFn: async (newPassword: string) => {
+      await updatePassword(newPassword)
+      // Senha trocada: derruba as sessões dos outros aparelhos (best effort, não bloqueia a entrada).
+      await signOutOtherSessions().catch(() => undefined)
+    },
+  })
 
   const error = request.error ?? verify.error ?? save.error
   const errorMessage = error ? t(authErrorMessageKey(mapAuthError(error))) : null

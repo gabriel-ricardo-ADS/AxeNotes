@@ -6,10 +6,8 @@ coverage/
 *.tsbuildinfo
 
 # ambiente (nunca versionar)
-.env
-.env.local
-.env.*.local
-.env.production
+.env*
+!.env.example
 
 # testes e verificação visual
 .screenshots/

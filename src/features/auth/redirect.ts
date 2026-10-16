@@ -13,7 +13,8 @@ export function sanitizeRedirect(from: unknown): string {
   if (!from.startsWith('/') || from.startsWith('//')) return '/'
   if (from.includes('\\') || CONTROL_CHARS.test(from)) return '/'
 
-  const pathname = from.split(/[?#]/, 1)[0] ?? '/'
+  // O roteador ignora maiúsculas e a barra final: compara do mesmo jeito.
+  const pathname = (from.split(/[?#]/, 1)[0] ?? '/').toLowerCase().replace(/\/+$/, '')
   if (AUTH_PATHS.includes(pathname)) return '/'
   return from
 }

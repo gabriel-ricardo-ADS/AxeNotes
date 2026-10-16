@@ -137,10 +137,12 @@ test.describe('RLS no projeto real (somente leitura)', () => {
     test(`anonymous visitors get nothing from ${table}`, async () => {
       const anon = newClient()
 
-      const { data } = await anon.from(table).select('*').limit(5)
+      const { data, error } = await anon.from(table).select('*').limit(5)
 
-      // A API devolve erro de permissão (sem grants para anon) ou lista vazia (RLS): nunca linhas.
-      expect(data ?? []).toEqual([])
+      // Sem grants para anon: erro de permissão do Postgres (42501). Com grant e RLS: lista vazia,
+      // sem erro. Qualquer outro erro (URL/chave errada, rede) NÃO conta como "RLS bloqueou".
+      if (error) expect(error.code).toBe('42501')
+      else expect(data).toEqual([])
     })
   }
 })

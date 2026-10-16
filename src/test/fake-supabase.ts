@@ -52,8 +52,9 @@ export const fakeAuth = {
   resend: resolvesOk(),
   resetPasswordForEmail: resolvesOk(),
   updateUser: resolvesOk(),
-  signOut: vi.fn<(arg?: unknown) => Promise<{ error: null }>>(() => {
-    emitAuthEvent('SIGNED_OUT', null)
+  signOut: vi.fn<(arg?: { scope?: string }) => Promise<{ error: null }>>((arg) => {
+    // `others` encerra só as sessões dos outros aparelhos: esta continua logada.
+    if (arg?.scope !== 'others') emitAuthEvent('SIGNED_OUT', null)
     return Promise.resolve({ error: null })
   }),
 }

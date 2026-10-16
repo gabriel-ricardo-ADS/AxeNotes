@@ -29,5 +29,8 @@ describe('sanitizeRedirect', () => {
     expect(sanitizeRedirect('/entrar')).toBe('/')
     expect(sanitizeRedirect('/codigo?x=1')).toBe('/')
     expect(sanitizeRedirect('/recuperar-senha#a')).toBe('/')
+    expect(sanitizeRedirect('/ENTRAR')).toBe('/')
+    expect(sanitizeRedirect('/entrar/')).toBe('/')
+    expect(sanitizeRedirect('/Criar-Conta/?x=1')).toBe('/')
   })
 })

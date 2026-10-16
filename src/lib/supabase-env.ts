@@ -1,8 +1,39 @@
 import { z } from 'zod'
 
+const LOCAL_HOSTS = new Set(['localhost', '127.0.0.1', '[::1]'])
+
+/** https, ou http só para o Supabase local (`supabase start`). */
+function isSecureUrl(value: string): boolean {
+  try {
+    const url = new URL(value)
+    return url.protocol === 'https:' || (url.protocol === 'http:' && LOCAL_HOSTS.has(url.hostname))
+  } catch {
+    return false
+  }
+}
+
+/** Chave de serviço (service_role/secret) nunca pode ir para o bundle do navegador. */
+function isServiceKey(value: string): boolean {
+  if (value.startsWith('sb_secret_')) return true
+  const payload = value.split('.')[1]
+  if (payload === undefined) return false
+  try {
+    const json: unknown = JSON.parse(atob(payload.replace(/-/g, '+').replace(/_/g, '/')))
+    return (
+      typeof json === 'object' && json !== null && 'role' in json && json.role === 'service_role'
+    )
+  } catch {
+    return false
+  }
+}
+
 const envSchema = z.object({
-  VITE_SUPABASE_URL: z.url(),
-  VITE_SUPABASE_ANON_KEY: z.string().trim().min(1),
+  VITE_SUPABASE_URL: z.url().refine(isSecureUrl),
+  VITE_SUPABASE_ANON_KEY: z
+    .string()
+    .trim()
+    .min(1)
+    .refine((value) => !isServiceKey(value)),
 })
 
 export type SupabaseEnv = z.infer<typeof envSchema>

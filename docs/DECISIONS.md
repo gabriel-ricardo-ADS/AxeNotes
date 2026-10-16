@@ -117,6 +117,8 @@ por e-mail. **Sem link mágico**, por causa do problema que ele causa no PWA no 
 - Durante a recuperação o código aceito já abre sessão; a tela marca `recovering` (antes de verificar,
   desfeito se falhar) para a guarda "só deslogado" não tirar a pessoa da etapa da nova senha. Recarregar
   nessa etapa deixa a pessoa logada no app sem ter trocado a senha (já provou posse do e-mail).
+- Depois de trocar a senha na recuperação, as sessões dos OUTROS aparelhos são encerradas
+  (`signOut({ scope: 'others' })`, best effort): quem recupera a senha pode estar com a conta comprometida.
 - `/codigo` aberta sem `location.state` (PWA do iOS reaberto) pede o e-mail antes do código. O e-mail
   viaja pelo `location.state`, nunca pela URL.
 

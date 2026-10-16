@@ -57,6 +57,14 @@ export async function updatePassword(password: string): Promise<void> {
   if (error) fail(error)
 }
 
+/**
+ * Encerra as sessões dos OUTROS aparelhos (mantém esta). Chamado depois de trocar a senha na
+ * recuperação: quem esqueceu a senha pode estar com a conta comprometida. Falha não é crítica.
+ */
+export async function signOutOtherSessions(): Promise<void> {
+  await supabase.auth.signOut({ scope: 'others' })
+}
+
 /** "Sair" encerra só este aparelho (o padrão do Supabase, `global`, derrubaria todos). */
 export async function signOut(): Promise<void> {
   const { error } = await supabase.auth.signOut({ scope: 'local' })

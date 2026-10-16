@@ -280,6 +280,8 @@ describe('password recovery', () => {
     await user.click(screen.getByRole('button', { name: 'Salvar e entrar' }))
 
     expect(fakeAuth.updateUser).toHaveBeenCalledWith({ password: 'outra-senha-456' })
+    // A senha mudou: as sessões dos outros aparelhos são encerradas (a deste continua).
+    expect(fakeAuth.signOut).toHaveBeenCalledWith({ scope: 'others' })
     expect(await screen.findByRole('heading', { level: 1, name: 'Página inicial' })).toBeVisible()
   })
 
