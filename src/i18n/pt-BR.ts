@@ -109,7 +109,6 @@ export const ptBR = {
   },
   home: {
     title: 'Página inicial',
-    empty: 'Suas páginas vão aparecer aqui.',
   },
   notFound: {
     title: 'Página não encontrada',
@@ -136,6 +135,14 @@ export const ptBR = {
       moveTo: 'Mover para…',
       dragHandle: 'Arrastar {title} para mover',
       dropToRoot: 'Solte aqui para mover para a raiz',
+    },
+    drag: {
+      instructions:
+        'Para pegar a página, pressione Espaço. Use as setas para mover, Espaço para soltar e Esc para cancelar.',
+      picked: 'Você pegou {title}.',
+      over: '{title} está sobre {target}.',
+      dropped: '{title} foi movida.',
+      cancelled: 'Movimento cancelado.',
     },
     move: {
       title: 'Mover “{title}” para…',
