@@ -1,4 +1,4 @@
-import { PlusIcon, XIcon } from 'lucide-react'
+import { PlusIcon } from 'lucide-react'
 import { useEffect, useMemo } from 'react'
 import { useMatch, useNavigate } from 'react-router'
 import { Button } from '@/components/ui/button'
@@ -25,7 +25,6 @@ export function PagesSection({ onNavigate }: PagesSectionProps) {
   const workspace = useWorkspace()
   const pages = usePages()
   const { createPage } = usePageMutations()
-  const notice = useTreeUiStore((state) => state.notice)
   const setNotice = useTreeUiStore((state) => state.setNotice)
   const bindUser = useTreeUiStore((state) => state.bindUser)
   const match = useMatch('/p/:pageId')
@@ -49,7 +48,8 @@ export function PagesSection({ onNavigate }: PagesSectionProps) {
   }
 
   const failed = workspace.isError || pages.isError
-  const loading = !failed && (workspace.isPending || (pages.isPending && pages.fetchStatus !== 'idle'))
+  const loading =
+    !failed && (workspace.isPending || (pages.isPending && pages.fetchStatus !== 'idle'))
 
   return (
     <section aria-labelledby="sidebar-pages">
@@ -70,25 +70,6 @@ export function PagesSection({ onNavigate }: PagesSectionProps) {
           </button>
         ) : null}
       </div>
-
-      {notice === null ? null : (
-        <div
-          role="alert"
-          className="mb-1 flex items-start gap-1 rounded-tag bg-red-block py-1 pr-1 pl-2 text-meta text-red"
-        >
-          <p className="flex-1 py-1">{notice}</p>
-          <button
-            type="button"
-            aria-label={t('common.dismiss')}
-            onClick={() => {
-              setNotice(null)
-            }}
-            className="flex size-8 shrink-0 items-center justify-center rounded-tag hover:bg-hover"
-          >
-            <XIcon className="size-3.5" aria-hidden="true" />
-          </button>
-        </div>
-      )}
 
       {failed ? (
         <div className="px-2">
