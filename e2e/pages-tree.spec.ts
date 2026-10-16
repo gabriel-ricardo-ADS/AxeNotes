@@ -6,6 +6,8 @@ import {
   newRunPrefix,
   removePagesByIds,
   removePagesWithPrefix,
+  savedTitle,
+  sortKeySequence,
   type ApiSession,
 } from './support/pages-api'
 import { openNavigation } from './support/ui'
@@ -162,9 +164,10 @@ test.describe('árvore de páginas', () => {
     const a = `${run.prefix}a`
     const child = `${run.prefix}a-filha`
     const b = `${run.prefix}b`
-    const aId = await createTestPage(run.api, { title: a, sortKey: 'a0' })
-    await createTestPage(run.api, { title: child, parentId: aId, sortKey: 'a0' })
-    await createTestPage(run.api, { title: b, sortKey: 'a1' })
+    const nextKey = sortKeySequence()
+    const aId = await createTestPage(run.api, { title: a, sortKey: nextKey() })
+    await createTestPage(run.api, { title: child, parentId: aId, sortKey: nextKey() })
+    await createTestPage(run.api, { title: b, sortKey: nextKey() })
     await openApp(page)
     expect(await visibleTitles(page, run.prefix)).toEqual([a, b])
 
@@ -187,8 +190,9 @@ test.describe('árvore de páginas', () => {
   }) => {
     const parent = `${run.prefix}pai`
     const child = `${run.prefix}filha`
-    const parentId = await createTestPage(run.api, { title: parent, sortKey: 'a0' })
-    await createTestPage(run.api, { title: child, parentId, sortKey: 'a0' })
+    const nextKey = sortKeySequence()
+    const parentId = await createTestPage(run.api, { title: parent, sortKey: nextKey() })
+    await createTestPage(run.api, { title: child, parentId, sortKey: nextKey() })
     await openApp(page)
     await page.getByRole('button', { name: `Expandir ${parent}` }).click()
 
@@ -204,8 +208,9 @@ test.describe('árvore de páginas', () => {
     test.skip(testInfo.project.name !== 'desktop', 'Arrastar com o mouse só no desktop.')
     const a = `${run.prefix}a`
     const b = `${run.prefix}b`
-    await createTestPage(run.api, { title: a, sortKey: 'a0' })
-    await createTestPage(run.api, { title: b, sortKey: 'a1' })
+    const nextKey = sortKeySequence()
+    await createTestPage(run.api, { title: a, sortKey: nextKey() })
+    await createTestPage(run.api, { title: b, sortKey: nextKey() })
     await openApp(page)
     expect(await visibleTitles(page, run.prefix)).toEqual([a, b])
 
@@ -221,16 +226,41 @@ test.describe('árvore de páginas', () => {
     await page.mouse.up()
     await saved
 
-    expect(await visibleTitles(page, run.prefix)).toEqual([b, a])
+    // A nova ordem vale agora (cache otimista + conferência com o servidor) e depois do reload.
+    await expect.poll(() => visibleTitles(page, run.prefix)).toEqual([b, a])
     await page.reload()
     await openNavigation(page)
     await expect(item(page, b)).toBeVisible()
-    expect(await visibleTitles(page, run.prefix)).toEqual([b, a])
+    await expect.poll(() => visibleTitles(page, run.prefix)).toEqual([b, a])
+  })
+
+  test('keeps the title typed right before a reload (desktop)', async ({ page, run }, testInfo) => {
+    test.skip(testInfo.project.name !== 'desktop', 'O aviso de sair da página só existe no desktop.')
+    const title = `${run.prefix}recarrega`
+    const id = await createTestPage(run.api, { title, sortKey: sortKeySequence()() })
+    // Com texto pendente o navegador mostra o aviso de "sair da página"; o teste aceita o diálogo.
+    // O Chromium só o mostra depois de interação real do usuário: por isso click() e pressSequentially().
+    const dialogs: string[] = []
+    page.on('dialog', (dialog) => {
+      dialogs.push(dialog.type())
+      void dialog.accept()
+    })
+    await page.goto(`/p/${id}`)
+    await expect(titleField(page)).toHaveValue(title)
+
+    await titleField(page).click()
+    await titleField(page).press('End') // o clique põe o cursor no meio do texto
+    await titleField(page).pressSequentially('!')
+    await page.reload() // bem antes dos 600 ms do debounce
+
+    await expect(titleField(page)).toHaveValue(`${title}!`)
+    await expect.poll(() => savedTitle(run.api, id)).toBe(`${title}!`)
+    expect(dialogs).toEqual(['beforeunload'])
   })
 
   test('changes the icon of a page from the page header', async ({ page, run }) => {
     const title = `${run.prefix}icone`
-    const id = await createTestPage(run.api, { title, sortKey: 'a0' })
+    const id = await createTestPage(run.api, { title, sortKey: sortKeySequence()() })
     await page.goto(`/p/${id}`)
     await expect(titleField(page)).toHaveValue(title)
 

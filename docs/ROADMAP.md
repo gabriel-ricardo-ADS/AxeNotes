@@ -50,6 +50,9 @@ SMTP (Brevo ou Resend) para o OTP.
   busca Ctrl+K. Pendências: rodar o e2e no CI (precisa dos secrets `VITE_SUPABASE_*` e `E2E_*`), exclusão de
   conta (DECISÃO-023), e rodar `pnpm e2e` da T3b contra o projeto real (escreve só páginas `e2e-…` do usuário
   de teste 1 e as apaga).
+  **Correções pós-T3b:** o título digitado é salvo ao ocultar/recarregar a página (`keepalive` + aviso de
+  saída) e mover entre vizinhos com a mesma `sort_key` é recusado em vez de gravar uma chave inócua.
+  Pendência (decidir com o Gabriel): `sort_key` empatadas entre irmãos (hoje só se recusa o movimento; ver DECISÃO-025, ABERTA).
 **Pronto quando:** teste de RLS (Postgres local/PGlite) prova que usuário B não vê o workspace de
 A, e que um viewer não edita; árvore funciona no desktop e no mobile. Nada é aplicado no
 Supabase remoto sem o ok do Gabriel (DECISÃO-015).

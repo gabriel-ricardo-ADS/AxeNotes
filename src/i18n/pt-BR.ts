@@ -163,6 +163,8 @@ export const ptBR = {
       icon: 'Não foi possível alterar o ícone. Tente novamente.',
       move: 'Não foi possível mover a página. Tente novamente.',
       moveInvalid: 'Uma página não pode ser movida para dentro dela mesma ou de uma subpágina dela.',
+      moveTie:
+        'Não foi possível mover para essa posição, porque há páginas com a mesma ordem. Use "Mover para…" no menu da página.',
     },
   },
   page: {

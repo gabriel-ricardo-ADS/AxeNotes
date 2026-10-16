@@ -99,6 +99,19 @@ cadastro. O restante do rascunho abaixo entra nas fases indicadas. Detalhes do q
   sobre `['pages', workspaceId]` com rollback; título/ícone não recarregam a lista a cada salvamento, só no erro
   ou uma vez ao terminar de editar; criar/mover reconciliam ao fim. Escritas em `pages` seguem uma fila
   (`scope`), na ordem.
+- **Título da página: salvar ao sair.** O título salva com debounce (600 ms), no blur e ao desmontar. Reload,
+  fechar a aba e trocar de app não desmontam o React, então `visibilitychange` (hidden), `pagehide` e
+  `beforeunload` salvam o texto pendente na hora, uma vez só (`dirty` + `inFlight`), por `fetch` com
+  `keepalive: true` (o `fetch` comum é cancelado no reload; medido: Chromium 11/20 perdas, WebKit 20/20; com
+  `keepalive`, 0/20 nos dois). O token vai só em `Authorization`, para o host do Supabase. O `beforeunload`
+  pede a confirmação do navegador enquanto há texto pendente ou em envio (a falha mantém os dois); iOS não o
+  honra, lá vale o salvamento ao ocultar. Outros salvamentos (renomear na sidebar, ícone, mover) são imediatos,
+  sem estado pendente local.
+  O foco automático do título de página nova (com re-tentativas por ~700 ms por causa da gaveta mobile) para na
+  primeira ação do usuário (toque, clique ou tecla), para não roubar o foco de um campo recém-aberto.
+- **Mover entre irmãos empatados:** `planMove` devolve `reason: 'tie'` quando os dois vizinhos da posição têm a
+  mesma `sort_key` (não há chave entre eles sem reescrever um vizinho). O app avisa e não grava; "Mover para…"
+  (fim da lista) continua funcionando. Os e2e criam páginas com chaves únicas (`sortKeySequence`).
 - **Página inicial:** `workspaces.home_page_id` nulo → o owner cria "Página inicial" no 1º acesso (lock
   `navigator.locks` + `update … where home_page_id is null`). Só o owner grava esse campo (RLS).
 - **Estado de interface da árvore** (expandido, renomeando, aviso): Zustand em memória, sem `persist`.

@@ -212,6 +212,27 @@ export async function removePagesByIds(session: ApiSession, ids: readonly string
   }
 }
 
+const KEY_DIGITS = '123456789ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz'
+
+/**
+ * Gerador de chaves de ordem crescentes e únicas para páginas de teste. Chaves literais ("a0", "a1")
+ * empatam com as de outras raízes do usuário de teste (inclusive as dos outros projetos rodando em
+ * paralelo), e o app recusa mover entre vizinhos empatados; aqui cada gerador sorteia um prefixo
+ * próprio. Cada chamada a `next()` devolve uma chave maior que a anterior.
+ */
+export function sortKeySequence(): () => string {
+  const prefix = Array.from(
+    randomBytes(8),
+    (byte) => KEY_DIGITS[byte % KEY_DIGITS.length] ?? '1',
+  ).join('')
+  let index = 0
+  return () => {
+    const digit = KEY_DIGITS[index] ?? KEY_DIGITS[KEY_DIGITS.length - 1] ?? '9'
+    index = Math.min(index + 1, KEY_DIGITS.length - 1)
+    return `a0${prefix}${digit}`
+  }
+}
+
 /** Cria uma página de teste (como o app faria), com o prefixo no título. Devolve o id. */
 export async function createTestPage(
   session: ApiSession,
@@ -229,4 +250,10 @@ export async function createTestPage(
   })
   if (error) throw new Error('Não foi possível criar a página de teste.')
   return id
+}
+
+/** Título gravado no banco (null se a página não existe), para conferir o que o app salvou. */
+export async function savedTitle(session: ApiSession, pageId: string): Promise<string | null> {
+  const { data } = await session.client.from('pages').select('title').eq('id', pageId).maybeSingle()
+  return data?.title ?? null
 }

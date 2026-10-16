@@ -2,6 +2,7 @@ import { z } from 'zod'
 import { parsePageIcon, type PageIcon } from '@/features/workspace/page-icon'
 import type { PageRow } from '@/features/workspace/types'
 import { supabase } from '@/lib/supabase'
+import { parseSupabaseEnv } from '@/lib/supabase-env'
 
 const PAGE_COLUMNS = 'id, parent_id, title, icon, sort_key, last_edited_at'
 /** O PostgREST devolve no máximo 1000 linhas por consulta: a lista vem em lotes deste tamanho. */
@@ -101,22 +102,67 @@ export interface PagePatch {
   sortKey?: string
 }
 
-/** Atualiza só as colunas permitidas ao cliente (parent_id, title, icon, sort_key). */
-export async function updatePage(pageId: string, patch: PagePatch): Promise<void> {
-  const { data, error } = await supabase
-    .from('pages')
-    .update({
-      ...(patch.parentId !== undefined && { parent_id: patch.parentId }),
-      ...(patch.title !== undefined && { title: patch.title }),
-      ...(patch.icon !== undefined && { icon: patch.icon }),
-      ...(patch.sortKey !== undefined && { sort_key: patch.sortKey }),
-    })
-    .eq('id', pageId)
-    .select('id')
-  if (error) throw new Error('pages_update_failed')
+function toDbPatch(patch: PagePatch) {
+  return {
+    ...(patch.parentId !== undefined && { parent_id: patch.parentId }),
+    ...(patch.title !== undefined && { title: patch.title }),
+    ...(patch.icon !== undefined && { icon: patch.icon }),
+    ...(patch.sortKey !== undefined && { sort_key: patch.sortKey }),
+  }
+}
+
+const idRowsSchema = z.array(z.object({ id: z.string() }))
+
+/**
+ * O mesmo PATCH, mas por `fetch` com `keepalive: true`: o navegador termina o envio mesmo se a página
+ * for recarregada ou fechada logo depois (o `fetch` comum é cancelado). Só para o salvamento ao sair
+ * da página. O token vai só no header `Authorization`, para o próprio host do Supabase (como o
+ * supabase-js faz); nunca na URL. Corpo pequeno: `keepalive` limita o total em voo a 64 KiB.
+ */
+async function updatePageKeepalive(pageId: string, patch: PagePatch, accessToken: string) {
+  const env = parseSupabaseEnv(import.meta.env)
+  const url = new URL('/rest/v1/pages', env.VITE_SUPABASE_URL)
+  url.searchParams.set('id', `eq.${pageId}`)
+  url.searchParams.set('select', 'id')
+  const response = await fetch(url, {
+    method: 'PATCH',
+    keepalive: true,
+    headers: {
+      apikey: env.VITE_SUPABASE_ANON_KEY,
+      Authorization: `Bearer ${accessToken}`,
+      'Content-Type': 'application/json',
+      Prefer: 'return=representation',
+    },
+    body: JSON.stringify(toDbPatch(patch)),
+  })
+  if (!response.ok) throw new Error('pages_update_failed')
+  return idRowsSchema.parse(await response.json())
+}
+
+/**
+ * Atualiza só as colunas permitidas ao cliente (parent_id, title, icon, sort_key). Com `keepaliveToken`
+ * (salvamento ao sair da página) usa o envio que sobrevive ao recarregar.
+ */
+export async function updatePage(
+  pageId: string,
+  patch: PagePatch,
+  options?: { keepaliveToken?: string },
+): Promise<void> {
+  let rows: readonly unknown[]
+  if (options?.keepaliveToken !== undefined) {
+    rows = await updatePageKeepalive(pageId, patch, options.keepaliveToken)
+  } else {
+    const { data, error } = await supabase
+      .from('pages')
+      .update(toDbPatch(patch))
+      .eq('id', pageId)
+      .select('id')
+    if (error) throw new Error('pages_update_failed')
+    rows = data
+  }
   // A RLS não dá erro quando barra: a consulta só não atinge linha nenhuma (leitor, página apagada
   // em outra aba, página na lixeira). Isso precisa virar erro, ou o cache otimista ficaria errado.
-  if (data.length === 0) throw new Error('pages_update_failed')
+  if (rows.length === 0) throw new Error('pages_update_failed')
 }
 
 /** Manda para a lixeira e apaga em definitivo (o banco só deixa apagar quem já está na lixeira). */

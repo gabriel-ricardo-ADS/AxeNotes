@@ -9,9 +9,14 @@ import { emitAuthEvent, fakeSession } from '@/test/fake-supabase'
  * Renderiza o app inteiro (rotas + layout) com a sessão já carregada. Exige o `vi.mock` de
  * '@/lib/supabase' apontando para o fakeSupabase no arquivo de teste.
  */
-export function renderApp(path = '/', signedIn = true) {
+export function renderApp(
+  path: string | { pathname: string; state: unknown } = '/',
+  signedIn = true,
+) {
   const result = render(
-    <QueryClientProvider client={new QueryClient({ defaultOptions: { queries: { retry: false } } })}>
+    <QueryClientProvider
+      client={new QueryClient({ defaultOptions: { queries: { retry: false } } })}
+    >
       <MemoryRouter initialEntries={[path]}>
         <AuthProvider>
           <AppRoutes />
