@@ -180,3 +180,22 @@ nesse caso. Resultado: um workspace sem nenhum membro fica no banco, inalcançá
 um workspace com outros membros pode ficar sem owner. Precisamos decidir (antes de oferecer "excluir
 minha conta", LGPD): apagar o workspace pessoal junto, promover outro membro a owner, ou exigir a
 transferência antes. Até lá, a exclusão de contas só é feita à mão pelo Gabriel, no painel.
+
+### DECISÃO-024 — Árvore de páginas (Fase 1, T3b)
+**DECIDIDA** — Gabriel aprovou o plano da T3b em 2026-10-16.
+- **Ordem:** biblioteca `fractional-indexing` (CC0-1.0), isolada em `src/lib/fractional-index.ts`. Chaves
+  comparadas sempre com `<` (a coluna é `collate "C"`), nunca com `localeCompare`; empate pelo id.
+- **Arrastar:** só `@dnd-kit/core` (MIT), sem `@dnd-kit/sortable`: a árvore precisa de três alvos por linha
+  (antes / dentro / depois), que a lista plana do `sortable` não dá. Sensores: mouse, toque (segurar 250 ms)
+  e teclado (na alça da linha).
+- **Sem arrastar:** "Mover para…" no menu da linha é o caminho garantido (teclado, leitor de tela, toque).
+- **Página inicial** não aparece como raiz da seção "Páginas" (é o item "Página inicial"); filhas dela
+  aparecem como raízes. Criada sob demanda pelo owner, com lock entre abas (Web Locks) e
+  `update … where home_page_id is null`; quem perde só apaga a própria página depois de reler o workspace
+  e confirmar que a página inicial atual é outra.
+- **`home_page_id` só o owner grava** (política `workspaces_update`). Editor/viewer de workspace alheio com a
+  página inicial vazia vê "sem página inicial". Rever na Fase 11 (convites).
+- **Estado de expansão** da árvore fica em memória (Zustand), sem `localStorage`, até o logout limpar stores
+  persistidas.
+- **`date-fns`** (MIT) para "Editada há…" em pt-BR.
+

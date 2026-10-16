@@ -41,11 +41,15 @@ SMTP (Brevo ou Resend) para o OTP.
 - Seed com dados fictícios e 2 usuários de teste.
 - e2e passa a rodar no CI.
 - Dividida em partes (um PR cada). **T2 — banco e RLS** (`supabase/`: migrações, seed e testes em
-  PGlite; sem telas) está na `main`. **T3a — cliente Supabase + autenticação** (`src/lib/supabase.ts`,
-  `src/features/auth/`: entrar, criar conta, código de 6 dígitos, recuperar senha, sair, rotas protegidas,
-  nome do usuário na sidebar; e2e com 1 login por projeto e smoke de RLS só leitura no projeto real) está em
-  PR. Pendências da T3a: rodar o e2e no CI (precisa dos secrets `VITE_SUPABASE_*` e `E2E_*`) e a exclusão
-  de conta (DECISÃO-023). Árvore, sidebar completa e busca Ctrl+K ficam para a T3b.
+  PGlite; sem telas) e **T3a — cliente Supabase + autenticação** (`src/features/auth/`: entrar, criar conta,
+  código de 6 dígitos, recuperar senha, sair, rotas protegidas; e2e com 1 login por projeto e smoke de RLS só
+  leitura) estão na `main`. **T3b — árvore de páginas e tela da página** (feita, em PR): seção "Páginas" da
+  sidebar (criar, subpágina, renomear, ícone, expandir, mover por "Mover para…" ou arrastando, teclado e
+  toque), página inicial criada sob demanda, rota `/p/:pageId` (ícone, título com debounce, breadcrumb,
+  "Editada há…"), "Página não encontrada" única. Fica para a **T4**: favoritos, recentes, lixeira (UI) e
+  busca Ctrl+K. Pendências: rodar o e2e no CI (precisa dos secrets `VITE_SUPABASE_*` e `E2E_*`), exclusão de
+  conta (DECISÃO-023), e rodar `pnpm e2e` da T3b contra o projeto real (escreve só páginas `e2e-…` do usuário
+  de teste 1 e as apaga).
 **Pronto quando:** teste de RLS (Postgres local/PGlite) prova que usuário B não vê o workspace de
 A, e que um viewer não edita; árvore funciona no desktop e no mobile. Nada é aplicado no
 Supabase remoto sem o ok do Gabriel (DECISÃO-015).
