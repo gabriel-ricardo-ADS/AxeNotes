@@ -185,6 +185,16 @@ describe('planMove', () => {
     expect(plan).toMatchObject({ ok: true, unchanged: true })
   })
 
+  it('refuses a position between two siblings with the same sort_key instead of a no-op key', () => {
+    // x e y empatam em a0 (desempate pelo id): não existe chave entre eles.
+    const tied = [page('x', null, 'a0'), page('y', null, 'a0'), page('z', null, 'a1')]
+
+    expect(planMove(tied, null, 'z', null, 1)).toEqual({ ok: false, reason: 'tie' })
+    // No começo, no fim e dentro de outro pai não há empate entre os vizinhos.
+    expect(planMove(tied, null, 'z', null, 0)).toMatchObject({ ok: true })
+    expect(planMove(tied, null, 'x', null, 99)).toMatchObject({ ok: true })
+  })
+
   it('refuses own node and descendants, and unknown pages', () => {
     expect(planMove(rows, null, 'c', 'c', 0)).toEqual({ ok: false, reason: 'self' })
     expect(planMove(rows, null, 'c', 'c11', 0)).toEqual({ ok: false, reason: 'descendant' })

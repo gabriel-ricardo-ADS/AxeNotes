@@ -178,7 +178,13 @@ export function usePageMutations() {
   async function movePage(id: string, parentId: string | null, index: number) {
     const plan = planMove(readPages(), workspace?.homePageId ?? null, id, parentId, index)
     if (!plan.ok) {
-      setNotice(plan.reason === 'missing' ? t('workspace.errors.move') : t('workspace.errors.moveInvalid'))
+      const message = {
+        missing: t('workspace.errors.move'),
+        tie: t('workspace.errors.moveTie'),
+        self: t('workspace.errors.moveInvalid'),
+        descendant: t('workspace.errors.moveInvalid'),
+      }[plan.reason]
+      setNotice(message)
       return false
     }
     if (plan.unchanged) return true

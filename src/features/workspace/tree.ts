@@ -158,11 +158,13 @@ export function keyAtEnd(
 
 export type MovePlan =
   | { ok: true; unchanged: boolean; parentId: string | null; sortKey: string }
-  | { ok: false; reason: 'self' | 'descendant' | 'missing' }
+  | { ok: false; reason: 'self' | 'descendant' | 'missing' | 'tie' }
 
 /**
  * Onde a página cai se for para a posição `index` (entre os irmãos de destino, já sem ela).
- * `parentId` null = raiz. `unchanged` indica que já está exatamente ali.
+ * `parentId` null = raiz. `unchanged` indica que já está exatamente ali. `tie`: os dois vizinhos da
+ * posição têm a mesma `sort_key` (empate desfeito só pelo id), então não existe chave entre eles sem
+ * reescrever um vizinho; recusar é melhor que gravar uma chave que deixaria a ordem como estava.
  */
 export function planMove(
   rows: readonly PageRow[],
@@ -182,13 +184,12 @@ export function planMove(
   const currentIndex = siblingsOf(rows, homeId, currentParent).findIndex((row) => row.id === id)
   const unchanged = currentParent === parentId && currentIndex === at
 
-  return {
-    ok: true,
-    unchanged,
-    parentId,
-    sortKey: keyAtIndex(
-      siblings.map((row) => row.sortKey),
-      at,
-    ),
+  const keys = siblings.map((row) => row.sortKey)
+  const before = keys[at - 1]
+  const after = keys[at]
+  if (!unchanged && before !== undefined && after !== undefined && before >= after) {
+    return { ok: false, reason: 'tie' }
   }
+
+  return { ok: true, unchanged, parentId, sortKey: keyAtIndex(keys, at) }
 }
