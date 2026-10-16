@@ -52,7 +52,7 @@ SMTP (Brevo ou Resend) para o OTP.
   de teste 1 e as apaga).
   **Correções pós-T3b:** o título digitado é salvo ao ocultar/recarregar a página (`keepalive` + aviso de
   saída) e mover entre vizinhos com a mesma `sort_key` é recusado em vez de gravar uma chave inócua.
-  Pendência (decidir com o Gabriel): rebalancear `sort_key` empatadas (hoje só se evita; ver DECISÃO-024).
+  Pendência (decidir com o Gabriel): `sort_key` empatadas entre irmãos (hoje só se recusa o movimento; ver DECISÃO-025, ABERTA).
 **Pronto quando:** teste de RLS (Postgres local/PGlite) prova que usuário B não vê o workspace de
 A, e que um viewer não edita; árvore funciona no desktop e no mobile. Nada é aplicado no
 Supabase remoto sem o ok do Gabriel (DECISÃO-015).

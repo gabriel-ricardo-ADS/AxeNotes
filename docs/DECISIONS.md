@@ -199,6 +199,40 @@ transferência antes. Até lá, a exclusão de contas só é feita à mão pelo 
   persistidas.
 - **`date-fns`** (MIT) para "Editada há…" em pt-BR.
 - **Nota (correção pós-T3b):** arrastar para uma posição entre dois irmãos com a MESMA `sort_key` é recusado
-  com aviso (`planMove` → `tie`); antes o app gravava uma chave inócua e a ordem não mudava. Rebalancear
-  as chaves empatadas (reescrever vizinhas, escritas não atômicas) NÃO foi decidido: pendente com o Gabriel.
+  com aviso (`planMove` → `tie`); antes o app gravava uma chave inócua e a ordem não mudava. Como tratar as
+  chaves empatadas está na DECISÃO-025 (ABERTA).
 
+### DECISÃO-025 — Chaves de ordem (`sort_key`) empatadas entre irmãos
+**ABERTA** — apontada ao investigar o e2e de arrastar (PR #6). **Sessões futuras NÃO implementam nada
+disto (nem as opções abaixo, nem variações) sem o Gabriel decidir aqui.**
+
+**Problema.** `pages.sort_key` não é único: duas páginas irmãs podem ter a mesma chave (duas abas ou
+aparelhos criando no fim da lista ao mesmo tempo, ou dados importados). A árvore desempata pelo id, então
+a ordem exibida é estável, mas não existe chave estritamente entre dois irmãos empatados sem reescrever um
+deles. Hoje (DECISÃO-024) `planMove` devolve `tie` e o app só avisa que não dá para mover para aquela
+posição; "Mover para…" (fim da lista) continua funcionando. O usuário fica sem poder arrastar para o meio
+de um par empatado até as chaves mudarem por outro motivo.
+
+**Opções.**
+- **A — Autorreparo no cliente.** Ao detectar o empate, reescrever só a chave de UM dos empatados (a que fica
+  depois, no desempate por id) para uma chave entre ela e a próxima distinta, e então calcular o movimento.
+  Sem migration. Contras: duas escritas não atômicas (a segunda pode falhar e deixar o par reparado sem o
+  movimento); duas abas podem reparar ao mesmo tempo; não impede novos empates; mais código na fila de
+  escritas e no rollback otimista.
+- **B — Índice único parcial** `(parent_id, sort_key) where trashed_at is null` (com `coalesce` para a raiz,
+  já que `parent_id` nulo não empata em índice único) + retry do cliente com nova chave ao receber `23505`.
+  O banco passa a impedir o empate de vez. Exige migration, que EU aplico (DECISÃO-015). Contras: dados que
+  já estejam empatados precisam ser corrigidos antes de criar o índice; todo insert/update de ordem ganha
+  um caminho de retry; a restauração da lixeira pode colidir com chaves ocupadas nesse meio-tempo.
+- **C — RPC `rebalance_siblings(p_parent_id)`** em transação, que regrava as chaves dos filhos de um pai em
+  sequência limpa (security definer, `is_workspace_member` com papel de editor). O cliente a chama quando
+  `planMove` devolve `tie` e depois repete o movimento. Exige migration (que EU aplico) e testes de RLS em
+  PGlite. Atômica e sem corrida entre abas. Contras: reescreve muitas linhas (e `last_edited_at` não deve
+  mudar: a RPC precisa preservá-lo), custo em pais com muitos filhos; não impede novos empates sozinha (pode
+  ser combinada com B).
+
+**Recomendação.** Não decidir agora: o caso só aparece com escritas concorrentes e hoje é raro e
+inofensivo (aviso + "Mover para…"). Decidir **quando aparecer o primeiro caso real, ou antes da Fase 11
+(convites e colaboração em tempo real)**, o que vier primeiro, porque colaboração multiplica as escritas
+concorrentes. Se for preciso decidir cedo, a tendência é **C** (atômica, sem corrida), com **B** depois se
+os empates continuarem aparecendo; **A** só como remendo.
