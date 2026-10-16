@@ -150,3 +150,11 @@ O Gabriel conecta a conta. O deploy completo (PWA, redirect URLs do Auth) contin
 licenças compatíveis com GPL-3.0, então foi aprovada **só para esse pacote**, em
 `PACKAGE_EXCEPTIONS` de `scripts/check-licenses.mjs`. Qualquer outro pacote em OFL-1.1 (ou outra
 fonte) continua barrado pelo `pnpm run license:check` e precisa de nova aprovação.
+
+### DECISÃO-023 — Exclusão de conta e workspaces órfãos
+**ABERTA** — apontada na revisão de segurança da Fase 1 (T2). Apagar um usuário em `auth.users`
+remove o perfil e as memberships em cascata; o guarda do "último owner" é ignorado de propósito
+nesse caso. Resultado: um workspace sem nenhum membro fica no banco, inalcançável, com as páginas; e
+um workspace com outros membros pode ficar sem owner. Precisamos decidir (antes de oferecer "excluir
+minha conta", LGPD): apagar o workspace pessoal junto, promover outro membro a owner, ou exigir a
+transferência antes. Até lá, a exclusão de contas só é feita à mão pelo Gabriel, no painel.

@@ -18,6 +18,10 @@ pnpm dlx supabase@latest gen types typescript --linked > src/lib/database.types.
 
 O `db push` aplica só `migrations/`; a seed não é executada no remoto.
 
+> **Nunca** rode `supabase db reset --linked` (nem `db reset` apontando para o projeto remoto): além de
+> apagar os dados, ele executa a seed e criaria contas com senha conhecida. O `db reset` é só para o
+> Supabase local (Docker).
+
 ## Rodar local com Docker (opcional)
 
 ```bash

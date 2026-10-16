@@ -5,8 +5,8 @@ create table public.pages (
   id uuid primary key default gen_random_uuid(),
   workspace_id uuid not null references public.workspaces on delete cascade,
   parent_id uuid,
-  title text not null default '',
-  icon jsonb,
+  title text not null default '' check (char_length(title) <= 500),
+  icon jsonb check (octet_length(icon::text) <= 2048),
   -- Índice fracionário: comparação byte a byte, por isso collate "C".
   sort_key text collate "C" not null,
   created_by uuid references auth.users on delete set null,
@@ -60,10 +60,15 @@ begin
   end if;
 
   if new.parent_id is distinct from old.parent_id and new.parent_id is not null then
+    -- Serializa as mudanças de pai no workspace: duas transações concorrentes (A sob B e B sob A)
+    -- não enxergam uma à outra e criariam um ciclo.
+    perform pg_advisory_xact_lock(hashtextextended(new.workspace_id::text, 0));
+
+    -- `union` (e não `union all`) para a recursão terminar mesmo se algum ciclo existir.
     if exists (
       with recursive ancestors as (
         select p.id, p.parent_id from public.pages p where p.id = new.parent_id
-        union all
+        union
         select p.id, p.parent_id from public.pages p join ancestors a on p.id = a.parent_id
       )
       select 1 from ancestors where id = new.id

@@ -4,16 +4,16 @@
 
 create table public.profiles (
   id uuid primary key references auth.users on delete cascade,
-  display_name text not null default '',
-  avatar_path text,
+  display_name text not null default '' check (char_length(display_name) <= 100),
+  avatar_path text check (char_length(avatar_path) <= 500),
   created_at timestamptz not null default now(),
   updated_at timestamptz not null default now()
 );
 
 create table public.workspaces (
   id uuid primary key default gen_random_uuid(),
-  name text not null,
-  icon jsonb,
+  name text not null check (char_length(name) <= 100),
+  icon jsonb check (octet_length(icon::text) <= 2048),
   created_by uuid references auth.users on delete set null,
   -- Página inicial (DECISÃO-019). A FK composta vem junto com a tabela pages.
   home_page_id uuid,
@@ -71,6 +71,8 @@ set search_path = ''
 as $$
 begin
   if old.role = 'owner' and (tg_op = 'DELETE' or new.role <> 'owner') then
+    -- Trava o workspace: dois owners que saem ao mesmo tempo são atendidos um de cada vez.
+    perform 1 from public.workspaces w where w.id = old.workspace_id for update;
     if exists (select 1 from public.workspaces w where w.id = old.workspace_id)
       and exists (select 1 from auth.users u where u.id = old.user_id)
       and not exists (

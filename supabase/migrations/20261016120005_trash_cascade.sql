@@ -3,6 +3,8 @@
 -- continua lá). Excluir definitivamente é um delete comum, permitido só para página na lixeira
 -- (política pages_delete); o FK em cascata leva as subpáginas.
 --
+-- As CTEs usam `union` (não `union all`) para a recursão terminar mesmo diante de um ciclo inesperado.
+--
 -- security definer porque trashed_at não é atualizável direto pelo cliente (evita deixar uma
 -- página visível sob um pai na lixeira); a permissão de editor é conferida aqui dentro.
 
@@ -26,7 +28,7 @@ begin
 
   with recursive tree as (
     select p.id from public.pages p where p.id = p_page_id
-    union all
+    union
     select c.id from public.pages c join tree t on c.parent_id = t.id where c.trashed_at is null
   )
   update public.pages p set trashed_at = v_ts from tree where p.id = tree.id;
@@ -61,7 +63,7 @@ begin
 
   with recursive tree as (
     select p.id from public.pages p where p.id = p_page_id
-    union all
+    union
     select c.id from public.pages c join tree t on c.parent_id = t.id where c.trashed_at = v_ts
   )
   update public.pages p set trashed_at = null from tree where p.id = tree.id;

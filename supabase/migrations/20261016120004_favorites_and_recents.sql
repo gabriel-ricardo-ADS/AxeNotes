@@ -33,10 +33,12 @@ alter table public.user_recents enable row level security;
 revoke all on public.user_favorites, public.user_recents from anon, authenticated;
 grant select, delete on public.user_favorites, public.user_recents to authenticated;
 grant insert (page_id, sort_key) on public.user_favorites to authenticated;
-grant update (sort_key) on public.user_favorites to authenticated;
--- O app registra a visita com upsert (insert ... on conflict do update de visited_at).
+-- O supabase-js faz upsert com `do update set` em TODAS as colunas do payload (inclusive page_id),
+-- então page_id também precisa ser atualizável. Seguro: user_id nunca é gravável e o with check
+-- das políticas exige acesso à página.
+grant update (page_id, sort_key) on public.user_favorites to authenticated;
 grant insert (page_id, visited_at) on public.user_recents to authenticated;
-grant update (visited_at) on public.user_recents to authenticated;
+grant update (page_id, visited_at) on public.user_recents to authenticated;
 
 create policy user_favorites_select on public.user_favorites for select to authenticated
   using (user_id = (select auth.uid()) and public.can_access_page(page_id));

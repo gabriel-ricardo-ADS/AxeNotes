@@ -13,10 +13,14 @@ begin
   insert into public.profiles (id, display_name)
   values (
     new.id,
-    coalesce(
-      nullif(btrim(new.raw_user_meta_data ->> 'display_name'), ''),
-      nullif(split_part(coalesce(new.email, ''), '@', 1), ''),
-      ''
+    -- raw_user_meta_data vem de quem se cadastra: só texto, limitado a 100 caracteres.
+    left(
+      coalesce(
+        nullif(btrim(new.raw_user_meta_data ->> 'display_name'), ''),
+        nullif(split_part(coalesce(new.email, ''), '@', 1), ''),
+        ''
+      ),
+      100
     )
   );
 
