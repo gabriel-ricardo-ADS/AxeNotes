@@ -1,8 +1,10 @@
-import { SmilePlusIcon } from 'lucide-react'
+import { SmilePlusIcon, XIcon } from 'lucide-react'
 import { useEffect, useMemo, useState } from 'react'
 import { useLocation, useNavigate } from 'react-router'
 import { DESKTOP_QUERY } from '@/app/layout/AppLayout'
 import { TopBarPortal } from '@/app/layout/top-bar-slot'
+import { FavoriteButton } from '@/features/favorites/components/FavoriteButton'
+import { useRecordVisit } from '@/features/recents/hooks/use-record-visit'
 import { Breadcrumb } from '@/features/pages/components/Breadcrumb'
 import { PageTitle } from '@/features/pages/components/PageTitle'
 import { wantsTitleFocus } from '@/features/pages/routes'
@@ -28,6 +30,9 @@ export function PageView({ page }: { page: PageRow }) {
   const rows = usePages().data
   const { setPageIcon } = usePageMutations()
   const [pickingIcon, setPickingIcon] = useState(false)
+  const [actionError, setActionError] = useState<string | null>(null)
+
+  useRecordVisit(page.id)
 
   const editable = workspace ? canEditWorkspace(workspace) : false
   const ancestors = useMemo(() => ancestorsOf(rows ?? [], page.id), [rows, page.id])
@@ -50,10 +55,31 @@ export function PageView({ page }: { page: PageRow }) {
     <>
       <TopBarPortal>
         <Breadcrumb ancestors={ancestors} page={page} compact={!isDesktop} />
-        {isDesktop ? edited : null}
+        <div className="flex shrink-0 items-center gap-2">
+          {isDesktop ? edited : null}
+          <FavoriteButton pageId={page.id} onError={setActionError} />
+        </div>
       </TopBarPortal>
 
       <article className="mx-auto w-full max-w-content px-6 py-8 md:px-16 md:py-12">
+        {actionError === null ? null : (
+          <div
+            role="alert"
+            className="mb-4 flex items-start gap-1 rounded-tag bg-red-block py-1 pr-1 pl-3 text-ui text-red"
+          >
+            <p className="flex-1 py-1">{actionError}</p>
+            <button
+              type="button"
+              aria-label={t('common.dismiss')}
+              onClick={() => {
+                setActionError(null)
+              }}
+              className="flex size-11 shrink-0 items-center justify-center rounded-tag hover:bg-hover md:size-8"
+            >
+              <XIcon className="size-4" aria-hidden="true" />
+            </button>
+          </div>
+        )}
         {editable ? (
           <button
             type="button"

@@ -4,7 +4,9 @@ import { TITLE_DEBOUNCE_MS } from '@/features/pages/components/PageTitle'
 import { FOCUS_TITLE_STATE } from '@/features/pages/routes'
 import { useTreeUiStore } from '@/features/workspace/tree-ui-store'
 import {
+  clearFailures,
   dbPage,
+  failAlways,
   failNext,
   fakeDb,
   fakeId,
@@ -133,10 +135,11 @@ describe('tela da página', () => {
 
   it('tells a load failure apart from "not found" and lets you retry', async () => {
     const user = userEvent.setup()
-    failNext('select', 'pages')
+    failAlways('select', 'pages')
     renderApp(`/p/${CHILD}`)
 
     expect(await screen.findByText('Não foi possível carregar a página.')).toBeInTheDocument()
+    clearFailures()
     expect(screen.queryByRole('heading', { name: 'Página não encontrada' })).not.toBeInTheDocument()
     const main = screen.getByRole('main')
     await user.click(within(main).getByRole('button', { name: 'Tentar de novo' }))

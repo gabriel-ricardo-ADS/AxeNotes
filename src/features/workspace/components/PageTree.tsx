@@ -14,14 +14,13 @@ import {
 } from '@dnd-kit/core'
 import { useEffect, useMemo, useRef, useState, type KeyboardEvent } from 'react'
 import { useNavigate } from 'react-router'
+import { useFavoriteMutations } from '@/features/favorites/hooks/use-favorite-mutations'
+import { useFavorites } from '@/features/favorites/hooks/use-favorites'
 import { pagePath } from '@/features/pages/routes'
 import { IconPickerDialog } from '@/features/workspace/components/IconPickerDialog'
 import { MovePageDialog } from '@/features/workspace/components/MovePageDialog'
 import { PageIconView } from '@/features/workspace/components/PageIconView'
-import {
-  PageTreeItem,
-  type DropPosition,
-} from '@/features/workspace/components/PageTreeItem'
+import { PageTreeItem, type DropPosition } from '@/features/workspace/components/PageTreeItem'
 import { usePageMutations } from '@/features/workspace/hooks/use-page-mutations'
 import {
   ancestorsOf,
@@ -55,7 +54,11 @@ interface PageTreeProps {
 }
 
 /** Escolhe a linha sob o CENTRO do item arrastado (serve igual para mouse, toque e teclado). */
-const byRowCenter: CollisionDetection = ({ collisionRect, droppableRects, droppableContainers }) => {
+const byRowCenter: CollisionDetection = ({
+  collisionRect,
+  droppableRects,
+  droppableContainers,
+}) => {
   const centerY = collisionRect.top + collisionRect.height / 2
   let best: { id: (typeof droppableContainers)[number]['id']; distance: number } | null = null
   for (const container of droppableContainers) {
@@ -116,6 +119,12 @@ export function PageTree({
   const toggle = useTreeUiStore((state) => state.toggle)
   const expand = useTreeUiStore((state) => state.expand)
   const { renamePage, setPageIcon, movePage } = usePageMutations()
+  const { toggleFavorite } = useFavoriteMutations()
+  const favorites = useFavorites().data
+  const favoriteIds = useMemo(
+    () => (favorites === undefined ? null : new Set(favorites.map((entry) => entry.pageId))),
+    [favorites],
+  )
 
   const listRef = useRef<HTMLUListElement | null>(null)
   const [activeId, setActiveId] = useState<string | null>(null)
@@ -212,11 +221,10 @@ export function PageTree({
         useTreeUiStore.getState().startRename(item.page.id)
         break
       case 'ContextMenu':
-        if (!canEdit) return
         openMenu()
         break
       case 'F10':
-        if (!canEdit || !event.shiftKey) return
+        if (!event.shiftKey) return
         openMenu()
         break
       default:
@@ -339,6 +347,7 @@ export function PageTree({
               isCurrent={item.page.id === currentPageId}
               isActive={item.page.id === effectiveActiveId}
               canEdit={canEdit}
+              isFavorite={favoriteIds === null ? null : favoriteIds.has(item.page.id)}
               dropDisabled={draggedSubtree.has(item.page.id)}
               dropIndicator={dropTarget?.overId === item.page.id ? dropTarget.position : null}
               onActivate={setActiveId}
@@ -354,6 +363,7 @@ export function PageTree({
               onMove={(id) => {
                 setMoving(rows.find((row) => row.id === id) ?? null)
               }}
+              onToggleFavorite={(id) => void toggleFavorite(id)}
               onKeyDown={handleKeyDown}
             />
           ))}

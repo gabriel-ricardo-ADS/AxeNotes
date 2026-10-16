@@ -19,6 +19,8 @@ export const ptBR = {
       drawerTitle: 'Menu de navegação',
       drawerDescription: 'Navegue entre as páginas do AxeNotes.',
       home: 'Página inicial',
+      favorites: 'Favoritos',
+      favoritesEmpty: 'Toque na estrela de uma página para fixá-la aqui.',
       recents: 'Recentes',
       recentsEmpty: 'As páginas que você abrir aparecem aqui.',
     },
@@ -133,6 +135,8 @@ export const ptBR = {
       renameField: 'Novo nome da página',
       changeIcon: 'Alterar ícone',
       moveTo: 'Mover para…',
+      favorite: 'Adicionar aos favoritos',
+      unfavorite: 'Remover dos favoritos',
       dragHandle: 'Arrastar {title} para mover',
       dropToRoot: 'Solte aqui para mover para a raiz',
     },
@@ -162,10 +166,28 @@ export const ptBR = {
       rename: 'Não foi possível renomear a página. Tente novamente.',
       icon: 'Não foi possível alterar o ícone. Tente novamente.',
       move: 'Não foi possível mover a página. Tente novamente.',
-      moveInvalid: 'Uma página não pode ser movida para dentro dela mesma ou de uma subpágina dela.',
+      moveInvalid:
+        'Uma página não pode ser movida para dentro dela mesma ou de uma subpágina dela.',
       moveTie:
         'Não foi possível mover para essa posição, porque há páginas com a mesma ordem. Use "Mover para…" no menu da página.',
     },
+  },
+  favorites: {
+    add: 'Adicionar aos favoritos',
+    remove: 'Remover dos favoritos',
+    removeNamed: 'Remover {title} dos favoritos',
+    listLabel: 'Páginas favoritas',
+    loading: 'Carregando favoritos…',
+    loadError: 'Não foi possível carregar os favoritos.',
+    errors: {
+      add: 'Não foi possível adicionar aos favoritos. Tente novamente.',
+      remove: 'Não foi possível remover dos favoritos. Tente novamente.',
+    },
+  },
+  recents: {
+    listLabel: 'Páginas recentes',
+    loading: 'Carregando recentes…',
+    loadError: 'Não foi possível carregar os recentes.',
   },
   page: {
     titleLabel: 'Título da página',

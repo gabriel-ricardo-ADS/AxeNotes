@@ -235,3 +235,45 @@ inofensivo (aviso + "Mover para…"). Decidir **quando aparecer o primeiro caso 
 (convites e colaboração em tempo real)**, o que vier primeiro, porque colaboração multiplica as escritas
 concorrentes. Se for preciso decidir cedo, a tendência é **C** (atômica, sem corrida), com **B** depois se
 os empates continuarem aparecendo; **A** só como remendo.
+
+### DECISÃO-026 — Favoritos, recentes, lixeira e busca (Fase 1, T4)
+**DECIDIDA** — Gabriel aprovou o plano da T4 em 2026-10-16 e dividiu a entrega em três PRs: **T4a** (favoritos +
+recentes), **T4b** (lixeira) e **T4c** (busca Ctrl+K). Cada uma ganha um plano próprio depois do merge da anterior.
+A T4 é só cliente: **sem migration** (as tabelas e RPCs vieram na T2). A DECISÃO-025 segue ABERTA e nada dela foi feito.
+
+**Implementado na T4a**
+- **Pastas:** `src/features/{favorites,recents}` (e, nas próximas, `trash` e `search`), separadas de `workspace`.
+- **Favoritos (por usuário):** seção "Favoritos" acima de "Páginas"; estrela no topo da página e item no menu "…" da
+  linha da árvore (esse menu agora existe também para o leitor, só com a ação de favoritar). Ordem por `sort_key`
+  (`<`, desempate pelo id da página). Favoritar sempre **no fim**; reordenar fica fora, então nenhum fluxo cria chave
+  *entre* dois favoritos (nada a tratar de `tie`; empates só afetam a ordem de exibição, estável por id). Gravação
+  `upsert … ON CONFLICT DO NOTHING` (idempotente entre abas); atualização otimista com rollback só do item mexido, em
+  fila própria (`favorites-write`), sem recarregar a lista em sucesso. Favorita na lixeira some da seção (junção com
+  `usePages`) mas a linha continua no banco: ao restaurar, ela volta. Leitor também favorita (é dado por usuário).
+- **Recentes (por usuário):** a visita é gravada ao abrir `/p/:pageId` **depois** que a página foi encontrada (a RLS já
+  barra o resto; inexistente, sem acesso e lixeira nunca chegam lá). `upsert` em `(user_id, page_id)` mandando sempre
+  `visited_at` (o PostgREST só atualiza as colunas enviadas). A página inicial **não** entra. Antirrepetição: a **mesma**
+  página não grava de novo por **30 s**; A → B → A grava as três, para a ordem refletir a última visita. **8 exibidos,
+  50 guardados** por usuário: ao gravar com a lista cheia, apaga as visitas mais antigas que a 50ª (`lt visited_at`,
+  best effort). `visited_at` vem do relógio do aparelho (sem migration não há `now()` do servidor).
+- **Aviso de erro** das ações da sidebar sai da seção "Páginas" e fica no topo da sidebar (`SidebarNotice`).
+- A estrela da página mostra o próprio erro dentro da página (a gaveta mobile fecha e esconderia o aviso da sidebar).
+
+**Decidido para a T4b (lixeira) — ainda não implementado**
+- Tela em rota **`/lixeira`**, item "Lixeira" no rodapé da sidebar, acima da conta. O leitor vê a lista em leitura
+  (sem "Restaurar" nem "Excluir definitivamente").
+- **Raízes da lixeira** = página na lixeira cujo pai **não** está na lixeira **ou** cujo `trashed_at` é **diferente** do
+  `trashed_at` do pai (filho lixeado antes do pai segue visível e restaurável por conta própria). "+N subpáginas" conta
+  só os descendentes com o **mesmo** `trashed_at` da raiz.
+- Mandar para a lixeira a página aberta (ou uma que a contém) navega para a **página-pai**, ou para `/` se for raiz.
+- "Excluir definitivamente" com `AlertDialog` (`radix-ui`, já dependência) e `parent_trashed` com mensagem clara em pt-BR.
+- **Risco registrado:** `trash_page` aceita lixear a **página inicial** (e uma página que a contém); hoje só o cliente
+  impede (não oferece a ação). Quem chamar o RPC direto consegue; se isso importar, a regra vira migration depois.
+- **Restaurar pode recriar empate de `sort_key`** entre irmãos (a página volta com a chave antiga). Isso fica sob a
+  DECISÃO-025 (ABERTA): a T4b **não** resolve nem inventa solução.
+
+**Decidido para a T4c (busca) — ainda não implementado**
+- Diálogo Ctrl/Cmd+K com `search_pages` (limite 20 no cliente; o servidor aceita até 50), debounce de 200 ms, resposta
+  antiga ignorada (chave da consulta por termo), sem texto mostra os recentes (os 8 de hoje), botão "Buscar" visível na
+  sidebar/gaveta para o mobile, ARIA de combobox/listbox e foco devolvido ao fechar.
+

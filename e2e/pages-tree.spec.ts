@@ -1,50 +1,11 @@
-import { expect, test as base, type Page } from '@playwright/test'
+import { expect, type Page } from '@playwright/test'
 import { hasE2ECredentials, SKIP_NO_CREDENTIALS } from './support/env'
-import {
-  apiSession,
-  createTestPage,
-  newRunPrefix,
-  removePagesByIds,
-  removePagesWithPrefix,
-  savedTitle,
-  sortKeySequence,
-  type ApiSession,
-} from './support/pages-api'
+import { createTestPage, savedTitle, sortKeySequence } from './support/pages-api'
+import { test } from './support/run-fixture'
 import { openNavigation } from './support/ui'
 
-// Estes testes ESCREVEM no projeto Supabase real, só nos dados do usuário de teste 1. Todo título
-// criado começa com o prefixo único do teste ("e2e-<projeto>-<aleatório>-"); no fim de cada teste
-// (mesmo se falhar) só as páginas com esse prefixo são apagadas, pela API.
-
-interface Run {
-  prefix: string
-  api: ApiSession
-}
-
-const test = base.extend<{ run: Run }>({
-  run: async ({ page }, provide, testInfo) => {
-    const project = testInfo.project.name
-    const api = await apiSession(project)
-    const prefix = newRunPrefix(project)
-    // Páginas criadas pela interface nascem com título vazio: guarda os ids dos POSTs deste teste.
-    const created: string[] = []
-    page.on('request', (request) => {
-      if (request.method() !== 'POST' || !request.url().includes('/rest/v1/pages')) return
-      try {
-        const body = JSON.parse(request.postData() ?? '{}') as { id?: unknown }
-        if (typeof body.id === 'string') created.push(body.id)
-      } catch {
-        // corpo que não é JSON: ignora
-      }
-    })
-    try {
-      await provide({ prefix, api })
-    } finally {
-      await removePagesByIds(api, created)
-      await removePagesWithPrefix(api, prefix)
-    }
-  },
-})
+// Estes testes ESCREVEM no projeto Supabase real (ver support/run-fixture.ts): só os dados do usuário
+// de teste 1, com títulos "e2e-<projeto>-<aleatório>-…", apagados no fim de cada teste.
 
 test.skip(!hasE2ECredentials, SKIP_NO_CREDENTIALS)
 
@@ -235,7 +196,10 @@ test.describe('árvore de páginas', () => {
   })
 
   test('keeps the title typed right before a reload (desktop)', async ({ page, run }, testInfo) => {
-    test.skip(testInfo.project.name !== 'desktop', 'O aviso de sair da página só existe no desktop.')
+    test.skip(
+      testInfo.project.name !== 'desktop',
+      'O aviso de sair da página só existe no desktop.',
+    )
     const title = `${run.prefix}recarrega`
     const id = await createTestPage(run.api, { title, sortKey: sortKeySequence()() })
     // Com texto pendente o navegador mostra o aviso de "sair da página"; o teste aceita o diálogo.
@@ -266,7 +230,10 @@ test.describe('árvore de páginas', () => {
 
     await page.getByRole('button', { name: 'Adicionar ícone' }).click()
     const saved = nextWrite(page, 'PATCH')
-    await page.getByRole('dialog', { name: 'Escolher ícone' }).getByRole('button', { name: 'Usar 🌿' }).click()
+    await page
+      .getByRole('dialog', { name: 'Escolher ícone' })
+      .getByRole('button', { name: 'Usar 🌿' })
+      .click()
     await saved
 
     await page.reload()
@@ -275,10 +242,7 @@ test.describe('árvore de páginas', () => {
 })
 
 test.describe('página que não existe', () => {
-  for (const path of [
-    '/p/00000000-0000-4000-8000-00000000dead',
-    '/p/isso-nao-e-um-id',
-  ]) {
+  for (const path of ['/p/00000000-0000-4000-8000-00000000dead', '/p/isso-nao-e-um-id']) {
     test(`shows "Página não encontrada" for ${path.slice(0, 12)}…`, async ({ page }) => {
       await page.goto(path)
 

@@ -62,12 +62,25 @@ export const fakeAuth = {
 }
 
 // Banco em memória ---------------------------------------------------------------------------
-// Só o que o app usa: select/eq/is/order/range/limit, insert, update, delete, maybeSingle e o
+// Só o que o app usa: select/eq/lt/is/order/range/limit, insert, upsert, update, delete, maybeSingle e o
 // embed `workspaces(...)`. Sem RLS; os testes escolhem o papel com `seedWorkspace`.
 
 type Row = Record<string, unknown>
-type Op = 'select' | 'insert' | 'update' | 'delete'
-type Table = 'pages' | 'workspaces' | 'workspace_members' | 'profiles'
+type Op = 'select' | 'insert' | 'upsert' | 'update' | 'delete'
+type Table =
+  'pages' | 'workspaces' | 'workspace_members' | 'profiles' | 'user_favorites' | 'user_recents'
+
+const EMPTY_TABLES = (): Record<Table, Row[]> => ({
+  pages: [],
+  workspaces: [],
+  workspace_members: [],
+  profiles: [],
+  user_favorites: [],
+  user_recents: [],
+})
+
+/** Tabelas por usuário: `user_id` tem default `auth.uid()` no banco real. */
+const PER_USER: readonly Table[] = ['user_favorites', 'user_recents']
 
 interface QueryResult {
   data: unknown
@@ -77,20 +90,53 @@ interface QueryResult {
 export const fakeDb: {
   tables: Record<Table, Row[]>
   failures: { op: Op; table: Table }[]
+  /** Operações que falham SEMPRE, até `clearFailures()`: não dependem de quantas vezes o app tenta. */
+  persistentFailures: { op: Op; table: Table }[]
   /** Registro das escritas, para os testes conferirem o que foi enviado ao banco. */
   writes: { op: Op; table: Table; payload: Row | null }[]
   /** Uma entrada por consulta (select) executada, para contar recargas. */
   selects: Table[]
+  /** Operações seguradas por `holdNext` até alguém chamar `release()`. */
+  gates: { op: Op; table: Table; open: Promise<void> }[]
 } = {
-  tables: { pages: [], workspaces: [], workspace_members: [], profiles: [] },
+  tables: EMPTY_TABLES(),
   failures: [],
+  persistentFailures: [],
   writes: [],
   selects: [],
+  gates: [],
 }
 
 /** Faz a PRÓXIMA operação `op` na tabela falhar (uma vez). */
 export function failNext(op: Op, table: Table) {
   fakeDb.failures.push({ op, table })
+}
+
+/**
+ * Faz TODAS as operações `op` na tabela falharem até `clearFailures()`. Use quando o teste não pode
+ * depender de quantas vezes o TanStack Query tenta de novo (ex.: um componente que monta depois do erro
+ * refaz a consulta).
+ */
+export function failAlways(op: Op, table: Table) {
+  fakeDb.persistentFailures.push({ op, table })
+}
+
+/** Para de falhar as operações marcadas por `failAlways`. */
+export function clearFailures() {
+  fakeDb.persistentFailures = []
+}
+
+/**
+ * Segura a PRÓXIMA operação `op` na tabela até `release()`: serve para provar ordem de gravação,
+ * cliques rápidos e respostas que chegam fora de ordem.
+ */
+export function holdNext(op: Op, table: Table): { release: () => void } {
+  let release: () => void = () => undefined
+  const open = new Promise<void>((resolve) => {
+    release = resolve
+  })
+  fakeDb.gates.push({ op, table, open })
+  return { release }
 }
 
 export const WORKSPACE_ID = '00000000-0000-4000-8000-0000000000f1'
@@ -141,6 +187,28 @@ export function seedPages(pages: SeedPage[]) {
   }))
 }
 
+export function seedFavorites(entries: { pageId: string; sortKey: string }[]) {
+  fakeDb.tables.user_favorites = entries.map((entry) => ({
+    user_id: USER_ID,
+    page_id: entry.pageId,
+    sort_key: entry.sortKey,
+  }))
+}
+
+export function seedRecents(entries: { pageId: string; visitedAt: string }[]) {
+  fakeDb.tables.user_recents = entries.map((entry) => ({
+    user_id: USER_ID,
+    page_id: entry.pageId,
+    visited_at: entry.visitedAt,
+  }))
+}
+
+/** Marca a página (e só ela) como estando na lixeira, sem passar pelo RPC. */
+export function trashInDb(id: string) {
+  const row = dbPage(id)
+  if (row) row.trashed_at = new Date().toISOString()
+}
+
 /** Linha atual de uma página no "banco" (para conferir o que foi gravado). */
 export function dbPage(id: string): Row | undefined {
   return fakeDb.tables.pages.find((row) => row.id === id)
@@ -149,6 +217,7 @@ export function dbPage(id: string): Row | undefined {
 class FakeQuery implements PromiseLike<QueryResult> {
   private op: Op = 'select'
   private payload: Row | null = null
+  private conflict: { columns: string[]; ignore: boolean } | null = null
   private filters: ((row: Row) => boolean)[] = []
   private sorting: { column: string; ascending: boolean } | null = null
   private window: [number, number] | null = null
@@ -172,6 +241,15 @@ class FakeQuery implements PromiseLike<QueryResult> {
     this.payload = row
     return this
   }
+  upsert(row: Row, options?: { onConflict?: string; ignoreDuplicates?: boolean }) {
+    this.op = 'upsert'
+    this.payload = row
+    this.conflict = {
+      columns: (options?.onConflict ?? 'id').split(',').map((column) => column.trim()),
+      ignore: options?.ignoreDuplicates === true,
+    }
+    return this
+  }
   update(patch: Row) {
     this.op = 'update'
     this.payload = patch
@@ -183,6 +261,10 @@ class FakeQuery implements PromiseLike<QueryResult> {
   }
   eq(column: string, value: unknown) {
     this.filters.push((row) => row[column] === value)
+    return this
+  }
+  lt(column: string, value: unknown) {
+    this.filters.push((row) => Date.parse(String(row[column])) < Date.parse(String(value)))
     return this
   }
   gt(column: string, value: unknown) {
@@ -216,11 +298,20 @@ class FakeQuery implements PromiseLike<QueryResult> {
     onRejected?: ((reason: unknown) => R2 | PromiseLike<R2>) | null,
   ): PromiseLike<R1 | R2> {
     return Promise.resolve()
-      .then(() => this.run())
+      .then(async () => {
+        const gate = fakeDb.gates.findIndex((g) => g.op === this.op && g.table === this.table)
+        if (gate >= 0) {
+          const [held] = fakeDb.gates.splice(gate, 1)
+          await held?.open
+        }
+        return this.run()
+      })
       .then(onFulfilled, onRejected)
   }
 
   private run(): QueryResult {
+    const always = fakeDb.persistentFailures.some((f) => f.op === this.op && f.table === this.table)
+    if (always) return { data: null, error: { message: 'falha simulada' } }
     const failure = fakeDb.failures.findIndex((f) => f.op === this.op && f.table === this.table)
     if (failure >= 0) {
       fakeDb.failures.splice(failure, 1)
@@ -230,6 +321,18 @@ class FakeQuery implements PromiseLike<QueryResult> {
     const rows = fakeDb.tables[this.table]
     const matches = rows.filter((row) => this.filters.every((filter) => filter(row)))
 
+    if (this.op === 'upsert' && this.payload && this.conflict) {
+      const payload = this.payload
+      const full: Row = PER_USER.includes(this.table) ? { user_id: USER_ID, ...payload } : payload
+      const existing = rows.find((row) => this.conflict?.columns.every((c) => row[c] === full[c]))
+      if (existing) {
+        if (!this.conflict.ignore) Object.assign(existing, payload)
+      } else {
+        rows.push(full)
+      }
+      fakeDb.writes.push({ op: 'upsert', table: this.table, payload })
+      return { data: null, error: null }
+    }
     if (this.op === 'insert') {
       rows.push({ last_edited_at: new Date().toISOString(), trashed_at: null, ...this.payload })
       fakeDb.writes.push({ op: 'insert', table: this.table, payload: this.payload })
@@ -276,7 +379,7 @@ function rpc(name: string, args: { p_page_id: string }): Promise<QueryResult> {
   if (name !== 'trash_page') return Promise.resolve({ data: null, error: { message: 'rpc?' } })
   const stamp = new Date().toISOString()
   const doomed = new Set([args.p_page_id])
-  for (let grew = true; grew; ) {
+  for (let grew = true; grew;) {
     grew = false
     for (const row of fakeDb.tables.pages) {
       const id = String(row.id)
@@ -302,8 +405,10 @@ export function resetFakeSupabase() {
   for (const fn of Object.values(fakeAuth)) fn.mockReset()
   fakeSupabase.from.mockReset()
   fakeSupabase.rpc.mockReset()
-  fakeDb.tables = { pages: [], workspaces: [], workspace_members: [], profiles: [] }
+  fakeDb.tables = EMPTY_TABLES()
   fakeDb.failures = []
+  fakeDb.persistentFailures = []
+  fakeDb.gates = []
   fakeDb.writes = []
   fakeDb.selects = []
   // Todo teste começa com o workspace pessoal e a página inicial já criados.

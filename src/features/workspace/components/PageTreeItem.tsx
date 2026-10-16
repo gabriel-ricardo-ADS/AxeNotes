@@ -1,10 +1,5 @@
 import { useDraggable, useDroppable } from '@dnd-kit/core'
-import {
-  ChevronRightIcon,
-  EllipsisIcon,
-  GripVerticalIcon,
-  PlusIcon,
-} from 'lucide-react'
+import { ChevronRightIcon, EllipsisIcon, GripVerticalIcon, PlusIcon } from 'lucide-react'
 import { useRef, useState, type KeyboardEvent, type KeyboardEventHandler, type Ref } from 'react'
 import { Link } from 'react-router'
 import {
@@ -15,6 +10,7 @@ import {
 } from '@/components/ui/dropdown-menu'
 import { pagePath } from '@/features/pages/routes'
 import { PageIconView } from '@/features/workspace/components/PageIconView'
+import { rowActionsClass, rowButtonClass } from '@/features/workspace/components/row-styles'
 import type { FlatItem } from '@/features/workspace/tree'
 import { useTreeUiStore } from '@/features/workspace/tree-ui-store'
 import { t } from '@/i18n'
@@ -31,6 +27,8 @@ export interface PageTreeItemProps {
   /** É a linha com tabindex 0 (roving tabindex). */
   isActive: boolean
   canEdit: boolean
+  /** É favorita do usuário. `null`: a lista de favoritos ainda não chegou (a ação fica desabilitada). */
+  isFavorite: boolean | null
   /** Fora do alvo de soltar: a página arrastada e as descendentes dela. */
   dropDisabled: boolean
   dropIndicator: DropPosition | null
@@ -41,16 +39,12 @@ export interface PageTreeItemProps {
   onRename: (id: string, title: string) => void
   onChangeIcon: (id: string) => void
   onMove: (id: string) => void
+  onToggleFavorite: (id: string) => void
   onKeyDown: (event: KeyboardEvent<HTMLLIElement>, item: FlatItem, openMenu: () => void) => void
 }
 
-// Com mouse, o grupo de ações fica sobreposto à direita da linha e só aparece ao passar o mouse ou
-// focar (não rouba espaço do título). No toque (sem hover) fica na própria linha, sempre visível.
-const actionsClass =
-  'flex shrink-0 items-center [@media(hover:hover)]:absolute [@media(hover:hover)]:inset-y-0 [@media(hover:hover)]:right-0 [@media(hover:hover)]:rounded-tag [@media(hover:hover)]:bg-hover [@media(hover:hover)]:opacity-0 [@media(hover:hover)]:group-hover/row:opacity-100 [@media(hover:hover)]:group-focus-within/row:opacity-100 data-[open=true]:opacity-100'
-
-const smallButton =
-  'flex h-11 w-9 shrink-0 items-center justify-center rounded-tag text-muted-foreground hover:bg-hover hover:text-strong md:h-7 md:w-6 md:pointer-coarse:h-11 md:pointer-coarse:w-9'
+const actionsClass = rowActionsClass
+const smallButton = rowButtonClass
 
 export function PageTreeItem(props: PageTreeItemProps) {
   const { item, isCurrent, isActive, canEdit, dropIndicator } = props
@@ -195,32 +189,33 @@ export function PageTreeItem(props: PageTreeItemProps) {
         </Link>
       )}
 
-      {canEdit && !renaming ? (
+      {!renaming ? (
         <span data-open={menuOpen} className={actionsClass}>
-          <button
-            ref={setActivatorNodeRef}
-            {...attributes}
-            onKeyDown={keyboardDrag}
-            tabIndex={tabIndex}
-            aria-label={t('workspace.tree.dragHandle', { title })}
-            className={cn(
-              smallButton,
-              'hidden cursor-grab [@media(hover:hover)]:flex',
-            )}
-          >
-            <GripVerticalIcon className="size-4" aria-hidden="true" />
-          </button>
-          <button
-            type="button"
-            tabIndex={tabIndex}
-            aria-label={t('workspace.tree.newChild', { title })}
-            onClick={() => {
-              props.onCreateChild(page.id)
-            }}
-            className={smallButton}
-          >
-            <PlusIcon className="size-4" aria-hidden="true" />
-          </button>
+          {canEdit ? (
+            <>
+              <button
+                ref={setActivatorNodeRef}
+                {...attributes}
+                onKeyDown={keyboardDrag}
+                tabIndex={tabIndex}
+                aria-label={t('workspace.tree.dragHandle', { title })}
+                className={cn(smallButton, 'hidden cursor-grab [@media(hover:hover)]:flex')}
+              >
+                <GripVerticalIcon className="size-4" aria-hidden="true" />
+              </button>
+              <button
+                type="button"
+                tabIndex={tabIndex}
+                aria-label={t('workspace.tree.newChild', { title })}
+                onClick={() => {
+                  props.onCreateChild(page.id)
+                }}
+                className={smallButton}
+              >
+                <PlusIcon className="size-4" aria-hidden="true" />
+              </button>
+            </>
+          ) : null}
           <DropdownMenu open={menuOpen} onOpenChange={setMenuOpen}>
             <DropdownMenuTrigger asChild>
               <button
@@ -241,27 +236,43 @@ export function PageTreeItem(props: PageTreeItemProps) {
               }}
             >
               <DropdownMenuItem
+                disabled={props.isFavorite === null}
                 onSelect={() => {
-                  renameDone.current = false
-                  useTreeUiStore.getState().startRename(page.id)
+                  props.onToggleFavorite(page.id)
                 }}
               >
-                {t('workspace.tree.rename')}
+                {t(
+                  props.isFavorite === true
+                    ? 'workspace.tree.unfavorite'
+                    : 'workspace.tree.favorite',
+                )}
               </DropdownMenuItem>
-              <DropdownMenuItem
-                onSelect={() => {
-                  props.onChangeIcon(page.id)
-                }}
-              >
-                {t('workspace.tree.changeIcon')}
-              </DropdownMenuItem>
-              <DropdownMenuItem
-                onSelect={() => {
-                  props.onMove(page.id)
-                }}
-              >
-                {t('workspace.tree.moveTo')}
-              </DropdownMenuItem>
+              {canEdit ? (
+                <>
+                  <DropdownMenuItem
+                    onSelect={() => {
+                      renameDone.current = false
+                      useTreeUiStore.getState().startRename(page.id)
+                    }}
+                  >
+                    {t('workspace.tree.rename')}
+                  </DropdownMenuItem>
+                  <DropdownMenuItem
+                    onSelect={() => {
+                      props.onChangeIcon(page.id)
+                    }}
+                  >
+                    {t('workspace.tree.changeIcon')}
+                  </DropdownMenuItem>
+                  <DropdownMenuItem
+                    onSelect={() => {
+                      props.onMove(page.id)
+                    }}
+                  >
+                    {t('workspace.tree.moveTo')}
+                  </DropdownMenuItem>
+                </>
+              ) : null}
             </DropdownMenuContent>
           </DropdownMenu>
         </span>

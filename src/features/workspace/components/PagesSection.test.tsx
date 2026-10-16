@@ -1,7 +1,9 @@
 import { screen, waitFor, within } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import {
+  clearFailures,
   dbPage,
+  failAlways,
   failNext,
   fakeDb,
   fakeId,
@@ -132,7 +134,9 @@ describe('árvore de páginas na sidebar', () => {
     await waitFor(() => {
       expect(dbPage(MOVIES)?.title).toBe('Cinema')
     })
-    expect(fakeDb.writes.find((write) => write.op === 'update')?.payload).toEqual({ title: 'Cinema' })
+    expect(fakeDb.writes.find((write) => write.op === 'update')?.payload).toEqual({
+      title: 'Cinema',
+    })
 
     await user.click(screen.getByRole('button', { name: 'Mais ações de Cinema' }))
     await user.click(await screen.findByRole('menuitem', { name: 'Renomear' }))
@@ -184,10 +188,9 @@ describe('árvore de páginas na sidebar', () => {
     })
     expect(String(dbPage(MOVIES)?.sort_key) > 'a0').toBe(true)
     expect(fakeDb.writes.find((write) => write.op === 'update')?.payload).toHaveProperty('sort_key')
-    expect(Object.keys(fakeDb.writes.find((write) => write.op === 'update')?.payload ?? {}).sort()).toEqual([
-      'parent_id',
-      'sort_key',
-    ])
+    expect(
+      Object.keys(fakeDb.writes.find((write) => write.op === 'update')?.payload ?? {}).sort(),
+    ).toEqual(['parent_id', 'sort_key'])
     expect((await treeitem('Filmes')).getAttribute('aria-level')).toBe('2')
   })
 
@@ -199,7 +202,9 @@ describe('árvore de páginas na sidebar', () => {
     await user.click(screen.getByRole('button', { name: 'Mais ações de Estudos' }))
     await user.click(await screen.findByRole('menuitem', { name: 'Mover para…' }))
     await user.click(
-      within(await screen.findByRole('dialog')).getByRole('button', { name: 'Raiz (sem página pai)' }),
+      within(await screen.findByRole('dialog')).getByRole('button', {
+        name: 'Raiz (sem página pai)',
+      }),
     )
 
     await waitFor(() => {
@@ -240,7 +245,9 @@ describe('árvore com falhas', () => {
     await user.clear(field)
     await user.type(field, 'Cinema{Enter}')
 
-    expect(await screen.findByRole('alert')).toHaveTextContent('Não foi possível renomear a página.')
+    expect(await screen.findByRole('alert')).toHaveTextContent(
+      'Não foi possível renomear a página.',
+    )
     expect(await treeitem('Filmes')).toBeInTheDocument()
     expect(dbPage(MOVIES)?.title).toBe('Filmes')
   })
@@ -258,7 +265,9 @@ describe('árvore com falhas', () => {
     await user.clear(field)
     await user.type(field, 'Cinema{Enter}')
 
-    expect(await screen.findByRole('alert')).toHaveTextContent('Não foi possível renomear a página.')
+    expect(await screen.findByRole('alert')).toHaveTextContent(
+      'Não foi possível renomear a página.',
+    )
     // A lista é recarregada do servidor depois da falha: a página apagada em outra aba some.
     await waitFor(() => {
       expect(screen.queryByRole('treeitem', { name: 'Filmes' })).not.toBeInTheDocument()
@@ -284,12 +293,13 @@ describe('árvore com falhas', () => {
 
   it('shows an error with retry when the list does not load', async () => {
     const user = userEvent.setup()
-    failNext('select', 'pages')
+    failAlways('select', 'pages')
     renderApp()
 
     expect(await screen.findByText('Não foi possível carregar as páginas.')).toBeInTheDocument()
-    const nav = screen.getByRole('navigation', { name: 'Navegação principal' })
-    await user.click(within(nav).getByRole('button', { name: 'Tentar de novo' }))
+    clearFailures()
+    const section = screen.getByRole('region', { name: 'Páginas' })
+    await user.click(within(section).getByRole('button', { name: 'Tentar de novo' }))
 
     expect(await treeitem('Leituras')).toBeInTheDocument()
   })
@@ -327,7 +337,9 @@ describe('árvore: teclado', () => {
 
     ;(await treeitem('Filmes')).focus()
     await user.keyboard('{F2}')
-    expect(await screen.findByRole('textbox', { name: 'Novo nome da página' })).toHaveValue('Filmes')
+    expect(await screen.findByRole('textbox', { name: 'Novo nome da página' })).toHaveValue(
+      'Filmes',
+    )
   })
 
   it('has a single tab stop (roving tabindex) and marks the open page as selected', async () => {
@@ -373,10 +385,24 @@ describe('árvore para quem só lê (viewer)', () => {
     expect(await treeitem('Leituras')).toBeInTheDocument()
     expect(screen.queryByRole('button', { name: 'Nova página' })).not.toBeInTheDocument()
     expect(screen.queryByRole('button', { name: /Nova subpágina/ })).not.toBeInTheDocument()
-    expect(screen.queryByRole('button', { name: /Mais ações/ })).not.toBeInTheDocument()
     expect(screen.queryByRole('button', { name: /Arrastar/ })).not.toBeInTheDocument()
     // Ainda dá para expandir.
     expect(screen.getByRole('button', { name: 'Expandir Leituras' })).toBeInTheDocument()
+  })
+
+  it('keeps the row menu, but with only the favorite action', async () => {
+    const user = userEvent.setup()
+    renderApp()
+    await treeitem('Leituras')
+
+    await user.click(screen.getByRole('button', { name: 'Mais ações de Leituras' }))
+
+    expect(
+      await screen.findByRole('menuitem', { name: 'Adicionar aos favoritos' }),
+    ).toBeInTheDocument()
+    expect(screen.queryByRole('menuitem', { name: 'Renomear' })).not.toBeInTheDocument()
+    expect(screen.queryByRole('menuitem', { name: 'Alterar ícone' })).not.toBeInTheDocument()
+    expect(screen.queryByRole('menuitem', { name: 'Mover para…' })).not.toBeInTheDocument()
   })
 
   it('does not rename with F2', async () => {
