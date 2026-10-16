@@ -16,12 +16,25 @@ Stack: React + TypeScript + Vite · BlockNote · Supabase · Tailwind + shadcn/u
 
 ## Rodar localmente
 
+Requer Node 24 (LTS) e pnpm (`corepack enable` instala a versão certa).
+
 ```bash
 corepack enable
 pnpm install
-cp .env.example .env.local   # preencha com os dados do Supabase
-pnpm dev
+cp .env.example .env.local   # preencha com os dados do Supabase (a partir da Fase 1)
+pnpm dev                     # http://localhost:5173
 ```
+
+| Comando | O que faz |
+| --- | --- |
+| `pnpm dev` / `pnpm build` / `pnpm preview` | servidor local, build de produção e prévia do build |
+| `pnpm typecheck` / `pnpm lint` / `pnpm format` | tipos, ESLint e Prettier |
+| `pnpm test` | testes unitários (Vitest) |
+| `pnpm e2e` | testes de ponta a ponta (Playwright: desktop, iPhone e iPad) |
+| `pnpm run license:check` | falha se alguma dependência não for compatível com GPL-3.0 |
+
+Na primeira vez, instale os navegadores do e2e: `pnpm exec playwright install chromium webkit`.
+Deploy e previews no Cloudflare Pages: [docs/DEPLOY.md](docs/DEPLOY.md).
 
 ## Contribuindo
 

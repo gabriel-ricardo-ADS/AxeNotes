@@ -78,8 +78,9 @@ Supabase Free pausa após 1 semana sem uso (o uso diário evita).
 ### DECISÃO-012 — Sincronização de conteúdo (Yjs)
 **PADRÃO (confirmar com ADR na Fase 2)** — conteúdo de cada página é um documento Yjs
 (BlockNote suporta nativamente):
-- Fase 2: Y.Doc local + `y-indexeddb` (offline) + gravação do estado Yjs no Supabase (bytea) e de
-  um snapshot JSON/texto para busca e prévias.
+- Fase 2: Y.Doc local + `y-indexeddb` (offline) + gravação no Supabase como **log de updates Yjs
+  com compactação periódica, numa tabela separada (`page_contents`)**, e não numa coluna
+  `pages.ydoc` (DECISÃO-016). Um snapshot JSON/texto continua servindo busca e prévias.
 - Fase de colaboração: provedor em tempo real. Recomendado: Cloudflare Durable Objects com
   `y-partyserver` (um objeto por página; Durable Objects existem no plano gratuito do Workers),
   autenticando com o JWT do Supabase. Alternativa: Hocuspocus (MIT) em um servidor Node.
@@ -88,3 +89,57 @@ Supabase Free pausa após 1 semana sem uso (o uso diário evita).
 **DECIDIDA** — Claude Pro com Projects disponível. Threads em Sonnet (esforço alto); fases
 críticas (editor/Yjs, bases, sincronização, colaboração) pedem Opus explicitamente. No máximo
 1–2 threads simultâneas para não estourar o limite.
+
+---
+
+Decisões abaixo: Gabriel, 2026-10-15, ao abrir a Fase 0.
+
+### DECISÃO-014 — Login: e-mail + senha + código OTP, sem link mágico
+**DECIDIDA** — o acesso usa e-mail + senha, confirmados por um código OTP de 6 dígitos enviado
+por e-mail. **Sem link mágico**, por causa do problema que ele causa no PWA no iOS.
+- SMTP gratuito (Brevo ou Resend) configurado pelo Gabriel **antes da tela de login** (Fase 1).
+- Substitui o "link mágico" do PRD 3.1 e da Fase 1 do roadmap.
+
+### DECISÃO-015 — Supabase, testes de RLS e remoto
+**DECIDIDA** — o projeto Supabase ainda não existe; o Gabriel cria **antes da Fase 1**.
+- Testes de RLS rodam em Postgres local ou PGlite, sem depender do projeto remoto.
+- **Nada é aplicado no Supabase remoto sem o ok do Gabriel.** Migrações entram no PR e ele aplica.
+
+### DECISÃO-016 — Conteúdo das páginas em `page_contents` (log de updates Yjs)
+**DECIDIDA (ADR na Fase 2)** — o conteúdo vive numa tabela separada `page_contents`: um log de
+updates Yjs por página, compactado periodicamente em um estado único. A tabela `pages` não guarda
+mais o `ydoc`. Atualiza a DECISÃO-012; o ADR da Fase 2 detalha o formato e a compactação.
+
+### DECISÃO-017 — CI desde a Fase 0
+**DECIDIDA** — GitHub Actions em `.github/workflows/ci.yml` com typecheck, lint, test, build e
+checagem de licenças (`pnpm run license:check`, compatíveis com GPL-3.0). O e2e roda localmente
+na Fase 0 e entra no CI quando o app tiver o que testar (Fase 1).
+`pnpm licenses` é comando nativo do pnpm, por isso o script se chama `license:check`.
+
+### DECISÃO-018 — Preview no Cloudflare Pages adiantado
+**DECIDIDA** — a configuração (`pnpm build`, `dist`, fallback de SPA) e o passo a passo ficam no
+repositório desde a Fase 0 (`docs/DEPLOY.md`), para testar no iPhone/iPad por URL de preview.
+O Gabriel conecta a conta. O deploy completo (PWA, redirect URLs do Auth) continua na Fase 6.
+
+### DECISÃO-019 — Escopo da Fase 1
+**DECIDIDA**
+- `pages` **sem Yjs** na Fase 1 (o conteúdo chega na Fase 2).
+- **Busca só por título.** Busca por conteúdo entra com o snapshot de texto da Fase 2.
+- Gaveta mobile **só pelo botão ☰** (sem gesto de arrastar da borda).
+- `workspaces.home_page_id` define a página inicial.
+- Lixeira **em cascata**: excluir uma página leva as subpáginas; restaurar traz de volta.
+- Ordem por **índice fracionário**, com a licença da biblioteca conferida antes de adotar.
+- RLS com `is_workspace_member(ws, min_role)` + `can_access_page(page_id)`.
+
+### DECISÃO-020 — Escopo da Fase 5 (bases de dados)
+**DECIDIDA**
+- **Agrupamento por status/seleção entra no MVP** (antes era V1).
+- **Avaliação 1–5** com ícone configurável (estrela ou coração) e destaque ❤️ opcional; um mock
+  visual é validado antes de implementar.
+- **Imagem** aceita URL e upload.
+- **Formato de data por propriedade** (dia/mês/ano, relativo, com ou sem hora).
+
+### DECISÃO-021 — Backup e "Mover bloco"
+**DECIDIDA**
+- **Backup semanal na Fase 6**, para um destino **privado**. Nunca no repositório público.
+- "Mover bloco para outra página" fica para a **V1** (sai do menu do bloco do MVP).

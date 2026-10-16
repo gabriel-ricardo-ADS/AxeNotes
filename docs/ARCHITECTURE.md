@@ -31,7 +31,7 @@ depois (DECISÃO-001).
 - **PWA**: vite-plugin-pwa. **Futuro**: Capacitor.
 - **Hospedagem**: Cloudflare Pages (front) + Workers/Durable Objects (sync); Supabase Free.
 - **Qualidade**: ESLint, Prettier, Vitest, Testing Library, Playwright (desktop 1440×900, iPhone,
-  iPad), GitHub Actions (typecheck, lint, test, build, e2e, licenças).
+  iPad), GitHub Actions (typecheck, lint, test, build, licenças; o e2e entra no CI na Fase 1).
 
 Licenças: toda dependência precisa ser compatível com GPL-3.0 (DECISÃO-003).
 
@@ -73,7 +73,8 @@ public/
 
 profiles (id uuid pk references auth.users, display_name, avatar_path)
 
-workspaces (id uuid pk, name text, icon jsonb, created_by uuid)
+workspaces (id uuid pk, name text, icon jsonb, created_by uuid,
+            home_page_id uuid null references pages)   -- página inicial (DECISÃO-019)
 
 workspace_members (
   workspace_id uuid, user_id uuid, role text check (role in ('owner','editor','viewer')),
@@ -87,16 +88,25 @@ pages (
   database_id uuid null references databases,   -- se a página é linha de base
   title text not null default '',
   icon jsonb, cover jsonb,
-  ydoc bytea null,             -- estado Yjs do conteúdo (ou caminho no Storage se crescer)
-  content_json jsonb,          -- snapshot BlockNote para prévias/export
-  content_text text default '',-- texto puro para busca
+  content_json jsonb,          -- snapshot BlockNote para prévias/export (fase 2)
+  content_text text default '',-- texto puro para busca por conteúdo (fase 2)
   properties jsonb default '{}',
   sort_key text not null,      -- índice fracionário
   full_width bool default false,
   created_by uuid, last_edited_by uuid, last_edited_at timestamptz,
-  trashed_at timestamptz null,
+  trashed_at timestamptz null, -- lixeira em cascata: a subárvore inteira vai e volta junto
   public_share_token text null -- link somente leitura (fase 11)
 )
+
+-- Fase 2 (DECISÃO-016): conteúdo Yjs fora de `pages`, como log de updates + estado compactado.
+page_contents (
+  id bigint generated always as identity pk,
+  page_id uuid not null references pages on delete cascade,
+  kind text check (kind in ('update','snapshot')),  -- 'snapshot' = estado compactado
+  data bytea not null,
+  created_at timestamptz default now()
+)
+-- RLS: can_access_page(page_id). Compactação periódica: junta os 'update' em um 'snapshot'.
 
 page_permissions (page_id, user_id, role)   -- compartilhamento de página fora do workspace (fase 11)
 user_favorites (user_id, page_id, sort_key)
@@ -123,14 +133,17 @@ ai_usage (id, user_id, provider, model, tokens_in, tokens_out, created_at)
 
 Decisões de modelagem:
 - **Workspace como fronteira de acesso** desde o início: hoje 1 usuária, amanhã convites.
-- **Conteúdo em Yjs** (merge sem conflito para offline e coedição) + snapshot para busca.
+- **Conteúdo em Yjs** (merge sem conflito para offline e coedição) + snapshot para busca,
+  guardado em `page_contents` (log de updates com compactação), separado da tabela `pages`.
+- **Acesso a páginas** por `is_workspace_member(ws, min_role)` + `can_access_page(page_id)`.
 - **Linha de base = página**; ordenação por índice fracionário; exclusão lógica (`trashed_at`).
 
 ## 5. Sincronização e offline
 
 ```
 Editor (BlockNote) ── Y.Doc ──┬─ y-indexeddb (aparelho, offline)
-                              ├─ Fase 2: persistência debounced → Supabase (ydoc + snapshot)
+                              ├─ Fase 2: updates debounced → Supabase (page_contents: log de
+                              │          updates + compactação) + snapshot de texto/JSON
                               └─ Fase 11: provedor tempo real → Durable Object por página
                                            (y-partyserver) → persiste no Supabase
 Árvore/bases ── TanStack Query + cache IndexedDB ── Fase 10: outbox de mutações → Supabase
