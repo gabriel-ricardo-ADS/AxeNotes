@@ -70,6 +70,27 @@ public/
 
 ## 4. Modelo de dados (rascunho — refinar nas fases 1 e 5)
 
+**Já implementado (Fase 1, T2 — `supabase/migrations/`):** `profiles`, `workspaces`,
+`workspace_members`, `pages` (só `id`, `workspace_id`, `parent_id`, `title`, `icon`, `sort_key`,
+`created_by`, `last_edited_by/at`, `trashed_at`), `user_favorites`, `user_recents`, as funções
+`is_workspace_member`, `can_access_page`, `trash_page`, `restore_page`, `search_pages` e o trigger de
+cadastro. O restante do rascunho abaixo entra nas fases indicadas. Detalhes do que existe:
+
+- **Privilégios mínimos:** `anon` não tem acesso a nada; `authenticated` recebe grants por coluna
+  (ex.: não escreve `pages.workspace_id` nem `trashed_at`). Clientes não criam `workspaces` nem
+  `workspace_members`: o workspace pessoal nasce no cadastro (`handle_new_user`) e convites virão na Fase 11.
+- **Árvore:** FK composta `(parent_id, workspace_id)` garante pai no mesmo workspace; `pages_guard`
+  barra ciclos, mudança de workspace e página nova sob pai na lixeira. `sort_key` usa `collate "C"`.
+- **Lixeira em cascata:** `trash_page(id)` marca a subárvore inteira com o MESMO `trashed_at`;
+  `restore_page(id)` restaura só quem tem esse carimbo (subpágina enviada antes continua na lixeira) e
+  recusa se o pai ainda estiver na lixeira. Exclusão definitiva = `delete` só em página já na lixeira.
+- **Busca:** `search_pages(ws, texto, limite)` com `immutable_unaccent` + índice trigram, só por título.
+- **Políticas de `pages`** usam `is_workspace_member(workspace_id, …)` direto; `can_access_page(id)` serve
+  às tabelas por usuário (favoritos, recentes) e é o ponto único para estender com permissões por página.
+- **Testes:** `supabase/tests/` roda as migrações em PGlite (com uma simulação mínima do schema `auth` e
+  dos roles do Supabase em `helpers/bootstrap.sql`) dentro do `pnpm test`. Não substitui um smoke test no
+  projeto real depois do `db push`.
+
 ```sql
 -- todas as tabelas: created_at, updated_at; RLS ligada.
 -- Acesso por pertencimento: is_workspace_member(workspace_id, min_role) security definer.

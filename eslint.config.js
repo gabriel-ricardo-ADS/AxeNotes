@@ -21,7 +21,13 @@ export default tseslint.config(
     ],
   },
   {
-    files: ['src/**/*.{ts,tsx}', 'e2e/**/*.ts', '*.config.ts', 'vitest.setup.ts'],
+    files: [
+      'src/**/*.{ts,tsx}',
+      'e2e/**/*.ts',
+      'supabase/tests/**/*.ts',
+      '*.config.ts',
+      'vitest.setup.ts',
+    ],
     extends: [
       js.configs.recommended,
       ...tseslint.configs.strictTypeChecked,
