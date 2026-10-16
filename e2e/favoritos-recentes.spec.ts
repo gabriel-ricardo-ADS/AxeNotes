@@ -26,9 +26,14 @@ function nextWrite(page: Page, table: 'user_favorites' | 'user_recents', method:
   )
 }
 
-async function openApp(page: Page, path = '/') {
+/** Abre a página e espera o título; no mobile a gaveta fica fechada (ela cobriria a estrela da página). */
+async function openPage(page: Page, path = '/') {
   await page.goto(path)
   await expect(titleField(page)).toBeVisible()
+}
+
+async function openApp(page: Page, path = '/') {
+  await openPage(page, path)
   await openNavigation(page)
 }
 
@@ -71,7 +76,7 @@ test.describe('favoritos', () => {
   }) => {
     const title = `${run.prefix}estrela`
     const id = await createTestPage(run.api, { title, sortKey: sortKeySequence()() })
-    await openApp(page, `/p/${id}`)
+    await openPage(page, `/p/${id}`)
 
     const saved = nextWrite(page, 'user_favorites', 'POST')
     await page.getByRole('button', { name: 'Adicionar aos favoritos' }).click()
