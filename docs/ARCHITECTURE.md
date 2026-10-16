@@ -45,8 +45,10 @@ src/
   features/
     auth/         # entrar, criar conta, código OTP, recuperar senha, AuthProvider (sessão), guardas
     workspace/    # workspace do usuário, páginas (api/ + hooks/), árvore da sidebar (components/), tree.ts
-                  # (árvore, ordem, validação de mover), página inicial (home.ts); depois busca, favoritos,
-                  # recentes, lixeira
+                  # (árvore, ordem, validação de mover), página inicial (home.ts)
+    favorites/    # favoritos do usuário: estrela, seção da sidebar, ordem (favorites.ts), mutations otimistas
+    recents/      # recentes do usuário: registro da visita ao abrir a página, seção da sidebar (recents.ts)
+    trash/  search/   # (T4b e T4c) lixeira em /lixeira e busca Ctrl+K
     pages/        # tela da página /p/:pageId: título, ícone, breadcrumb, "Editada há…" (editor na Fase 2)
     editor/       # BlockNote, schema, blocos customizados, menus pt-BR, Yjs
     sync/         # y-indexeddb, persistência no Supabase, outbox, status online/offline
@@ -68,7 +70,8 @@ supabase/
 workers/
   sync/           # Cloudflare Worker + Durable Object do Yjs (fase de colaboração)
 e2e/              # specs do Playwright (auth.setup.ts salva a sessão por projeto; rls-smoke.spec.ts lê o
-                  # projeto real; pages-tree.spec.ts escreve só páginas "e2e-…" do usuário de teste 1 e as
+                  # projeto real; pages-tree.spec.ts e favoritos-recentes.spec.ts (fixture em support/run-fixture.ts)
+                  # escrevem só páginas "e2e-…" do usuário de teste 1 (e favoritos/recentes delas) e as
                   # apaga, com faxina inicial em cleanup.setup.ts) + screenshot.ts (pnpm screenshots)
 public/
 ```
@@ -114,6 +117,13 @@ cadastro. O restante do rascunho abaixo entra nas fases indicadas. Detalhes do q
   (fim da lista) continua funcionando. Os e2e criam páginas com chaves únicas (`sortKeySequence`).
 - **Página inicial:** `workspaces.home_page_id` nulo → o owner cria "Página inicial" no 1º acesso (lock
   `navigator.locks` + `update … where home_page_id is null`). Só o owner grava esse campo (RLS).
+- **Favoritos e recentes (T4a):** `user_favorites (page_id, sort_key)` e `user_recents (page_id, visited_at)`, por
+  usuário (RLS por `user_id` + `can_access_page`, que **não** olha a lixeira: o cliente junta com `usePages` e esconde
+  o que não está na lista; restaurar a página traz o favorito de volta). Favoritar = `upsert … ignoreDuplicates` no fim
+  da lista (chave `keyAtIndex`), otimista com rollback do item e fila `favorites-write`; sem reordenar, nunca nasce
+  chave entre dois favoritos. Visita = `upsert` com `page_id` e `visited_at` (sempre enviado) feito por `PageView` só
+  para página já encontrada e fora a inicial; a mesma página não regrava por 30 s; 8 exibidos, 50 guardados, e o
+  excesso é apagado com `delete … lt visited_at` (best effort). `visited_at` é do relógio do aparelho.
 - **Estado de interface da árvore** (expandido, renomeando, aviso): Zustand em memória, sem `persist`.
 - **Testes:** `supabase/tests/` roda as migrações em PGlite (com uma simulação mínima do schema `auth` e
   dos roles do Supabase em `helpers/bootstrap.sql`) dentro do `pnpm test`. Não substitui um smoke test no
