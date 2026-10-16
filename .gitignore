@@ -39,3 +39,6 @@ Thumbs.db
 
 # kit local de referências (contém dados pessoais da cliente)
 axenotes-kit/
+
+# sessões salvas pelo setup do e2e (contêm tokens: nunca versionar)
+e2e/.auth/
