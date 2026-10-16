@@ -1,7 +1,10 @@
 import { z } from 'zod'
 import { t } from '@/i18n'
 
-/** O código OTP do Supabase tem 6 dígitos (configuração do projeto). */
+/**
+ * Tamanho do código OTP. Precisa bater com "Email OTP Length" do painel do Supabase
+ * (Authentication → Sign In / Providers → Email); ver supabase/README.md.
+ */
 export const CODE_LENGTH = 6
 
 /** O Supabase (bcrypt) aceita no máximo 72 BYTES de senha, não 72 caracteres. */

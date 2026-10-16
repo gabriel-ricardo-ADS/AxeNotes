@@ -22,6 +22,27 @@ O `db push` aplica só `migrations/`; a seed não é executada no remoto.
 > apagar os dados, ele executa a seed e criaria contas com senha conhecida. O `db reset` é só para o
 > Supabase local (Docker).
 
+## Configuração do painel (Auth)
+
+Estas opções ficam no painel do Supabase (não são versionadas em `migrations/` nem em `config.toml`).
+Confira no projeto remoto sempre que criar ou recriar o projeto:
+
+- **Confirm email** ligado (Authentication → Sign In / Providers → Email).
+- **Email OTP Length = 6** (Authentication → Sign In / Providers → Email). Precisa bater com
+  `CODE_LENGTH` em `src/features/auth/schemas.ts`; se divergir, o app rejeita o código recebido.
+- **Templates de e-mail** (Authentication → Email Templates) usando só `{{ .Token }}`, sem link de
+  confirmação:
+
+  | Template | Assunto |
+  | --- | --- |
+  | Confirm sign up | `Seu código do AxeNotes` |
+  | Reset password | `Código para redefinir sua senha` |
+
+**Pendente de decisão** (ainda não alterado no painel):
+
+- Cadastro aberto (**Allow new users to sign up**).
+- Senha mínima no servidor (o app já valida o mínimo no cliente; falta definir o valor no painel).
+
 ## Rodar local com Docker (opcional)
 
 ```bash
