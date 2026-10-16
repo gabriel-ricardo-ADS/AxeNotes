@@ -1,16 +1,41 @@
-import { act, render, screen, within } from '@testing-library/react'
+import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
+import { act, render, screen, waitFor, within } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { MemoryRouter } from 'react-router'
 import { AppRoutes } from '@/app/App'
+import { AuthProvider } from '@/features/auth/AuthProvider'
+import {
+  emitAuthEvent,
+  fakeAuth,
+  fakeSession,
+  mockProfile,
+  resetFakeSupabase,
+} from '@/test/fake-supabase'
 import { installMatchMedia } from '@/test/match-media'
 
-function renderApp(path = '/') {
-  return render(
-    <MemoryRouter initialEntries={[path]}>
-      <AppRoutes />
-    </MemoryRouter>,
+vi.mock('@/lib/supabase', async () => ({
+  supabase: (await import('@/test/fake-supabase')).fakeSupabase,
+}))
+
+/** Renderiza o app com a sessão já carregada (`signedIn: false` = carregada, sem usuário). */
+function renderApp(path = '/', signedIn = true) {
+  const result = render(
+    <QueryClientProvider client={new QueryClient()}>
+      <MemoryRouter initialEntries={[path]}>
+        <AuthProvider>
+          <AppRoutes />
+        </AuthProvider>
+      </MemoryRouter>
+    </QueryClientProvider>,
   )
+  emitAuthEvent('INITIAL_SESSION', signedIn ? fakeSession() : null)
+  return result
 }
+
+beforeEach(() => {
+  resetFakeSupabase()
+  mockProfile('Ana Teste')
+})
 
 describe('layout (desktop)', () => {
   beforeEach(() => {
@@ -102,5 +127,45 @@ describe('layout (mobile)', () => {
     expect(screen.queryByRole('dialog')).not.toBeInTheDocument()
     expect(screen.getByRole('navigation', { name: 'Navegação principal' })).toBeInTheDocument()
     expect(screen.queryByRole('button', { name: 'Abrir menu' })).not.toBeInTheDocument()
+  })
+})
+
+describe('auth in the app shell', () => {
+  beforeEach(() => {
+    installMatchMedia(true)
+  })
+
+  it('sends visitors without a session to the sign-in screen', () => {
+    renderApp('/', false)
+
+    expect(screen.getByRole('heading', { level: 1, name: 'Entrar' })).toBeInTheDocument()
+    expect(screen.queryByRole('navigation')).not.toBeInTheDocument()
+  })
+
+  it('shows the user name and a sign-out button in the sidebar footer', async () => {
+    renderApp()
+
+    const nav = screen.getByRole('navigation', { name: 'Navegação principal' })
+    expect(await within(nav).findByText('Ana Teste')).toBeInTheDocument()
+    expect(within(nav).getByRole('button', { name: 'Sair' })).toBeInTheDocument()
+  })
+
+  it('falls back to a generic label when the profile has no name', async () => {
+    mockProfile(null)
+    renderApp()
+
+    expect(await screen.findByText('Minha conta')).toBeInTheDocument()
+  })
+
+  it('signs out only this device and goes back to the sign-in screen', async () => {
+    const user = userEvent.setup()
+    renderApp()
+
+    await user.click(screen.getByRole('button', { name: 'Sair' }))
+
+    expect(fakeAuth.signOut).toHaveBeenCalledWith({ scope: 'local' })
+    await waitFor(() => {
+      expect(screen.getByRole('heading', { level: 1, name: 'Entrar' })).toBeInTheDocument()
+    })
   })
 })

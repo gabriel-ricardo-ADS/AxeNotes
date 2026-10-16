@@ -1,5 +1,6 @@
 import { HouseIcon } from 'lucide-react'
 import { NavLink } from 'react-router'
+import { UserMenu } from '@/features/auth/components/UserMenu'
 import { t } from '@/i18n'
 import { cn } from '@/lib/utils'
 
@@ -42,6 +43,8 @@ export function Sidebar({ onNavigate }: SidebarProps) {
         </h2>
         <p className="px-2 text-muted-foreground">{t('layout.sidebar.recentsEmpty')}</p>
       </section>
+
+      <UserMenu />
     </nav>
   )
 }

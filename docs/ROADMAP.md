@@ -41,7 +41,11 @@ SMTP (Brevo ou Resend) para o OTP.
 - Seed com dados fictícios e 2 usuários de teste.
 - e2e passa a rodar no CI.
 - Dividida em partes (um PR cada). **T2 — banco e RLS** (`supabase/`: migrações, seed e testes em
-  PGlite; sem telas) está em PR; o restante (cliente, auth, sidebar, árvore, busca Ctrl+K) vem depois.
+  PGlite; sem telas) está na `main`. **T3a — cliente Supabase + autenticação** (`src/lib/supabase.ts`,
+  `src/features/auth/`: entrar, criar conta, código de 6 dígitos, recuperar senha, sair, rotas protegidas,
+  nome do usuário na sidebar; e2e com 1 login por projeto e smoke de RLS só leitura no projeto real) está em
+  PR. Pendências da T3a: rodar o e2e no CI (precisa dos secrets `VITE_SUPABASE_*` e `E2E_*`) e a exclusão
+  de conta (DECISÃO-023). Árvore, sidebar completa e busca Ctrl+K ficam para a T3b.
 **Pronto quando:** teste de RLS (Postgres local/PGlite) prova que usuário B não vê o workspace de
 A, e que um viewer não edita; árvore funciona no desktop e no mobile. Nada é aplicado no
 Supabase remoto sem o ok do Gabriel (DECISÃO-015).
