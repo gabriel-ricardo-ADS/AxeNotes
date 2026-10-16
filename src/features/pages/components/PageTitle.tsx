@@ -52,8 +52,21 @@ export function PageTitle({ pageId, title, editable, focusOnMount }: PageTitlePr
     area.style.height = `${String(area.scrollHeight)}px`
   }, [value])
 
+  // Página recém-criada pelo menu: foca o título. No mobile a gaveta ainda está fechando (a armadilha
+  // de foco do diálogo e o "devolver foco ao ☰" disputam o foco), então insiste por um instante.
   useEffect(() => {
-    if (focusOnMount) areaRef.current?.focus()
+    if (!focusOnMount) return
+    const timers = [0, 120, 250, 400, 700].map((delay) =>
+      window.setTimeout(() => {
+        const area = areaRef.current
+        if (area && document.activeElement !== area) area.focus()
+      }, delay),
+    )
+    return () => {
+      timers.forEach((timer) => {
+        window.clearTimeout(timer)
+      })
+    }
   }, [focusOnMount])
 
   async function save() {

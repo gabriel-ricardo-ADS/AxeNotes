@@ -33,10 +33,12 @@ export function PageView({ page }: { page: PageRow }) {
   const ancestors = useMemo(() => ancestorsOf(rows ?? [], page.id), [rows, page.id])
 
   // A navegação de "nova página" pede foco no título; consome o aviso para não repetir ao voltar.
-  const focusTitle = wantsTitleFocus(location.state)
+  const [focusTitle] = useState(() => wantsTitleFocus(location.state))
   useEffect(() => {
-    if (focusTitle) void navigate(location.pathname, { replace: true, state: null })
-  }, [focusTitle, location.pathname, navigate])
+    if (wantsTitleFocus(location.state)) {
+      void navigate(location.pathname, { replace: true, state: null })
+    }
+  }, [location.state, location.pathname, navigate])
 
   const edited = (
     <p className="shrink-0 text-meta text-muted-foreground">

@@ -224,6 +224,7 @@ test.describe('árvore de páginas', () => {
     expect(await visibleTitles(page, run.prefix)).toEqual([b, a])
     await page.reload()
     await openNavigation(page)
+    await expect(item(page, b)).toBeVisible()
     expect(await visibleTitles(page, run.prefix)).toEqual([b, a])
   })
 

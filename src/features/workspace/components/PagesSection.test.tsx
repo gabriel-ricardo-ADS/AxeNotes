@@ -348,6 +348,20 @@ describe('árvore: teclado', () => {
   })
 })
 
+describe('árvore na gaveta (mobile)', () => {
+  it('reveals the open page when the drawer is opened after loading', async () => {
+    installMatchMedia(false)
+    const user = userEvent.setup()
+    renderApp(`/p/${STUDIES}`)
+    await screen.findByRole('textbox', { name: 'Título da página' })
+
+    await user.click(screen.getByRole('button', { name: 'Abrir menu' }))
+
+    expect(await treeitem('Estudos')).toHaveAttribute('aria-selected', 'true')
+    expect(await treeitem('Leituras')).toHaveAttribute('aria-expanded', 'true')
+  })
+})
+
 describe('árvore para quem só lê (viewer)', () => {
   beforeEach(() => {
     seedWorkspace({ role: 'viewer', homePageId: HOME })
