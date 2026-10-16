@@ -227,9 +227,8 @@ de um par empatado até as chaves mudarem por outro motivo.
 - **C — RPC `rebalance_siblings(p_parent_id)`** em transação, que regrava as chaves dos filhos de um pai em
   sequência limpa (security definer, `is_workspace_member` com papel de editor). O cliente a chama quando
   `planMove` devolve `tie` e depois repete o movimento. Exige migration (que EU aplico) e testes de RLS em
-  PGlite. Atômica e sem corrida entre abas. Contras: reescreve muitas linhas (e `last_edited_at` não deve
-  mudar: a RPC precisa preservá-lo), custo em pais com muitos filhos; não impede novos empates sozinha (pode
-  ser combinada com B).
+  PGlite. Atômica e sem corrida entre abas. Contras: reescreve muitas linhas, com custo em pais com muitos
+  filhos; não impede novos empates sozinha (pode ser combinada com B).
 
 **Recomendação.** Não decidir agora: o caso só aparece com escritas concorrentes e hoje é raro e
 inofensivo (aviso + "Mover para…"). Decidir **quando aparecer o primeiro caso real, ou antes da Fase 11
