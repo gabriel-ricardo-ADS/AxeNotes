@@ -1,4 +1,4 @@
-import type { AuthChangeEvent, Session } from '@supabase/supabase-js'
+import type { AuthChangeEvent, AuthError, Session } from '@supabase/supabase-js'
 import { act } from '@testing-library/react'
 
 // Cliente do Supabase falso para os testes: `vi.mock('@/lib/supabase', async () => ({ supabase:
@@ -25,7 +25,13 @@ export function fakeSession(userId = 'user-1'): Session {
   } as unknown as Session
 }
 
-const ok = { data: {}, error: null }
+interface Result {
+  data: object
+  error: AuthError | null
+}
+
+const ok: Result = { data: {}, error: null }
+const resolvesOk = () => vi.fn<(arg?: unknown) => Promise<Result>>(() => Promise.resolve(ok))
 
 export const fakeAuth = {
   onAuthStateChange: vi.fn((listener: Listener) => {
@@ -40,13 +46,13 @@ export const fakeAuth = {
       },
     }
   }),
-  signInWithPassword: vi.fn(() => Promise.resolve(ok)),
-  signUp: vi.fn(() => Promise.resolve(ok)),
-  verifyOtp: vi.fn(() => Promise.resolve(ok)),
-  resend: vi.fn(() => Promise.resolve(ok)),
-  resetPasswordForEmail: vi.fn(() => Promise.resolve(ok)),
-  updateUser: vi.fn(() => Promise.resolve(ok)),
-  signOut: vi.fn(() => {
+  signInWithPassword: resolvesOk(),
+  signUp: resolvesOk(),
+  verifyOtp: resolvesOk(),
+  resend: resolvesOk(),
+  resetPasswordForEmail: resolvesOk(),
+  updateUser: resolvesOk(),
+  signOut: vi.fn<(arg?: unknown) => Promise<{ error: null }>>(() => {
     emitAuthEvent('SIGNED_OUT', null)
     return Promise.resolve({ error: null })
   }),
@@ -57,6 +63,16 @@ export const fakeSupabase = { auth: fakeAuth, from: vi.fn() }
 /** Zera chamadas e ouvintes entre testes. */
 export function resetFakeSupabase() {
   listeners.clear()
-  for (const fn of Object.values(fakeAuth)) fn.mockClear()
+  for (const fn of Object.values(fakeAuth)) fn.mockReset()
   fakeSupabase.from.mockReset()
+}
+
+/** Faz a consulta de `profiles` devolver este nome (ou nenhum perfil, com null). */
+export function mockProfile(displayName: string | null) {
+  const row = displayName === null ? null : { display_name: displayName }
+  fakeSupabase.from.mockReturnValue({
+    select: () => ({
+      eq: () => ({ maybeSingle: () => Promise.resolve({ data: row, error: null }) }),
+    }),
+  })
 }

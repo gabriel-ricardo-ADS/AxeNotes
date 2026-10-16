@@ -1,5 +1,6 @@
 import { Navigate, Outlet, useLocation } from 'react-router'
 import { useAuth } from '@/features/auth/auth-context'
+import { readFrom } from '@/features/auth/navigation-state'
 import { sanitizeRedirect } from '@/features/auth/redirect'
 import { t } from '@/i18n'
 
@@ -10,10 +11,6 @@ function AuthLoading() {
       <span className="sr-only">{t('auth.loading')}</span>
     </div>
   )
-}
-
-function readFrom(state: unknown): unknown {
-  return typeof state === 'object' && state !== null && 'from' in state ? state.from : undefined
 }
 
 /** Rotas do app: sem sessão vai para /entrar e, depois de entrar, volta para onde estava. */
