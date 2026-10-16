@@ -1,6 +1,7 @@
 import { HouseIcon } from 'lucide-react'
 import { NavLink } from 'react-router'
 import { UserMenu } from '@/features/auth/components/UserMenu'
+import { PagesSection } from '@/features/workspace/components/PagesSection'
 import { t } from '@/i18n'
 import { cn } from '@/lib/utils'
 
@@ -36,6 +37,8 @@ export function Sidebar({ onNavigate }: SidebarProps) {
           </NavLink>
         </li>
       </ul>
+
+      <PagesSection onNavigate={onNavigate} />
 
       <section aria-labelledby="sidebar-recents">
         <h2 id="sidebar-recents" className="px-2 pb-1 text-meta font-medium text-muted-foreground">

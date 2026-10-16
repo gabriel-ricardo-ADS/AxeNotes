@@ -11,13 +11,18 @@ import {
 } from '@/components/ui/sheet'
 import { t } from '@/i18n'
 
+interface MobileNavProps {
+  /** Recebe o elemento onde a tela da página coloca o breadcrumb (portal). */
+  slotRef: (element: HTMLElement | null) => void
+}
+
 /** Barra superior do mobile com o botão ☰, que abre a sidebar numa gaveta. Só pelo botão. */
-export function MobileNav() {
+export function MobileNav({ slotRef }: MobileNavProps) {
   const [open, setOpen] = useState(false)
 
   return (
     <Sheet open={open} onOpenChange={setOpen}>
-      <header className="flex h-12 shrink-0 items-center gap-1 border-b px-1 pt-[env(safe-area-inset-top)] box-content">
+      <header className="group/bar flex h-12 shrink-0 items-center gap-1 border-b px-1 pt-[env(safe-area-inset-top)] box-content">
         <SheetTrigger asChild>
           <button
             type="button"
@@ -27,7 +32,10 @@ export function MobileNav() {
             <MenuIcon className="size-5" aria-hidden="true" />
           </button>
         </SheetTrigger>
-        <span className="font-semibold text-strong">{t('app.name')}</span>
+        <span className="font-semibold text-strong group-has-[[data-top-bar]]/bar:hidden">
+          {t('app.name')}
+        </span>
+        <div ref={slotRef} className="flex min-w-0 flex-1 items-center" />
       </header>
 
       <SheetContent

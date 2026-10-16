@@ -10,6 +10,7 @@ import { SignInPage } from '@/features/auth/pages/SignInPage'
 import { SignUpPage } from '@/features/auth/pages/SignUpPage'
 import { VerifyCodePage } from '@/features/auth/pages/VerifyCodePage'
 import { HomePage } from '@/features/home/HomePage'
+import { PagePage } from '@/features/pages/PagePage'
 import { createQueryClient } from '@/lib/query-client'
 
 const queryClient = createQueryClient()
@@ -30,6 +31,7 @@ export function AppRoutes() {
       <Route element={<RequireAuth />}>
         <Route element={<AppLayout />}>
           <Route index element={<HomePage />} />
+          <Route path="p/:pageId" element={<PagePage />} />
           <Route path="*" element={<NotFoundPage />} />
         </Route>
       </Route>

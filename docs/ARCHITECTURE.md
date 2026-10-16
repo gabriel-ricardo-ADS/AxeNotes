@@ -44,8 +44,10 @@ src/
   components/ui/  # shadcn/ui (hoje só o Sheet, adaptado: animações próprias, sem tw-animate-css)
   features/
     auth/         # entrar, criar conta, código OTP, recuperar senha, AuthProvider (sessão), guardas
-    workspace/    # workspaces, membros, sidebar, árvore, busca, favoritos, recentes, lixeira
-    pages/        # tela da página: capa, ícone, título, breadcrumb, editor
+    workspace/    # workspace do usuário, páginas (api/ + hooks/), árvore da sidebar (components/), tree.ts
+                  # (árvore, ordem, validação de mover), página inicial (home.ts); depois busca, favoritos,
+                  # recentes, lixeira
+    pages/        # tela da página /p/:pageId: título, ícone, breadcrumb, "Editada há…" (editor na Fase 2)
     editor/       # BlockNote, schema, blocos customizados, menus pt-BR, Yjs
     sync/         # y-indexeddb, persistência no Supabase, outbox, status online/offline
     databases/    # propriedades e vistas (table, gallery, board, calendar, list)
@@ -66,7 +68,8 @@ supabase/
 workers/
   sync/           # Cloudflare Worker + Durable Object do Yjs (fase de colaboração)
 e2e/              # specs do Playwright (auth.setup.ts salva a sessão por projeto; rls-smoke.spec.ts lê o
-                  # projeto real) + screenshot.ts (pnpm screenshots)
+                  # projeto real; pages-tree.spec.ts escreve só páginas "e2e-…" do usuário de teste 1 e as
+                  # apaga, com faxina inicial em cleanup.setup.ts) + screenshot.ts (pnpm screenshots)
 public/
 ```
 
@@ -89,6 +92,16 @@ cadastro. O restante do rascunho abaixo entra nas fases indicadas. Detalhes do q
 - **Busca:** `search_pages(ws, texto, limite)` com `immutable_unaccent` + índice trigram, só por título.
 - **Políticas de `pages`** usam `is_workspace_member(workspace_id, …)` direto; `can_access_page(id)` serve
   às tabelas por usuário (favoritos, recentes) e é o ponto único para estender com permissões por página.
+- **Árvore no cliente (T3b):** `usePages` traz todas as páginas fora da lixeira (id, parent_id, title, icon,
+  sort_key, last_edited_at), em lotes de 1000 (limite do PostgREST); `tree.ts` monta a árvore, ordena por
+  `sort_key` (`<`, nunca `localeCompare`, desempate por id) e valida mover (sem ciclo). Criar usa o UUID gerado
+  no cliente e não pede `RETURNING` (a RLS de SELECT pode não enxergar a linha nova). Mutations otimistas
+  sobre `['pages', workspaceId]` com rollback; título/ícone não recarregam a lista a cada salvamento, só no erro
+  ou uma vez ao terminar de editar; criar/mover reconciliam ao fim. Escritas em `pages` seguem uma fila
+  (`scope`), na ordem.
+- **Página inicial:** `workspaces.home_page_id` nulo → o owner cria "Página inicial" no 1º acesso (lock
+  `navigator.locks` + `update … where home_page_id is null`). Só o owner grava esse campo (RLS).
+- **Estado de interface da árvore** (expandido, renomeando, aviso): Zustand em memória, sem `persist`.
 - **Testes:** `supabase/tests/` roda as migrações em PGlite (com uma simulação mínima do schema `auth` e
   dos roles do Supabase em `helpers/bootstrap.sql`) dentro do `pnpm test`. Não substitui um smoke test no
   projeto real depois do `db push`.
