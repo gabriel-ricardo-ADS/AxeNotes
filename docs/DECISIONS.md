@@ -284,7 +284,8 @@ A T4 é só cliente: **sem migration** (as tabelas e RPCs vieram na T2). A DECIS
   continua habilitado e a origem diz "(também na lixeira)".
 - **Sem conexão:** não há outbox até a Fase 10. Pela árvore, mandar para a lixeira se comporta como as outras escritas
   (criar, renomear, mover, favoritar): sai da lista na hora e o pedido fica em espera até o navegador reconectar (se a aba for
-  fechada antes, perde-se). Pelo menu da página, restaurar e excluir (sem otimismo) o pedido falha na hora e o erro aparece.
+  fechada antes, perde-se). Restaurar, excluir e mandar para a lixeira pelo menu da página (sem otimismo) falham
+  na hora, sem ficar "Restaurando…"/"Movendo…" até reconectar, e mostram o erro.
 - **Risco registrado:** `trash_page` aceita lixear a **página inicial** (e uma página que a contém); hoje só o cliente
   impede (não oferece a ação). Quem chamar o RPC direto consegue; se isso importar, a regra vira migration depois.
 - **Restaurar pode recriar empate de `sort_key`** entre irmãos (a página volta com a chave antiga). Isso fica sob a
