@@ -11,6 +11,8 @@ const buttonVariants = cva(
         primary: 'bg-primary text-white hover:bg-primary-hover',
         ghost: 'text-muted-foreground hover:bg-hover hover:text-strong',
         link: 'text-primary underline underline-offset-2 hover:text-primary-hover',
+        // Ação destrutiva: fundo da etiqueta vermelha (contraste AA com texto branco).
+        danger: 'bg-red-tag text-white hover:brightness-125',
       },
       size: {
         default: 'min-h-11 px-4 md:min-h-9',

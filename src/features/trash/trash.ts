@@ -97,7 +97,7 @@ export function buildTrashRoots(
   return trashed
     .filter((page) => {
       const parent = page.parentId === null ? undefined : trashedById.get(page.parentId)
-      return parent === undefined || parent.trashedAt !== page.trashedAt
+      return parent?.trashedAt !== page.trashedAt
     })
     .map((page) => ({
       page,
