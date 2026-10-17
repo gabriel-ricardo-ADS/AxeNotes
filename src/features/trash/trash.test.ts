@@ -145,8 +145,11 @@ describe('trashErrorMessage', () => {
     expect(trashErrorMessage('restore', new Error('x'))).toBe(
       'Não foi possível restaurar a página. Tente novamente.',
     )
-    expect(trashErrorMessage('delete', new TrashActionError('unknown'))).toContain(
-      'Não foi possível excluir a página.',
+    expect(trashErrorMessage('delete', new TrashActionError('unknown'))).toBe(
+      'Não foi possível excluir a página. Tente novamente.',
+    )
+    expect(trashErrorMessage('delete', new TrashActionError('gone'))).toContain(
+      'já foi restaurada ou excluída em outro lugar',
     )
   })
 })

@@ -349,7 +349,7 @@ describe('excluir definitivamente', () => {
     await user.click(within(dialog).getByRole('button', { name: 'Excluir definitivamente' }))
 
     expect(await within(main()).findByRole('alert')).toHaveTextContent(
-      'Não foi possível excluir a página.',
+      'a página já foi restaurada ou excluída em outro lugar',
     )
     await waitFor(() => {
       expect(screen.queryByText('Receitas', { selector: 'main p' })).not.toBeInTheDocument()
@@ -381,5 +381,29 @@ describe('home page child', () => {
     expect(
       within(await rowOf('Ideia solta')).getByText('Origem: nível principal'),
     ).toBeInTheDocument()
+  })
+})
+
+describe('sem conexão (restaurar e excluir)', () => {
+  it('fails right away with a generic message, keeps the row and does not claim the page is gone', async () => {
+    const user = userEvent.setup()
+    renderApp('/lixeira')
+    await trashList()
+    fakeDb.persistentFailures.push({ op: 'delete', table: 'pages' })
+
+    await user.click(
+      within(await rowOf('Receitas')).getByRole('button', { name: 'Excluir Receitas definitivamente' }),
+    )
+    await user.click(
+      within(await screen.findByRole('alertdialog')).getByRole('button', {
+        name: 'Excluir definitivamente',
+      }),
+    )
+
+    expect(await within(main()).findByRole('alert')).toHaveTextContent(
+      'Não foi possível excluir a página. Tente novamente.',
+    )
+    expect(await rowOf('Receitas')).toBeInTheDocument()
+    expect(dbPage(RECIPES)).toBeDefined()
   })
 })

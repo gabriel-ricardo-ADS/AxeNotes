@@ -113,7 +113,8 @@ export function buildTrashRoots(
 
 // Erros -------------------------------------------------------------------------------------------
 
-export type TrashErrorKind = 'parent_trashed' | 'forbidden' | 'unknown'
+/** `gone`: a ação não atingiu nenhuma linha (a página já foi restaurada ou excluída em outro lugar). */
+export type TrashErrorKind = 'parent_trashed' | 'forbidden' | 'gone' | 'unknown'
 
 /** Erro das ações da lixeira, já classificado (a API nunca deixa vazar o erro cru do Postgres). */
 export class TrashActionError extends Error {

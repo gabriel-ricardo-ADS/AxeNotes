@@ -227,8 +227,9 @@ export const ptBR = {
       restore: 'Não foi possível restaurar a página. Tente novamente.',
       restoreParentTrashed:
         'A página pai ainda está na lixeira. Restaure a página pai primeiro.',
-      delete:
-        'Não foi possível excluir a página. Ela pode já ter sido restaurada ou excluída; a lista foi atualizada.',
+      delete: 'Não foi possível excluir a página. Tente novamente.',
+      deleteGone:
+        'Não foi possível excluir: a página já foi restaurada ou excluída em outro lugar. A lista foi atualizada.',
       forbidden: 'Você não tem permissão para fazer isso neste workspace.',
     },
   },

@@ -73,5 +73,5 @@ export async function restorePage(pageId: string): Promise<void> {
 export async function deletePagePermanently(pageId: string): Promise<void> {
   const { data, error } = await supabase.from('pages').delete().eq('id', pageId).select('id')
   if (error) throw new TrashActionError(mapTrashError(error))
-  if (data.length === 0) throw new TrashActionError('unknown')
+  if (data.length === 0) throw new TrashActionError('gone')
 }

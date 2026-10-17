@@ -52,7 +52,15 @@ export function useTrashPage() {
   const refreshTrash = () =>
     queryClient.invalidateQueries({ queryKey: trashKeys.list(workspace?.id) })
 
+  // Otimista (árvore): como criar/renomear/mover, fica em espera enquanto o navegador está offline e
+  // segue sozinho ao reconectar. Confirmar antes (menu da página): sem rede o pedido falha na hora e o
+  // erro aparece na página, em vez de deixar "Movendo…" travado até a conexão voltar.
   const mutation = useMutation({ scope: PAGES_WRITE_SCOPE, mutationFn: trashPage })
+  const confirmedMutation = useMutation({
+    scope: PAGES_WRITE_SCOPE,
+    networkMode: 'always',
+    mutationFn: trashPage,
+  })
 
   // A rota só muda de fato depois do commit: quem espera é acordado por este efeito.
   const navigationDone = useRef<(() => void) | null>(null)
@@ -98,7 +106,7 @@ export function useTrashPage() {
 
     if (options?.confirmFirst === true) {
       try {
-        await mutation.mutateAsync(id)
+        await confirmedMutation.mutateAsync(id)
       } catch (error) {
         fail(error)
         return false

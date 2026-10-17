@@ -1,3 +1,4 @@
+import { onlineManager } from '@tanstack/react-query'
 import { screen, waitFor, within } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { useTreeUiStore } from '@/features/workspace/tree-ui-store'
@@ -318,5 +319,46 @@ describe('lixeira já aberta', () => {
 
     const list = await screen.findByRole('list', { name: 'Páginas na lixeira' })
     expect(within(list).getByText('Filmes')).toBeInTheDocument()
+  })
+})
+
+describe('sem conexão', () => {
+  afterEach(() => {
+    onlineManager.setOnline(true)
+  })
+
+  it('from the tree, takes the page out right away and sends the request when the connection returns, like the other writes', async () => {
+    const user = userEvent.setup()
+    renderApp()
+    await treeitem('Filmes')
+    onlineManager.setOnline(false)
+
+    await trashFromRowMenu(user, 'Filmes')
+
+    await waitFor(() => {
+      expect(screen.queryByRole('treeitem', { name: 'Filmes' })).not.toBeInTheDocument()
+    })
+    expect(fakeDb.rpcCalls).toHaveLength(0)
+    expect(trashed(MOVIES)).toBe(false)
+
+    onlineManager.setOnline(true)
+    await waitFor(() => {
+      expect(trashed(MOVIES)).toBe(true)
+    })
+  })
+
+  it('from the page menu, tries right away instead of leaving "Movendo…" stuck until it reconnects', async () => {
+    const user = userEvent.setup()
+    renderApp(`/p/${STUDIES}`)
+    expect(await titleField()).toHaveValue('Estudos')
+    onlineManager.setOnline(false)
+    failNextRpc('trash_page', { message: 'Failed to fetch' })
+
+    await user.click(await screen.findByRole('button', { name: 'Mais ações da página' }))
+    await user.click(await screen.findByRole('menuitem', { name: 'Mover para a lixeira' }))
+
+    expect(await screen.findByRole('alert')).toHaveTextContent(TRASH_ERROR)
+    expect(fakeDb.rpcCalls).toHaveLength(1)
+    expect(screen.getByRole('textbox', { name: 'Título da página' })).toHaveValue('Estudos')
   })
 })
