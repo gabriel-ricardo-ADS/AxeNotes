@@ -112,6 +112,10 @@ export const fakeDb: {
   rpcGates: { name: string; open: Promise<void> }[]
   /** Quantas vezes a lista da lixeira foi carregada (consulta `not trashed_at is null`; lotes seguintes não somam). */
   trashLoads: number
+  /** Quantas consultas de UMA linha (`maybeSingle`) foram feitas, como a de `fetchPage`. */
+  singleLoads: number
+  /** Ordem em que as escritas chegaram ao "banco": `update:pages`, `rpc:trash_page`… */
+  order: string[]
 } = {
   tables: EMPTY_TABLES(),
   failures: [],
@@ -123,6 +127,8 @@ export const fakeDb: {
   rpcFailures: [],
   rpcGates: [],
   trashLoads: 0,
+  singleLoads: 0,
+  order: [],
 }
 
 /** Faz a PRÓXIMA operação `op` na tabela falhar (uma vez). */
@@ -313,8 +319,7 @@ class FakeQuery implements PromiseLike<QueryResult> {
     return this
   }
   /** Só o operador `is` (o único usado): `not('trashed_at', 'is', null)`. */
-  not(column: string, operator: 'is', value: unknown) {
-    if (operator !== 'is') throw new Error('fake: not() só aceita "is"')
+  not(column: string, _operator: 'is', value: unknown) {
     if (column === 'trashed_at' && value === null) this.onlyTrashed = true
     this.filters.push((row) => (row[column] ?? null) !== value)
     return this
@@ -383,6 +388,7 @@ class FakeQuery implements PromiseLike<QueryResult> {
     }
     if (this.op === 'update') {
       for (const row of matches) Object.assign(row, this.payload)
+      fakeDb.order.push(`update:${this.table}`)
       fakeDb.writes.push({ op: 'update', table: this.table, payload: this.payload })
       return { data: this.returning ? matches.map((row) => ({ ...row })) : null, error: null }
     }
@@ -402,6 +408,7 @@ class FakeQuery implements PromiseLike<QueryResult> {
     if (!this.continuation) {
       if (this.onlyTrashed) fakeDb.trashLoads += 1
       else fakeDb.selects.push(this.table)
+      if (this.single) fakeDb.singleLoads += 1
     }
     let result = matches.map((row) => ({ ...row }))
     if (this.sorting) {
@@ -534,6 +541,7 @@ async function rpc(name: string, args: { p_page_id: string }): Promise<QueryResu
     const [failed] = fakeDb.rpcFailures.splice(failure, 1)
     if (failed) return { data: null, error: failed.error }
   }
+  fakeDb.order.push(`rpc:${name}`)
   if (name === 'trash_page') return trashPage(args.p_page_id)
   if (name === 'restore_page') return restorePage(args.p_page_id)
   return { data: null, error: { message: 'rpc?' } }
@@ -561,6 +569,8 @@ export function resetFakeSupabase() {
   fakeDb.rpcFailures = []
   fakeDb.rpcGates = []
   fakeDb.trashLoads = 0
+  fakeDb.singleLoads = 0
+  fakeDb.order = []
   // Todo teste começa com o workspace pessoal e a página inicial já criados.
   seedWorkspace({ homePageId: fakeId(1000) })
   seedPages([{ id: fakeId(1000), title: 'Página inicial', sortKey: 'a0' }])

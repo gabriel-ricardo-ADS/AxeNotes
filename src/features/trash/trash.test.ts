@@ -1,4 +1,5 @@
 import { describe, expect, it } from 'vitest'
+import { trashErrorMessage } from '@/features/trash/messages'
 import {
   buildTrashRoots,
   mapTrashError,
@@ -123,5 +124,29 @@ describe('mapTrashError', () => {
 
   it('keeps the kind of an error that was already classified', () => {
     expect(mapTrashError(new TrashActionError('forbidden'))).toBe('forbidden')
+  })
+})
+
+describe('trashErrorMessage', () => {
+  it('explains a parent that is still in the trash only when restoring', () => {
+    const error = new TrashActionError('parent_trashed')
+    expect(trashErrorMessage('restore', error)).toBe(
+      'A página pai ainda está na lixeira. Restaure a página pai primeiro.',
+    )
+    expect(trashErrorMessage('trash', error)).toBe(
+      'Não foi possível mover a página para a lixeira. Tente novamente.',
+    )
+  })
+
+  it('has its own message for missing permission and a generic one per action', () => {
+    expect(trashErrorMessage('delete', new TrashActionError('forbidden'))).toBe(
+      'Você não tem permissão para fazer isso neste workspace.',
+    )
+    expect(trashErrorMessage('restore', new Error('x'))).toBe(
+      'Não foi possível restaurar a página. Tente novamente.',
+    )
+    expect(trashErrorMessage('delete', new TrashActionError('unknown'))).toContain(
+      'Não foi possível excluir a página.',
+    )
   })
 })

@@ -15,7 +15,7 @@ import type { PageRow } from '@/features/workspace/types'
 import { t } from '@/i18n'
 
 /** Escritas em `pages` rodam uma de cada vez, na ordem: renomear logo depois de criar espera o insert. */
-const WRITE_SCOPE = { id: 'pages-write' }
+export const PAGES_WRITE_SCOPE = { id: 'pages-write' }
 
 const TITLE_MAX = 500
 
@@ -81,7 +81,7 @@ export function usePageMutations() {
   const reconcile = () => queryClient.invalidateQueries({ queryKey: pagesKey })
 
   const createMutation = useMutation({
-    scope: WRITE_SCOPE,
+    scope: PAGES_WRITE_SCOPE,
     mutationFn: insertPage,
     onMutate: async (page: NewPage) => {
       await queryClient.cancelQueries({ queryKey: pagesKey })
@@ -105,7 +105,7 @@ export function usePageMutations() {
   })
 
   const updateMutation = useMutation({
-    scope: WRITE_SCOPE,
+    scope: PAGES_WRITE_SCOPE,
     mutationFn: ({ id, patch, keepaliveToken }: UpdateInput) =>
       updatePage(id, patch, keepaliveToken === undefined ? undefined : { keepaliveToken }),
     onMutate: async ({ id, patch }: UpdateInput): Promise<UpdateContext> => {

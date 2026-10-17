@@ -27,6 +27,8 @@ export interface PageTreeItemProps {
   /** É a linha com tabindex 0 (roving tabindex). */
   isActive: boolean
   canEdit: boolean
+  /** Pode ir para a lixeira (editor, e não é a página inicial nem contém a inicial). */
+  canTrash: boolean
   /** É favorita do usuário. `null`: a lista de favoritos ainda não chegou (a ação fica desabilitada). */
   isFavorite: boolean | null
   /** Fora do alvo de soltar: a página arrastada e as descendentes dela. */
@@ -39,6 +41,7 @@ export interface PageTreeItemProps {
   onRename: (id: string, title: string) => void
   onChangeIcon: (id: string) => void
   onMove: (id: string) => void
+  onTrash: (id: string) => void
   onToggleFavorite: (id: string) => void
   onKeyDown: (event: KeyboardEvent<HTMLLIElement>, item: FlatItem, openMenu: () => void) => void
 }
@@ -271,6 +274,15 @@ export function PageTreeItem(props: PageTreeItemProps) {
                   >
                     {t('workspace.tree.moveTo')}
                   </DropdownMenuItem>
+                  {props.canTrash ? (
+                    <DropdownMenuItem
+                      onSelect={() => {
+                        props.onTrash(page.id)
+                      }}
+                    >
+                      {t('workspace.tree.moveToTrash')}
+                    </DropdownMenuItem>
+                  ) : null}
                 </>
               ) : null}
             </DropdownMenuContent>
