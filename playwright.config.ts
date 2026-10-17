@@ -28,6 +28,10 @@ export default defineConfig({
   fullyParallel: true,
   forbidOnly: Boolean(process.env.CI),
   retries: process.env.CI ? 1 : 0,
+  // Localmente 6 workers (3 projetos de UI, WebKit incluso) saturavam a máquina e as telas ainda estavam
+  // em "Carregando…" quando o expect de 5 s vencia; com 3 workers a suíte levou o mesmo tempo, sem falhas.
+  workers: process.env.CI ? undefined : 3,
+  expect: { timeout: 10_000 },
   reporter: process.env.CI ? [['github'], ['html', { open: 'never' }]] : 'list',
   use: {
     baseURL,
