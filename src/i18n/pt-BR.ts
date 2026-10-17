@@ -23,6 +23,7 @@ export const ptBR = {
       favoritesEmpty: 'Toque na estrela de uma página para fixá-la aqui.',
       recents: 'Recentes',
       recentsEmpty: 'As páginas que você abrir aparecem aqui.',
+      trash: 'Lixeira',
     },
   },
   auth: {
@@ -135,6 +136,7 @@ export const ptBR = {
       renameField: 'Novo nome da página',
       changeIcon: 'Alterar ícone',
       moveTo: 'Mover para…',
+      moveToTrash: 'Mover para a lixeira',
       favorite: 'Adicionar aos favoritos',
       unfavorite: 'Remover dos favoritos',
       dragHandle: 'Arrastar {title} para mover',
@@ -188,6 +190,47 @@ export const ptBR = {
     listLabel: 'Páginas recentes',
     loading: 'Carregando recentes…',
     loadError: 'Não foi possível carregar os recentes.',
+  },
+  trash: {
+    title: 'Lixeira',
+    description: 'As páginas ficam aqui até você restaurá-las ou excluí-las definitivamente.',
+    listLabel: 'Páginas na lixeira',
+    loading: 'Carregando a lixeira…',
+    loadError: 'Não foi possível carregar a lixeira.',
+    empty: 'A lixeira está vazia.',
+    trashedAgo: 'Excluída há {distance}',
+    subpagesOne: '+1 subpágina',
+    subpagesMany: '+{count} subpáginas',
+    originRoot: 'Origem: nível principal',
+    originPage: 'Origem: {title}',
+    originPageTrashed: 'Origem: {title} (também na lixeira)',
+    restore: 'Restaurar',
+    restoreNamed: 'Restaurar {title}',
+    restoring: 'Restaurando…',
+    deleteForever: 'Excluir definitivamente',
+    deleteNamed: 'Excluir {title} definitivamente',
+    deleting: 'Excluindo…',
+    pageMenu: 'Mais ações da página',
+    moving: 'Movendo…',
+    dialog: {
+      title: 'Excluir “{title}” definitivamente?',
+      descriptionAlone: 'A página será apagada para sempre. Isso não pode ser desfeito.',
+      descriptionOne:
+        'A página e 1 subpágina serão apagadas para sempre. Isso não pode ser desfeito.',
+      descriptionMany:
+        'A página e {count} subpáginas serão apagadas para sempre. Isso não pode ser desfeito.',
+      separate:
+        'Parte das subpáginas já aparece separada na lixeira e também será apagada junto com esta página.',
+    },
+    errors: {
+      trash: 'Não foi possível mover a página para a lixeira. Tente novamente.',
+      restore: 'Não foi possível restaurar a página. Tente novamente.',
+      restoreParentTrashed:
+        'A página pai ainda está na lixeira. Restaure a página pai primeiro.',
+      delete:
+        'Não foi possível excluir a página. Ela pode já ter sido restaurada ou excluída; a lista foi atualizada.',
+      forbidden: 'Você não tem permissão para fazer isso neste workspace.',
+    },
   },
   page: {
     titleLabel: 'Título da página',

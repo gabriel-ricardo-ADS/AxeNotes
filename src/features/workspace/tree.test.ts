@@ -2,8 +2,10 @@ import { describe, expect, it } from 'vitest'
 import {
   ancestorsOf,
   buildPageTree,
+  canTrash,
   comparePages,
   descendantIds,
+  fallbackAfterTrash,
   flattenVisible,
   keyAtEnd,
   planMove,
@@ -199,5 +201,44 @@ describe('planMove', () => {
     expect(planMove(rows, null, 'c', 'c', 0)).toEqual({ ok: false, reason: 'self' })
     expect(planMove(rows, null, 'c', 'c11', 0)).toEqual({ ok: false, reason: 'descendant' })
     expect(planMove(rows, null, 'nope', null, 0)).toEqual({ ok: false, reason: 'missing' })
+  })
+})
+
+describe('canTrash', () => {
+  it('lets an editor trash a normal page', () => {
+    expect(canTrash(rows, 'h', 'a', true)).toBe(true)
+  })
+
+  it('never offers the action to a viewer', () => {
+    expect(canTrash(rows, 'h', 'a', false)).toBe(false)
+  })
+
+  it('never offers it for the home page, nor for a page that contains it', () => {
+    const withHome: PageRow[] = [...rows, page('h', 'c11', 'a0')]
+    expect(canTrash(withHome, 'h', 'h', true)).toBe(false)
+    expect(canTrash(withHome, 'h', 'c', true)).toBe(false) // c ─ c1 ─ c11 ─ h
+    expect(canTrash(withHome, 'h', 'c11', true)).toBe(false)
+    expect(canTrash(withHome, 'h', 'a', true)).toBe(true)
+  })
+
+  it('works when the workspace has no home page yet', () => {
+    expect(canTrash(rows, null, 'c', true)).toBe(true)
+  })
+})
+
+describe('fallbackAfterTrash', () => {
+  const withHome: PageRow[] = [...rows, page('h', null, 'a9'), page('under-home', 'h', 'a0')]
+
+  it('goes to the parent page', () => {
+    expect(fallbackAfterTrash(rows, null, 'c11')).toBe('c1')
+  })
+
+  it('goes to "/" (null) for a root and for a child of the home page', () => {
+    expect(fallbackAfterTrash(rows, null, 'c')).toBeNull()
+    expect(fallbackAfterTrash(withHome, 'h', 'under-home')).toBeNull()
+  })
+
+  it('goes to "/" when the page is not in the list', () => {
+    expect(fallbackAfterTrash(rows, null, 'nao-existe')).toBeNull()
   })
 })
