@@ -306,3 +306,17 @@ describe('mover para a lixeira pelo menu da página', () => {
     expect(screen.queryByRole('button', { name: 'Mais ações da página' })).not.toBeInTheDocument()
   })
 })
+
+describe('lixeira já aberta', () => {
+  it('shows a page trashed from the tree without reloading the screen', async () => {
+    const user = userEvent.setup()
+    renderApp('/lixeira')
+    expect(await screen.findByText('A lixeira está vazia.')).toBeInTheDocument()
+    await treeitem('Filmes')
+
+    await trashFromRowMenu(user, 'Filmes')
+
+    const list = await screen.findByRole('list', { name: 'Páginas na lixeira' })
+    expect(within(list).getByText('Filmes')).toBeInTheDocument()
+  })
+})

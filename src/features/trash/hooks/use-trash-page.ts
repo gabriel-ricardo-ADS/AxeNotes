@@ -4,6 +4,7 @@ import { useLocation, useMatch, useNavigate } from 'react-router'
 import { pagePath } from '@/features/pages/routes'
 import { trashPage } from '@/features/trash/api/trash'
 import { trashErrorMessage } from '@/features/trash/messages'
+import { trashKeys } from '@/features/trash/query-keys'
 import { PAGES_WRITE_SCOPE } from '@/features/workspace/hooks/use-page-mutations'
 import { useWorkspace } from '@/features/workspace/hooks/use-workspace'
 import { workspaceKeys } from '@/features/workspace/query-keys'
@@ -47,6 +48,9 @@ export function useTrashPage() {
     queryClient.setQueryData<PageRow[]>(pagesKey, (rows) => (rows ? update(rows) : rows))
   }
   const reconcile = () => queryClient.invalidateQueries({ queryKey: pagesKey })
+  // A lixeira ganhou linhas: quem já a abriu (ou abre logo depois, antes do RPC terminar) a recarrega.
+  const refreshTrash = () =>
+    queryClient.invalidateQueries({ queryKey: trashKeys.list(workspace?.id) })
 
   const mutation = useMutation({ scope: PAGES_WRITE_SCOPE, mutationFn: trashPage })
 
@@ -102,6 +106,7 @@ export function useTrashPage() {
       if (leaving) await leaveTo(target)
       await removeFromCache(subtree)
       void reconcile()
+      void refreshTrash()
       return true
     }
 
@@ -119,6 +124,7 @@ export function useTrashPage() {
       return false
     }
     void reconcile()
+    void refreshTrash()
     return true
   }
 
