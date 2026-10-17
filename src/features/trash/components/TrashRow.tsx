@@ -48,7 +48,7 @@ export function TrashRow({ root, now, canEdit, busy, onRestore, onDelete }: Tras
   return (
     <li
       data-separate={separateCount(root) > 0 ? 'true' : undefined}
-      className="flex flex-col gap-2 rounded-card border p-3 md:flex-row md:items-center md:gap-4"
+      className="flex flex-col gap-2 rounded-card border p-3 lg:flex-row lg:items-center lg:gap-4"
     >
       <div className="flex min-w-0 flex-1 items-start gap-2">
         <PageIconView icon={page.icon} className="mt-1" />
