@@ -259,7 +259,7 @@ A T4 é só cliente: **sem migration** (as tabelas e RPCs vieram na T2). A DECIS
 - **Aviso de erro** das ações da sidebar sai da seção "Páginas" e fica no topo da sidebar (`SidebarNotice`).
 - A estrela da página mostra o próprio erro dentro da página (a gaveta mobile fecha e esconderia o aviso da sidebar).
 
-**Decidido para a T4b (lixeira) — ainda não implementado**
+**Implementado na T4b (lixeira)** — Gabriel aprovou o plano em 2026-10-16/17, sem migration e sem dependência nova.
 - Tela em rota **`/lixeira`**, item "Lixeira" no rodapé da sidebar, acima da conta. O leitor vê a lista em leitura
   (sem "Restaurar" nem "Excluir definitivamente").
 - **Raízes da lixeira** = página na lixeira cujo pai **não** está na lixeira **ou** cujo `trashed_at` é **diferente** do
@@ -267,6 +267,25 @@ A T4 é só cliente: **sem migration** (as tabelas e RPCs vieram na T2). A DECIS
   só os descendentes com o **mesmo** `trashed_at` da raiz.
 - Mandar para a lixeira a página aberta (ou uma que a contém) navega para a **página-pai**, ou para `/` se for raiz.
 - "Excluir definitivamente" com `AlertDialog` (`radix-ui`, já dependência) e `parent_trashed` com mensagem clara em pt-BR.
+- **Mandar para a lixeira:** item "Mover para a lixeira" no menu "…" da linha da árvore e no novo "…" do topo da página
+  (editor/owner; **não** aparece para leitor, para a página inicial nem para página que a contém — `canTrash`). Pela
+  **árvore** é otimista: navega (`replace`) para o pai ou `/` e **espera a rota mudar** antes de cancelar/remover `['page', id]`
+  e a subárvore do cache; se o RPC falhar, devolve só as linhas removidas, reconcilia e avisa na `SidebarNotice`. Pelo
+  **menu da página** espera o RPC (item "Movendo…" desabilitado) e só então navega; o erro aparece na própria página (no
+  mobile a gaveta fechada esconderia a sidebar). Ambos usam a fila `pages-write` (um renomear pendente chega antes) e
+  recarregam a lista da lixeira ao terminar.
+- **Tela:** só as raízes, mais recentes primeiro, com "Excluída há X", "+N subpáginas" (mesmo `trashed_at`) e origem. Carimbos
+  comparados como **texto igual**, não como data. **Restaurar** sem otimismo (linha "Restaurando…", páginas e lixeira
+  recarregadas uma vez cada). **Excluir definitivamente** com `AlertDialog` (foco em Cancelar): a contagem do diálogo inclui
+  **todos** os descendentes (o FK apaga também os lixeados antes, que aparecem como outras raízes) e avisa quando há esses.
+  Zero linhas afetadas = erro (`gone`) + recarga.
+- **Filho lixeado antes do pai:** segue visível como raiz, mas **restaurá-lo com o pai ainda na lixeira é recusado**
+  (`parent_trashed`, mensagem em pt-BR): "restaurável por conta própria" vale quando o pai não está na lixeira. O botão
+  continua habilitado e a origem diz "(também na lixeira)".
+- **Sem conexão:** não há outbox até a Fase 10. Pela árvore, mandar para a lixeira se comporta como as outras escritas
+  (criar, renomear, mover, favoritar): sai da lista na hora e o pedido fica em espera até o navegador reconectar (se a aba for
+  fechada antes, perde-se). Restaurar, excluir e mandar para a lixeira pelo menu da página (sem otimismo) falham
+  na hora, sem ficar "Restaurando…"/"Movendo…" até reconectar, e mostram o erro.
 - **Risco registrado:** `trash_page` aceita lixear a **página inicial** (e uma página que a contém); hoje só o cliente
   impede (não oferece a ação). Quem chamar o RPC direto consegue; se isso importar, a regra vira migration depois.
 - **Restaurar pode recriar empate de `sort_key`** entre irmãos (a página volta com a chave antiga). Isso fica sob a

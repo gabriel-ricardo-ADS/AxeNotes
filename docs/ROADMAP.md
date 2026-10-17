@@ -48,8 +48,8 @@ SMTP (Brevo ou Resend) para o OTP.
   toque), página inicial criada sob demanda, rota `/p/:pageId` (ícone, título com debounce, breadcrumb,
   "Editada há…"), "Página não encontrada" única. A **T4** foi dividida em três PRs
   (DECISÃO-026): **T4a — favoritos + recentes** (feita, em PR: estrela na página e no menu da linha, seção
-  "Favoritos", seção "Recentes" com registro da visita; sem migration), **T4b — lixeira** (UI em `/lixeira`:
-  mandar para a lixeira, restaurar, excluir definitivamente) e **T4c — busca Ctrl+K**. Pendências: rodar o e2e no CI (precisa dos secrets `VITE_SUPABASE_*` e `E2E_*`), exclusão de
+  "Favoritos", seção "Recentes" com registro da visita; sem migration), **T4b — lixeira** (feita, em PR: UI em `/lixeira`:
+  mandar para a lixeira pela árvore e pelo menu da página, restaurar, excluir definitivamente; sem migration) e **T4c — busca Ctrl+K**. Pendências: rodar o e2e no CI (precisa dos secrets `VITE_SUPABASE_*` e `E2E_*`), exclusão de
   conta (DECISÃO-023), e rodar `pnpm e2e` da T3b contra o projeto real (escreve só páginas `e2e-…` do usuário
   de teste 1 e as apaga).
   **Correções pós-T3b:** o título digitado é salvo ao ocultar/recarregar a página (`keepalive` + aviso de

@@ -257,3 +257,18 @@ export async function savedTitle(session: ApiSession, pageId: string): Promise<s
   const { data } = await session.client.from('pages').select('title').eq('id', pageId).maybeSingle()
   return data?.title ?? null
 }
+
+/** Situação de uma página no banco: viva, na lixeira ou inexistente (apagada em definitivo). */
+export async function pageState(
+  session: ApiSession,
+  pageId: string,
+): Promise<'live' | 'trashed' | 'missing'> {
+  const { data, error } = await session.client
+    .from('pages')
+    .select('trashed_at')
+    .eq('id', pageId)
+    .maybeSingle()
+  if (error) throw new Error('Não foi possível ler a página de teste.')
+  if (data === null) return 'missing'
+  return data.trashed_at === null ? 'live' : 'trashed'
+}

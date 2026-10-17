@@ -11,6 +11,7 @@ import { SignUpPage } from '@/features/auth/pages/SignUpPage'
 import { VerifyCodePage } from '@/features/auth/pages/VerifyCodePage'
 import { HomePage } from '@/features/home/HomePage'
 import { PagePage } from '@/features/pages/PagePage'
+import { TrashPage } from '@/features/trash/components/TrashPage'
 import { createQueryClient } from '@/lib/query-client'
 
 const queryClient = createQueryClient()
@@ -32,6 +33,7 @@ export function AppRoutes() {
         <Route element={<AppLayout />}>
           <Route index element={<HomePage />} />
           <Route path="p/:pageId" element={<PagePage />} />
+          <Route path="lixeira" element={<TrashPage />} />
           <Route path="*" element={<NotFoundPage />} />
         </Route>
       </Route>
