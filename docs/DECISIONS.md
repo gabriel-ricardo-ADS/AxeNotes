@@ -180,6 +180,7 @@ nesse caso. Resultado: um workspace sem nenhum membro fica no banco, inalcançá
 um workspace com outros membros pode ficar sem owner. Precisamos decidir (antes de oferecer "excluir
 minha conta", LGPD): apagar o workspace pessoal junto, promover outro membro a owner, ou exigir a
 transferência antes. Até lá, a exclusão de contas só é feita à mão pelo Gabriel, no painel.
+- Passa a ser pré-requisito do "Marco — lançamento público" (`docs/ROADMAP.md`). Continua **ABERTA**.
 
 ### DECISÃO-024 — Árvore de páginas (Fase 1, T3b)
 **DECIDIDA** — Gabriel aprovou o plano da T3b em 2026-10-16.
@@ -322,4 +323,36 @@ Dialog, que já existia; nada de `cmdk`). Nenhuma decisão nova.
   nunca depende de atalho. A regra final fica para a decisão da Fase 2.
 - **Fora desta entrega:** busca no conteúdo (Fase 2+), filtros, busca tolerante a erros, destaque do trecho, Ctrl/Cmd+clique
   para abrir em outra aba, histórico de buscas e criar página a partir da busca.
+
+### DECISÃO-027 — Nome, marca e domínio
+**ABERTA** — registrada em 2026-10-18. **Sessões futuras NÃO renomeiam o projeto, não escolhem domínio e não mexem em
+marca sem o Gabriel decidir aqui.**
+- Contexto: o nome do projeto no Cloudflare Pages define `<projeto>.pages.dev`; a URL de produção entra no *Site URL* do
+  Supabase Auth e no remetente do SMTP. Trocar isso depois do deploy custa mais do que trocar o nome no código: os textos
+  visíveis já estão em `src/i18n/pt-BR.ts` (e o `<title>` em `index.html`; conferir `package.json`, README e o manifest
+  da Fase 6 com uma busca no repositório na hora de renomear).
+- Pendências (todas **a verificar**; nada abaixo está confirmado):
+  - busca de anterioridade no INPI em classes de software/SaaS (em geral as classes 9 e 42; a verificar);
+  - colisão do nome "Axe": é nome de marca conhecida de outro setor e há uma ferramenta de acessibilidade com nome
+    parecido; situação de registro de qualquer terceiro **a verificar**;
+  - domínio próprio disponível (a verificar).
+- Prazo: decidir **antes do deploy em produção** (conectar o Cloudflare Pages, `docs/DEPLOY.md`) e antes do "Marco —
+  lançamento público" (`docs/ROADMAP.md`).
+- Sem recomendação por enquanto. Não é aconselhamento jurídico.
+
+### DECISÃO-028 — Licença e política de contribuição
+**ABERTA** — registrada em 2026-10-18. **Sessões futuras NÃO mudam a licença, o LICENSE nem o README sem o Gabriel decidir
+aqui.** Não é aconselhamento jurídico; confirmar com advogado antes de mudar.
+- Contexto: repositório público em GPL-3.0 (DECISÃO-003). A GPL-3.0 permite cobrar assinatura e hospedagem, mas não
+  fechar o código. Quem hospeda um fork **modificado** não precisa publicar as mudanças (a AGPL-3.0 fecha essa brecha;
+  a convivência da AGPL-3.0 com as dependências GPL-3.0 está **a confirmar com advogado**).
+- Hoje o Gabriel é o único autor (nenhuma contribuição externa) e o README convida PRs sem CLA/DCO. Enquanto for assim,
+  trocar de licença é simples; depois de contribuições externas, exigiria o aceite de cada autor.
+- Opções:
+  - **A)** manter GPL-3.0 e aceitar PRs com DCO;
+  - **B)** migrar para AGPL-3.0 antes de divulgar;
+  - **C)** manter GPL-3.0 e não aceitar PRs de código por enquanto.
+- Registrado também: os pacotes `@blocknote/xl-*` (colunas, IA) são GPL-3.0 e, para código fechado no futuro, exigiriam
+  licença comercial ou troca (a verificar os termos atuais do projeto); há atrito conhecido entre GPL e App Store (Fase 15).
+- Sem recomendação.
 

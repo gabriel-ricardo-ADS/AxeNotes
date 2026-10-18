@@ -43,25 +43,35 @@ SMTP (Brevo ou Resend) para o OTP.
 - Dividida em partes (um PR cada). **T2 — banco e RLS** (`supabase/`: migrações, seed e testes em
   PGlite; sem telas) e **T3a — cliente Supabase + autenticação** (`src/features/auth/`: entrar, criar conta,
   código de 6 dígitos, recuperar senha, sair, rotas protegidas; e2e com 1 login por projeto e smoke de RLS só
-  leitura) estão na `main`. **T3b — árvore de páginas e tela da página** (feita, em PR): seção "Páginas" da
+  leitura) estão na `main`. **T3b — árvore de páginas e tela da página** (feita, na `main`, #5): seção "Páginas" da
   sidebar (criar, subpágina, renomear, ícone, expandir, mover por "Mover para…" ou arrastando, teclado e
   toque), página inicial criada sob demanda, rota `/p/:pageId` (ícone, título com debounce, breadcrumb,
   "Editada há…"), "Página não encontrada" única. A **T4** foi dividida em três PRs
-  (DECISÃO-026): **T4a — favoritos + recentes** (feita, em PR: estrela na página e no menu da linha, seção
-  "Favoritos", seção "Recentes" com registro da visita; sem migration), **T4b — lixeira** (feita, na `main`: UI em `/lixeira`:
+  (DECISÃO-026): **T4a — favoritos + recentes** (feita, na `main`, #7: estrela na página e no menu da linha, seção
+  "Favoritos", seção "Recentes" com registro da visita; sem migration), **T4b — lixeira** (feita, na `main`, #8: UI em `/lixeira`:
   mandar para a lixeira pela árvore e pelo menu da página, restaurar, excluir definitivamente; sem migration) e **T4c — busca Ctrl+K**
-  (feita, em PR: diálogo Ctrl/Cmd+K e botão "Buscar" na sidebar/gaveta, `search_pages` por título, recentes sem texto,
-  combobox/listbox acessível; sem migration). **A T4 está completa** (T4a + T4b + T4c). Pendências: rodar o e2e no CI (precisa dos secrets `VITE_SUPABASE_*` e `E2E_*`), exclusão de
-  conta (DECISÃO-023), e rodar `pnpm e2e` da T3b contra o projeto real (escreve só páginas `e2e-…` do usuário
-  de teste 1 e as apaga).
+  (feita, na `main`, #9: diálogo Ctrl/Cmd+K e botão "Buscar" na sidebar/gaveta, `search_pages` por título, recentes sem texto,
+  combobox/listbox acessível; sem migration). **A T4 está completa** (T4a + T4b + T4c).
   **Correções pós-T3b:** o título digitado é salvo ao ocultar/recarregar a página (`keepalive` + aviso de
   saída) e mover entre vizinhos com a mesma `sort_key` é recusado em vez de gravar uma chave inócua.
   Pendência (decidir com o Gabriel): `sort_key` empatadas entre irmãos (hoje só se recusa o movimento; ver DECISÃO-025, ABERTA).
+  **Fase 1 funcionalmente completa** (`main` em `2d28e67`): T2 (#3), T3a (#4), T3b (#5), correção pós-T3b (#6), T4a (#7),
+  T4b (#8) e T4c (#9). **Pendências que continuam dentro da Fase 1** (nenhuma bloqueia o uso de Gabriel e da cliente):
+  - **e2e no CI: NÃO feito.** Precisa dos secrets `VITE_SUPABASE_*` e `E2E_*` no GitHub. Ao ligar, desligar o `trace` do
+    Playwright nos projetos de login (`trace: 'on-first-retry'` poderia registrar o e-mail e a senha do usuário de teste, e
+    o relatório do CI é um artefato de repositório público).
+  - **Exclusão de conta:** DECISÃO-023 (ABERTA); hoje só Gabriel apaga contas, à mão, no painel.
+  - **`sort_key` empatadas entre irmãos:** DECISÃO-025 (ABERTA); nada implementado.
+  - **Fix pequeno da busca (só registrado, não corrigido):** se o workspace não carregar (erro ou sem workspace),
+    `useSearch` fica desabilitado e o diálogo mostra "Buscando…" para sempre, sem erro e sem "Tentar de novo"
+    (`src/features/search/hooks/use-search.ts` e `src/features/search/components/SearchDialog.tsx`).
 **Pronto quando:** teste de RLS (Postgres local/PGlite) prova que usuário B não vê o workspace de
 A, e que um viewer não edita; árvore funciona no desktop e no mobile. Nada é aplicado no
 Supabase remoto sem o ok do Gabriel (DECISÃO-015).
 
 ## Fase 2 — Editor de blocos local-first (Yjs)
+**Antes de abrir esta fase:** se o diferencial de produto da campanha de lançamento (tratada em outro projeto) exigir
+mudança no editor, isso precisa ser **decidido antes** de abrir a Fase 2 (junto do ADR da DECISÃO-012/016).
 - ADR curto em `docs/` confirmando a DECISÃO-012/016 antes de codar: log de updates Yjs com
   compactação na tabela `page_contents`.
 - BlockNote + `@blocknote/shadcn`, tema escuro com nossos tokens, idioma pt-BR.
@@ -111,6 +121,21 @@ voltar online e ver salvo em outro navegador.
   (DECISÃO-021).
 - Lighthouse (PWA, acessibilidade, performance).
 **Pronto quando:** instalado no Windows, iPhone e iPad; abre e mostra páginas sem internet.
+
+## Marco — lançamento público (gate)
+Não é uma fase e **não bloqueia** o uso de Gabriel e da cliente, nem a ordem das Fases 7 em diante. É o pré-requisito
+para **abrir cadastro a outras pessoas e divulgar**. A campanha de divulgação é tratada em outro projeto; nenhuma
+funcionalidade nova entra no app por causa dela sem decisão registrada em `docs/DECISIONS.md`.
+- a) DECISÃO-023 resolvida e exclusão de conta implementada (LGPD), mais política de privacidade e termos de uso.
+- b) Senha mínima no servidor (Auth do Supabase; hoje só o cliente valida), decisão sobre cadastro aberto e CAPTCHA.
+- c) SMTP com domínio próprio (SPF/DKIM) e limites do plano gratuito conferidos para o volume de códigos OTP.
+- d) Plano e backups do Supabase conferidos para uso além de Gabriel e da cliente (o plano Free pausa por inatividade);
+  backup semanal da DECISÃO-021 já em funcionamento.
+- e) Logout limpando IndexedDB, service worker e stores Zustand.
+- f) Cloudflare Access ativo nos previews (`docs/DEPLOY.md`).
+- g) DECISÃO-027 (nome, marca e domínio) e DECISÃO-028 (licença e contribuições) decididas.
+- h) Teste em iPhone e iPad reais depois do deploy.
+- i) PRD.md e UI-REFERENCE.md sem dados identificáveis da cliente (persona genérica), com o ok dela.
 
 ## Fase 7 — Mais vistas
 - Quadro (kanban), Calendário, Lista; exportar/importar CSV. (O agrupamento por status/seleção já
