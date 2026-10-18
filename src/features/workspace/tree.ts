@@ -193,3 +193,30 @@ export function planMove(
 
   return { ok: true, unchanged, parentId, sortKey: keyAtIndex(keys, at) }
 }
+
+/**
+ * Pode mandar para a lixeira? Só quem edita, e nunca a página inicial nem uma página que a contém
+ * (o banco aceitaria; é o cliente que não oferece a ação, ver DECISÃO-026).
+ */
+export function canTrash(
+  rows: readonly PageRow[],
+  homeId: string | null,
+  id: string,
+  canEdit: boolean,
+): boolean {
+  if (!canEdit || id === homeId) return false
+  return homeId === null || !descendantIds(rows, id).has(homeId)
+}
+
+/**
+ * Para onde ir quando a página aberta deixa de existir por ter ido (ela ou uma ancestral) para a
+ * lixeira: a página-pai de `trashedId`, ou "/" se for raiz ou filha da página inicial.
+ */
+export function fallbackAfterTrash(
+  rows: readonly PageRow[],
+  homeId: string | null,
+  trashedId: string,
+): string | null {
+  const parentId = rows.find((row) => row.id === trashedId)?.parentId ?? null
+  return parentId === null || parentId === homeId ? null : parentId
+}

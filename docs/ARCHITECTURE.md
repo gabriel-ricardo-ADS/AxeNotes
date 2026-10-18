@@ -124,6 +124,13 @@ cadastro. O restante do rascunho abaixo entra nas fases indicadas. Detalhes do q
   chave entre dois favoritos. Visita = `upsert` com `page_id` e `visited_at` (sempre enviado) feito por `PageView` só
   para página já encontrada e fora a inicial; a mesma página não regrava por 30 s; 8 exibidos, 50 guardados, e o
   excesso é apagado com `delete … lt visited_at` (best effort). `visited_at` é do relógio do aparelho.
+- **Lixeira no cliente (T4b):** `src/features/trash/`. `fetchTrashedPages` traz todas as páginas lixeadas do workspace (lotes de
+  1000 por cursor de id; a RLS de SELECT já deixa o leitor ver) e `buildTrashRoots` deriva as raízes (pai fora da lixeira ou
+  `trashed_at` diferente do pai, carimbos comparados como texto), as contagens e a origem. `trash_page`/`restore_page` são RPCs;
+  excluir é `delete … returning id` (RLS: editor + página lixeada; zero linhas vira erro). Mandar para a lixeira (`useTrashPage`):
+  na árvore é otimista com rollback das linhas removidas; no menu da página espera o servidor. Ordem ao lixear a página aberta:
+  `navigate(replace)` → espera a rota → `cancelQueries`/`removeQueries` de `['page', id]` → tira a subárvore de `['pages', ws]` → RPC (fila
+  `pages-write`). Restaurar/excluir não são otimistas e não usam a fila de escritas.
 - **Estado de interface da árvore** (expandido, renomeando, aviso): Zustand em memória, sem `persist`.
 - **Testes:** `supabase/tests/` roda as migrações em PGlite (com uma simulação mínima do schema `auth` e
   dos roles do Supabase em `helpers/bootstrap.sql`) dentro do `pnpm test`. Não substitui um smoke test no

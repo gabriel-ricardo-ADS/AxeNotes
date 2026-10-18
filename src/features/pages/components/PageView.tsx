@@ -6,6 +6,7 @@ import { TopBarPortal } from '@/app/layout/top-bar-slot'
 import { FavoriteButton } from '@/features/favorites/components/FavoriteButton'
 import { useRecordVisit } from '@/features/recents/hooks/use-record-visit'
 import { Breadcrumb } from '@/features/pages/components/Breadcrumb'
+import { PageMenu } from '@/features/pages/components/PageMenu'
 import { PageTitle } from '@/features/pages/components/PageTitle'
 import { wantsTitleFocus } from '@/features/pages/routes'
 import { IconPickerDialog } from '@/features/workspace/components/IconPickerDialog'
@@ -13,7 +14,7 @@ import { PageIconView } from '@/features/workspace/components/PageIconView'
 import { usePageMutations } from '@/features/workspace/hooks/use-page-mutations'
 import { usePages } from '@/features/workspace/hooks/use-pages'
 import { useWorkspace } from '@/features/workspace/hooks/use-workspace'
-import { ancestorsOf } from '@/features/workspace/tree'
+import { ancestorsOf, canTrash } from '@/features/workspace/tree'
 import { canEdit as canEditWorkspace, type PageRow } from '@/features/workspace/types'
 import { useMediaQuery } from '@/hooks/use-media-query'
 import { useNow } from '@/hooks/use-now'
@@ -36,6 +37,7 @@ export function PageView({ page }: { page: PageRow }) {
 
   const editable = workspace ? canEditWorkspace(workspace) : false
   const ancestors = useMemo(() => ancestorsOf(rows ?? [], page.id), [rows, page.id])
+  const trashable = canTrash(rows ?? [], workspace?.homePageId ?? null, page.id, editable)
 
   // A navegação de "nova página" pede foco no título; consome o aviso para não repetir ao voltar.
   const [focusTitle] = useState(() => wantsTitleFocus(location.state))
@@ -58,6 +60,15 @@ export function PageView({ page }: { page: PageRow }) {
         <div className="flex shrink-0 items-center gap-2">
           {isDesktop ? edited : null}
           <FavoriteButton pageId={page.id} onError={setActionError} />
+          {trashable ? (
+            <PageMenu
+              pageId={page.id}
+              onStart={() => {
+                setActionError(null)
+              }}
+              onError={setActionError}
+            />
+          ) : null}
         </div>
       </TopBarPortal>
 

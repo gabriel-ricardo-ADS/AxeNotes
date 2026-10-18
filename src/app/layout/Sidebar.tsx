@@ -1,4 +1,4 @@
-import { HouseIcon } from 'lucide-react'
+import { HouseIcon, Trash2Icon } from 'lucide-react'
 import { NavLink } from 'react-router'
 import { SidebarNotice } from '@/app/layout/SidebarNotice'
 import { FavoritesSection } from '@/features/favorites/components/FavoritesSection'
@@ -49,7 +49,23 @@ export function Sidebar({ onNavigate }: SidebarProps) {
 
       <RecentsSection onNavigate={onNavigate} />
 
-      <UserMenu />
+      {/* Rodapé: "Lixeira" acima da conta; o mt-auto empurra os dois para o fim da barra. */}
+      <div className="mt-auto flex flex-col gap-2">
+        <NavLink
+          to="/lixeira"
+          onClick={onNavigate}
+          className={({ isActive }) =>
+            cn(
+              'flex min-h-11 items-center gap-2 rounded-tag px-2 text-muted-foreground transition-colors duration-(--duration-ui) hover:bg-hover md:min-h-8',
+              isActive && 'bg-hover font-medium text-strong',
+            )
+          }
+        >
+          <Trash2Icon className="size-4 shrink-0" aria-hidden="true" />
+          {t('layout.sidebar.trash')}
+        </NavLink>
+        <UserMenu />
+      </div>
     </nav>
   )
 }

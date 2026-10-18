@@ -17,6 +17,7 @@ import { useNavigate } from 'react-router'
 import { useFavoriteMutations } from '@/features/favorites/hooks/use-favorite-mutations'
 import { useFavorites } from '@/features/favorites/hooks/use-favorites'
 import { pagePath } from '@/features/pages/routes'
+import { useTrashPage } from '@/features/trash/hooks/use-trash-page'
 import { IconPickerDialog } from '@/features/workspace/components/IconPickerDialog'
 import { MovePageDialog } from '@/features/workspace/components/MovePageDialog'
 import { PageIconView } from '@/features/workspace/components/PageIconView'
@@ -24,6 +25,7 @@ import { PageTreeItem, type DropPosition } from '@/features/workspace/components
 import { usePageMutations } from '@/features/workspace/hooks/use-page-mutations'
 import {
   ancestorsOf,
+  canTrash,
   descendantIds,
   flattenVisible,
   siblingsOf,
@@ -120,6 +122,7 @@ export function PageTree({
   const expand = useTreeUiStore((state) => state.expand)
   const { renamePage, setPageIcon, movePage } = usePageMutations()
   const { toggleFavorite } = useFavoriteMutations()
+  const { trashPage } = useTrashPage()
   const favorites = useFavorites().data
   const favoriteIds = useMemo(
     () => (favorites === undefined ? null : new Set(favorites.map((entry) => entry.pageId))),
@@ -347,6 +350,7 @@ export function PageTree({
               isCurrent={item.page.id === currentPageId}
               isActive={item.page.id === effectiveActiveId}
               canEdit={canEdit}
+              canTrash={canTrash(rows, homeId, item.page.id, canEdit)}
               isFavorite={favoriteIds === null ? null : favoriteIds.has(item.page.id)}
               dropDisabled={draggedSubtree.has(item.page.id)}
               dropIndicator={dropTarget?.overId === item.page.id ? dropTarget.position : null}
@@ -363,6 +367,7 @@ export function PageTree({
               onMove={(id) => {
                 setMoving(rows.find((row) => row.id === id) ?? null)
               }}
+              onTrash={(id) => void trashPage(id)}
               onToggleFavorite={(id) => void toggleFavorite(id)}
               onKeyDown={handleKeyDown}
             />

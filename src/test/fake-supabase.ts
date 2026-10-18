@@ -84,7 +84,13 @@ const PER_USER: readonly Table[] = ['user_favorites', 'user_recents']
 
 interface QueryResult {
   data: unknown
-  error: { message: string } | null
+  error: { message: string; code?: string } | null
+}
+
+/** Erro devolvido por um RPC simulado (como o PostgrestError do supabase-js). */
+export interface FakeRpcError {
+  message: string
+  code?: string
 }
 
 export const fakeDb: {
@@ -98,6 +104,18 @@ export const fakeDb: {
   selects: Table[]
   /** Operações seguradas por `holdNext` até alguém chamar `release()`. */
   gates: { op: Op; table: Table; open: Promise<void> }[]
+  /** Chamadas de RPC, na ordem (nome e argumentos). */
+  rpcCalls: { name: string; args: Record<string, unknown> }[]
+  /** RPCs que falham UMA vez (`failNextRpc`). */
+  rpcFailures: { name: string; error: FakeRpcError }[]
+  /** RPCs seguradas por `holdNextRpc` até `release()`. */
+  rpcGates: { name: string; open: Promise<void> }[]
+  /** Quantas vezes a lista da lixeira foi carregada (consulta `not trashed_at is null`; lotes seguintes não somam). */
+  trashLoads: number
+  /** Quantas consultas de UMA linha (`maybeSingle`) foram feitas, como a de `fetchPage`. */
+  singleLoads: number
+  /** Ordem em que as escritas chegaram ao "banco": `update:pages`, `rpc:trash_page`… */
+  order: string[]
 } = {
   tables: EMPTY_TABLES(),
   failures: [],
@@ -105,6 +123,12 @@ export const fakeDb: {
   writes: [],
   selects: [],
   gates: [],
+  rpcCalls: [],
+  rpcFailures: [],
+  rpcGates: [],
+  trashLoads: 0,
+  singleLoads: 0,
+  order: [],
 }
 
 /** Faz a PRÓXIMA operação `op` na tabela falhar (uma vez). */
@@ -139,6 +163,21 @@ export function holdNext(op: Op, table: Table): { release: () => void } {
   return { release }
 }
 
+/** Faz a PRÓXIMA chamada do RPC `name` devolver este erro (uma vez). */
+export function failNextRpc(name: string, error: FakeRpcError = { message: 'falha simulada' }) {
+  fakeDb.rpcFailures.push({ name, error })
+}
+
+/** Segura a PRÓXIMA chamada do RPC `name` até `release()`. */
+export function holdNextRpc(name: string): { release: () => void } {
+  let release: () => void = () => undefined
+  const open = new Promise<void>((resolve) => {
+    release = resolve
+  })
+  fakeDb.rpcGates.push({ name, open })
+  return { release }
+}
+
 export const WORKSPACE_ID = '00000000-0000-4000-8000-0000000000f1'
 
 /** Uuid fictício estável para os testes: fakeId(1), fakeId(2)… */
@@ -153,6 +192,8 @@ export interface SeedPage {
   sortKey: string
   icon?: { type: 'emoji'; value: string } | null
   lastEditedAt?: string
+  /** Já nasce na lixeira com este carimbo (ISO). */
+  trashedAt?: string | null
 }
 
 /** Cria o workspace pessoal do usuário de teste com o papel e a página inicial indicados. */
@@ -183,7 +224,7 @@ export function seedPages(pages: SeedPage[]) {
     icon: page.icon ?? null,
     sort_key: page.sortKey,
     last_edited_at: page.lastEditedAt ?? '2026-10-10T12:00:00Z',
-    trashed_at: null,
+    trashed_at: page.trashedAt ?? null,
   }))
 }
 
@@ -225,6 +266,7 @@ class FakeQuery implements PromiseLike<QueryResult> {
   private single = false
   private returning = false
   private continuation = false
+  private onlyTrashed = false
 
   constructor(
     private readonly table: Table,
@@ -274,6 +316,12 @@ class FakeQuery implements PromiseLike<QueryResult> {
   }
   is(column: string, value: unknown) {
     this.filters.push((row) => (row[column] ?? null) === value)
+    return this
+  }
+  /** Só o operador `is` (o único usado): `not('trashed_at', 'is', null)`. */
+  not(column: string, _operator: 'is', value: unknown) {
+    if (column === 'trashed_at' && value === null) this.onlyTrashed = true
+    this.filters.push((row) => (row[column] ?? null) !== value)
     return this
   }
   order(column: string, options?: { ascending?: boolean }) {
@@ -340,19 +388,28 @@ class FakeQuery implements PromiseLike<QueryResult> {
     }
     if (this.op === 'update') {
       for (const row of matches) Object.assign(row, this.payload)
+      fakeDb.order.push(`update:${this.table}`)
       fakeDb.writes.push({ op: 'update', table: this.table, payload: this.payload })
       return { data: this.returning ? matches.map((row) => ({ ...row })) : null, error: null }
     }
     if (this.op === 'delete') {
-      // Como a política do banco: só apaga página que já está na lixeira.
-      const doomed = matches.filter((row) => this.table !== 'pages' || row.trashed_at != null)
-      fakeDb.tables[this.table] = rows.filter((row) => !doomed.includes(row))
+      // Como a política do banco: só apaga página que já está na lixeira e só para editor/owner.
+      const doomed =
+        this.table === 'pages'
+          ? matches.filter((row) => row.trashed_at != null && memberCanEdit())
+          : matches
+      fakeDb.tables[this.table] = fakeDb.tables[this.table].filter((row) => !doomed.includes(row))
+      if (this.table === 'pages') cascadeDelete(doomed)
       fakeDb.writes.push({ op: 'delete', table: this.table, payload: null })
       return { data: this.returning ? doomed.map((row) => ({ ...row })) : null, error: null }
     }
 
     // Um "carregamento" conta uma vez: os lotes seguintes de uma lista (cursor `gt`) não somam.
-    if (!this.continuation) fakeDb.selects.push(this.table)
+    if (!this.continuation) {
+      if (this.onlyTrashed) fakeDb.trashLoads += 1
+      else fakeDb.selects.push(this.table)
+      if (this.single) fakeDb.singleLoads += 1
+    }
     let result = matches.map((row) => ({ ...row }))
     if (this.sorting) {
       const { column, ascending } = this.sorting
@@ -374,12 +431,16 @@ class FakeQuery implements PromiseLike<QueryResult> {
   }
 }
 
-/** trash_page: marca a página e as descendentes com o mesmo trashed_at. */
-function rpc(name: string, args: { p_page_id: string }): Promise<QueryResult> {
-  if (name !== 'trash_page') return Promise.resolve({ data: null, error: { message: 'rpc?' } })
-  const stamp = new Date().toISOString()
-  const doomed = new Set([args.p_page_id])
-  for (let grew = true; grew;) {
+/** O usuário de teste é owner/editor do workspace? (O papel viewer não escreve.) */
+function memberCanEdit(): boolean {
+  const member = fakeDb.tables.workspace_members.find((row) => row.user_id === USER_ID)
+  return member?.role !== 'viewer'
+}
+
+/** Como o FK em cascata do banco: apagar uma página leva descendentes, favoritos, recentes e a página inicial. */
+function cascadeDelete(removed: Row[]) {
+  const doomed = new Set(removed.map((row) => String(row.id)))
+  for (let grew = true; grew; ) {
     grew = false
     for (const row of fakeDb.tables.pages) {
       const id = String(row.id)
@@ -389,8 +450,101 @@ function rpc(name: string, args: { p_page_id: string }): Promise<QueryResult> {
       }
     }
   }
-  for (const row of fakeDb.tables.pages) if (doomed.has(String(row.id))) row.trashed_at = stamp
-  return Promise.resolve({ data: null, error: null })
+  fakeDb.tables.pages = fakeDb.tables.pages.filter((row) => !doomed.has(String(row.id)))
+  fakeDb.tables.user_favorites = fakeDb.tables.user_favorites.filter(
+    (row) => !doomed.has(String(row.page_id)),
+  )
+  fakeDb.tables.user_recents = fakeDb.tables.user_recents.filter(
+    (row) => !doomed.has(String(row.page_id)),
+  )
+  for (const workspace of fakeDb.tables.workspaces) {
+    if (typeof workspace.home_page_id === 'string' && doomed.has(workspace.home_page_id)) {
+      workspace.home_page_id = null
+    }
+  }
+}
+
+/** Carimbos sempre crescentes: duas lixeiras no mesmo milissegundo não podem empatar. */
+let lastStamp = 0
+function nextStamp(): string {
+  lastStamp = Math.max(Date.now(), lastStamp + 1)
+  return new Date(lastStamp).toISOString()
+}
+
+const FORBIDDEN: FakeRpcError = { message: 'forbidden', code: '42501' }
+
+function trashPage(pageId: string): QueryResult {
+  const page = dbPage(pageId)
+  if (!page || !memberCanEdit()) return { data: null, error: FORBIDDEN }
+  if (page.trashed_at != null) return { data: null, error: null }
+  const stamp = nextStamp()
+  const tree = new Set([pageId])
+  // Só desce por filhas vivas: quem já estava na lixeira mantém o carimbo antigo.
+  for (let grew = true; grew; ) {
+    grew = false
+    for (const row of fakeDb.tables.pages) {
+      const id = String(row.id)
+      if (
+        row.trashed_at == null &&
+        typeof row.parent_id === 'string' &&
+        tree.has(row.parent_id) &&
+        !tree.has(id)
+      ) {
+        tree.add(id)
+        grew = true
+      }
+    }
+  }
+  for (const row of fakeDb.tables.pages) if (tree.has(String(row.id))) row.trashed_at = stamp
+  return { data: null, error: null }
+}
+
+function restorePage(pageId: string): QueryResult {
+  const page = dbPage(pageId)
+  if (!page || !memberCanEdit()) return { data: null, error: FORBIDDEN }
+  const stamp = page.trashed_at
+  if (stamp == null) return { data: null, error: null }
+  const parent = typeof page.parent_id === 'string' ? dbPage(page.parent_id) : undefined
+  if (parent?.trashed_at != null) {
+    return { data: null, error: { message: 'parent_trashed', code: '23514' } }
+  }
+  const tree = new Set([pageId])
+  for (let grew = true; grew; ) {
+    grew = false
+    for (const row of fakeDb.tables.pages) {
+      const id = String(row.id)
+      if (
+        row.trashed_at === stamp &&
+        typeof row.parent_id === 'string' &&
+        tree.has(row.parent_id) &&
+        !tree.has(id)
+      ) {
+        tree.add(id)
+        grew = true
+      }
+    }
+  }
+  for (const row of fakeDb.tables.pages) if (tree.has(String(row.id))) row.trashed_at = null
+  return { data: null, error: null }
+}
+
+/** `trash_page` e `restore_page`, com a mesma semântica das funções do banco (supabase/migrations/…0005). */
+async function rpc(name: string, args: { p_page_id: string }): Promise<QueryResult> {
+  fakeDb.rpcCalls.push({ name, args })
+  const gate = fakeDb.rpcGates.findIndex((g) => g.name === name)
+  if (gate >= 0) {
+    const [held] = fakeDb.rpcGates.splice(gate, 1)
+    await held?.open
+  }
+  const failure = fakeDb.rpcFailures.findIndex((f) => f.name === name)
+  if (failure >= 0) {
+    const [failed] = fakeDb.rpcFailures.splice(failure, 1)
+    if (failed) return { data: null, error: failed.error }
+  }
+  fakeDb.order.push(`rpc:${name}`)
+  if (name === 'trash_page') return trashPage(args.p_page_id)
+  if (name === 'restore_page') return restorePage(args.p_page_id)
+  return { data: null, error: { message: 'rpc?' } }
 }
 
 export const fakeSupabase = {
@@ -411,6 +565,12 @@ export function resetFakeSupabase() {
   fakeDb.gates = []
   fakeDb.writes = []
   fakeDb.selects = []
+  fakeDb.rpcCalls = []
+  fakeDb.rpcFailures = []
+  fakeDb.rpcGates = []
+  fakeDb.trashLoads = 0
+  fakeDb.singleLoads = 0
+  fakeDb.order = []
   // Todo teste começa com o workspace pessoal e a página inicial já criados.
   seedWorkspace({ homePageId: fakeId(1000) })
   seedPages([{ id: fakeId(1000), title: 'Página inicial', sortKey: 'a0' }])
