@@ -8,7 +8,7 @@ interface SearchState {
   opener: HTMLElement | null
   /** Sobe a cada resultado aberto: o mobile fecha a gaveta que ficou por baixo. */
   pickCount: number
-  openSearch: () => void
+  openSearch: (opener?: HTMLElement | null) => void
   closeSearch: () => void
   setTerm: (term: string) => void
   notifyPick: () => void
@@ -23,10 +23,12 @@ export const useSearchStore = create<SearchState>((set, get) => ({
   term: '',
   opener: null,
   pickCount: 0,
-  openSearch: () => {
+  openSearch: (opener) => {
     if (get().open) return
+    // O Safari não dá foco ao botão tocado, então quem abre pode (e deve) dizer qual é o elemento.
     const active = document.activeElement
-    set({ open: true, term: '', opener: active instanceof HTMLElement ? active : null })
+    const from = opener ?? (active instanceof HTMLElement ? active : null)
+    set({ open: true, term: '', opener: from })
   },
   closeSearch: () => {
     set({ open: false, term: '' })

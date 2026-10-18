@@ -14,8 +14,9 @@ function Dialog({ ...props }: React.ComponentProps<typeof DialogPrimitive.Root>)
 function DialogContent({
   className,
   children,
+  showCloseButton = true,
   ...props
-}: React.ComponentProps<typeof DialogPrimitive.Content>) {
+}: React.ComponentProps<typeof DialogPrimitive.Content> & { showCloseButton?: boolean }) {
   return (
     <DialogPrimitive.Portal>
       <DialogPrimitive.Overlay
@@ -31,13 +32,19 @@ function DialogContent({
         {...props}
       >
         {children}
-        <DialogPrimitive.Close className="absolute top-1 right-1 flex size-11 items-center justify-center rounded-tag text-muted-foreground hover:bg-hover md:top-2 md:right-2 md:size-8">
-          <XIcon className="size-4" aria-hidden="true" />
-          <span className="sr-only">{t('common.close')}</span>
-        </DialogPrimitive.Close>
+        {showCloseButton ? (
+          <DialogPrimitive.Close className="absolute top-1 right-1 flex size-11 items-center justify-center rounded-tag text-muted-foreground hover:bg-hover md:top-2 md:right-2 md:size-8">
+            <XIcon className="size-4" aria-hidden="true" />
+            <span className="sr-only">{t('common.close')}</span>
+          </DialogPrimitive.Close>
+        ) : null}
       </DialogPrimitive.Content>
     </DialogPrimitive.Portal>
   )
+}
+
+function DialogClose({ ...props }: React.ComponentProps<typeof DialogPrimitive.Close>) {
+  return <DialogPrimitive.Close data-slot="dialog-close" {...props} />
 }
 
 function DialogHeader({ className, ...props }: React.ComponentProps<'div'>) {
@@ -73,4 +80,4 @@ function DialogDescription({
   )
 }
 
-export { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription }
+export { Dialog, DialogClose, DialogContent, DialogHeader, DialogTitle, DialogDescription }

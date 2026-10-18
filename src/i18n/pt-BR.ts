@@ -245,8 +245,7 @@ export const ptBR = {
     errors: {
       trash: 'Não foi possível mover a página para a lixeira. Tente novamente.',
       restore: 'Não foi possível restaurar a página. Tente novamente.',
-      restoreParentTrashed:
-        'A página pai ainda está na lixeira. Restaure a página pai primeiro.',
+      restoreParentTrashed: 'A página pai ainda está na lixeira. Restaure a página pai primeiro.',
       delete: 'Não foi possível excluir a página. Tente novamente.',
       deleteGone:
         'Não foi possível excluir: a página já foi restaurada ou excluída em outro lugar. A lista foi atualizada.',
