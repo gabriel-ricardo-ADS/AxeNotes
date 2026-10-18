@@ -291,8 +291,35 @@ A T4 é só cliente: **sem migration** (as tabelas e RPCs vieram na T2). A DECIS
 - **Restaurar pode recriar empate de `sort_key`** entre irmãos (a página volta com a chave antiga). Isso fica sob a
   DECISÃO-025 (ABERTA): a T4b **não** resolve nem inventa solução.
 
-**Decidido para a T4c (busca) — ainda não implementado**
+**Implementado na T4c (busca)** — Gabriel aprovou o plano em 2026-10-18, sem migration e sem dependência nova (Radix
+Dialog, que já existia; nada de `cmdk`). Nenhuma decisão nova.
 - Diálogo Ctrl/Cmd+K com `search_pages` (limite 20 no cliente; o servidor aceita até 50), debounce de 200 ms, resposta
-  antiga ignorada (chave da consulta por termo), sem texto mostra os recentes (os 8 de hoje), botão "Buscar" visível na
-  sidebar/gaveta para o mobile, ARIA de combobox/listbox e foco devolvido ao fechar.
+  antiga ignorada (chave da consulta por termo + `signal`), sem texto mostra os recentes (os 8 da sidebar, mesmo hook),
+  botão "Buscar" visível na sidebar/gaveta para o mobile, ARIA de combobox/listbox e foco devolvido ao fechar.
+- **O servidor faz o trabalho:** acento, caixa, espaços nas pontas, `%`/`_`/`\` literais, lixeira e limite estão na
+  função (migration 0006); o cliente só faz trim + NFC + máximo de 200 caracteres e **não escapa nada**. A RLS de `pages`
+  basta (a função é `security invoker`; leitor busca; quem é de fora recebe vazio). Provado em PGlite com a chamada de
+  argumentos nomeados que o PostgREST emite.
+- **Atalho:** ⌘K no Mac, Ctrl+K nos demais (no Mac, Ctrl+K é "apagar até o fim da linha"); `preventDefault` quando vale;
+  ignora tecla segurada, IME e Alt/Shift; ignora evento já tratado (`defaultPrevented`); não abre por cima de outro
+  diálogo (Mover para…, ícone, excluir), mas ainda cancela o padrão do navegador; com a busca aberta só devolve o foco ao
+  campo; foco em campo de texto (título da página) não impede.
+- **Teclado do diálogo:** ↑/↓ com volta, Enter abre a opção ativa (a primeira já nasce ativa; ignorado enquanto "Buscando…"),
+  Esc fecha. **Home/End continuam movendo o cursor do campo** (padrão APG de combobox editável).
+- **Foco:** guarda o elemento que abriu (o botão passa a si mesmo: o Safari não dá foco ao botão tocado) e o devolve ao
+  fechar; se ele sumiu, vai ao ☰ e por último ao conteúdo. No mobile o diálogo abre **por cima da gaveta** (ela fica por
+  baixo): Esc volta ao botão "Buscar" da gaveta; ao escolher um resultado, as duas fecham e o foco vai ao ☰. Provado no
+  WebKit (iPhone emulado). Nota do Radix: um Esc no primeiro quadro depois de abrir ainda vai à camada de baixo (menos de
+  50 ms; só um teste automático é tão rápido).
+- **iOS:** o Safari não redimensiona o layout com o teclado; o diálogo fica no topo e `max-height`/`top` vêm do
+  `visualViewport`. O WebKit do Playwright não abre teclado virtual: o e2e usa um viewport baixo (390×400) como
+  substituto. Teclado automático e encaixe reais: teste manual em aparelho (checklist pós-deploy).
+- **Página inicial** nos resultados abre em `/`. Termo só com espaços não consulta e mostra os recentes. Sem cache entre
+  consultas (`gcTime: 0`): a busca reflete renomeações e a lixeira na hora.
+- **Regra proposta para o `Mod+K` no editor (Fase 2; NADA do editor foi feito agora):** o BlockNote/TipTap usa `Mod+K`
+  para "criar link" e chama `preventDefault`, mas o evento ainda sobe ao `document`. Nosso atalho já ignora
+  `defaultPrevented`. Proposta: dentro do editor, **com texto selecionado = link, sem seleção = busca**, e o botão "Buscar"
+  nunca depende de atalho. A regra final fica para a decisão da Fase 2.
+- **Fora desta entrega:** busca no conteúdo (Fase 2+), filtros, busca tolerante a erros, destaque do trecho, Ctrl/Cmd+clique
+  para abrir em outra aba, histórico de buscas e criar página a partir da busca.
 
