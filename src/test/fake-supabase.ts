@@ -440,7 +440,7 @@ function memberCanEdit(): boolean {
 /** Como o FK em cascata do banco: apagar uma página leva descendentes, favoritos, recentes e a página inicial. */
 function cascadeDelete(removed: Row[]) {
   const doomed = new Set(removed.map((row) => String(row.id)))
-  for (let grew = true; grew; ) {
+  for (let grew = true; grew;) {
     grew = false
     for (const row of fakeDb.tables.pages) {
       const id = String(row.id)
@@ -480,7 +480,7 @@ function trashPage(pageId: string): QueryResult {
   const stamp = nextStamp()
   const tree = new Set([pageId])
   // Só desce por filhas vivas: quem já estava na lixeira mantém o carimbo antigo.
-  for (let grew = true; grew; ) {
+  for (let grew = true; grew;) {
     grew = false
     for (const row of fakeDb.tables.pages) {
       const id = String(row.id)
@@ -509,7 +509,7 @@ function restorePage(pageId: string): QueryResult {
     return { data: null, error: { message: 'parent_trashed', code: '23514' } }
   }
   const tree = new Set([pageId])
-  for (let grew = true; grew; ) {
+  for (let grew = true; grew;) {
     grew = false
     for (const row of fakeDb.tables.pages) {
       const id = String(row.id)
@@ -547,14 +547,15 @@ function searchPages(args: Record<string, unknown>): QueryResult {
   const limit = Math.min(Math.max(typeof args.p_limit === 'number' ? args.p_limit : 20, 1), 50)
   const starts = (row: Row) => fold(String(row.title)).startsWith(term)
 
-  const found = isMember && term !== ''
-    ? fakeDb.tables.pages.filter(
-        (row) =>
-          row.workspace_id === args.p_workspace_id &&
-          row.trashed_at == null &&
-          fold(String(row.title)).includes(term),
-      )
-    : []
+  const found =
+    isMember && term !== ''
+      ? fakeDb.tables.pages.filter(
+          (row) =>
+            row.workspace_id === args.p_workspace_id &&
+            row.trashed_at == null &&
+            fold(String(row.title)).includes(term),
+        )
+      : []
   found.sort((a, b) => {
     if (starts(a) !== starts(b)) return starts(a) ? -1 : 1
     const edited = String(b.last_edited_at).localeCompare(String(a.last_edited_at))

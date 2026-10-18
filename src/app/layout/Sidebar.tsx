@@ -3,6 +3,7 @@ import { NavLink } from 'react-router'
 import { SidebarNotice } from '@/app/layout/SidebarNotice'
 import { FavoritesSection } from '@/features/favorites/components/FavoritesSection'
 import { RecentsSection } from '@/features/recents/components/RecentsSection'
+import { SearchButton } from '@/features/search/components/SearchButton'
 import { UserMenu } from '@/features/auth/components/UserMenu'
 import { PagesSection } from '@/features/workspace/components/PagesSection'
 import { t } from '@/i18n'
@@ -23,6 +24,9 @@ export function Sidebar({ onNavigate }: SidebarProps) {
       <p className="px-2 font-semibold text-strong">{t('app.name')}</p>
 
       <ul className="flex flex-col gap-0.5">
+        <li>
+          <SearchButton />
+        </li>
         <li>
           <NavLink
             to="/"
