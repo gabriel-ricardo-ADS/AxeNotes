@@ -40,15 +40,20 @@ export function SearchOption({ id, item, path, active, onPick, onActivate }: Sea
         if (event.pointerType === 'mouse' && !active) onActivate()
       }}
       className={cn(
-        'flex min-h-11 cursor-pointer items-center gap-2 rounded-tag px-2 text-ui text-muted-foreground md:min-h-9',
+        'flex min-h-11 cursor-pointer items-center gap-2 rounded-tag px-2 py-1 text-ui text-muted-foreground md:min-h-9 md:py-0',
         active && 'bg-hover text-strong',
       )}
     >
       <PageIconView icon={item.icon} />
-      <span className="min-w-0 flex-1 truncate">{item.title || t('workspace.tree.untitled')}</span>
-      {path === null ? null : (
-        <span className="max-w-[45%] shrink-0 truncate text-meta text-faint">{path}</span>
-      )}
+      {/* Mobile: o caminho vai numa segunda linha (o título não pode ser cortado por ele); desktop: ao lado. */}
+      <span className="flex min-w-0 flex-1 flex-col md:flex-row md:items-center md:gap-2">
+        <span className="truncate md:min-w-0 md:flex-1">
+          {item.title || t('workspace.tree.untitled')}
+        </span>
+        {path === null ? null : (
+          <span className="truncate text-meta text-faint md:max-w-[45%] md:shrink-0">{path}</span>
+        )}
+      </span>
     </li>
   )
 }
