@@ -1,11 +1,7 @@
-import { useMemo } from 'react'
 import { useMatch } from 'react-router'
-import { useRecents } from '@/features/recents/hooks/use-recents'
-import { visibleRecents } from '@/features/recents/recents'
+import { useVisibleRecents } from '@/features/recents/hooks/use-visible-recents'
 import { PageLinkRow } from '@/features/workspace/components/PageLinkRow'
 import { SectionError, SectionLoading } from '@/features/workspace/components/SectionState'
-import { usePages } from '@/features/workspace/hooks/use-pages'
-import { useWorkspace } from '@/features/workspace/hooks/use-workspace'
 import { t } from '@/i18n'
 
 interface RecentsSectionProps {
@@ -15,19 +11,8 @@ interface RecentsSectionProps {
 
 /** Seção "Recentes" da sidebar: as últimas páginas abertas (sem a página inicial). */
 export function RecentsSection({ onNavigate }: RecentsSectionProps) {
-  const recents = useRecents()
-  const pages = usePages()
-  const homeId = useWorkspace().data?.homePageId ?? null
+  const { pages: visible, loading, failed, retry } = useVisibleRecents()
   const match = useMatch('/p/:pageId')
-
-  const visible = useMemo(
-    () => visibleRecents(recents.data ?? [], pages.data ?? [], homeId),
-    [recents.data, pages.data, homeId],
-  )
-
-  const failed = recents.isError || pages.isError
-  const loading =
-    !failed && (recents.isPending || (pages.isPending && pages.fetchStatus !== 'idle'))
 
   return (
     <section aria-labelledby="sidebar-recents">
@@ -36,13 +21,7 @@ export function RecentsSection({ onNavigate }: RecentsSectionProps) {
       </h2>
 
       {failed ? (
-        <SectionError
-          message={t('recents.loadError')}
-          onRetry={() => {
-            void recents.refetch()
-            void pages.refetch()
-          }}
-        />
+        <SectionError message={t('recents.loadError')} onRetry={retry} />
       ) : loading ? (
         <SectionLoading label={t('recents.loading')} />
       ) : visible.length === 0 ? (

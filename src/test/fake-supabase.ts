@@ -440,7 +440,7 @@ function memberCanEdit(): boolean {
 /** Como o FK em cascata do banco: apagar uma página leva descendentes, favoritos, recentes e a página inicial. */
 function cascadeDelete(removed: Row[]) {
   const doomed = new Set(removed.map((row) => String(row.id)))
-  for (let grew = true; grew; ) {
+  for (let grew = true; grew;) {
     grew = false
     for (const row of fakeDb.tables.pages) {
       const id = String(row.id)
@@ -480,7 +480,7 @@ function trashPage(pageId: string): QueryResult {
   const stamp = nextStamp()
   const tree = new Set([pageId])
   // Só desce por filhas vivas: quem já estava na lixeira mantém o carimbo antigo.
-  for (let grew = true; grew; ) {
+  for (let grew = true; grew;) {
     grew = false
     for (const row of fakeDb.tables.pages) {
       const id = String(row.id)
@@ -509,7 +509,7 @@ function restorePage(pageId: string): QueryResult {
     return { data: null, error: { message: 'parent_trashed', code: '23514' } }
   }
   const tree = new Set([pageId])
-  for (let grew = true; grew; ) {
+  for (let grew = true; grew;) {
     grew = false
     for (const row of fakeDb.tables.pages) {
       const id = String(row.id)
@@ -528,29 +528,100 @@ function restorePage(pageId: string): QueryResult {
   return { data: null, error: null }
 }
 
-/** `trash_page` e `restore_page`, com a mesma semântica das funções do banco (supabase/migrations/…0005). */
-async function rpc(name: string, args: { p_page_id: string }): Promise<QueryResult> {
+/** Como `unaccent(lower(x))` do banco, para os acentos latinos (NFD sem as marcas). */
+function fold(text: string): string {
+  return text.normalize('NFD').replace(/\p{M}/gu, '').toLowerCase()
+}
+
+/**
+ * `search_pages` (supabase/migrations/…0006): por título, sem acento nem caixa, trecho LITERAL (`%`, `_` e `\`
+ * valem como texto), só o workspace do usuário e fora da lixeira; termo vazio não acha nada; começa-com primeiro,
+ * depois `last_edited_at` desc e id; limite de 1 a 50 (padrão 20).
+ */
+function searchPages(args: Record<string, unknown>): QueryResult {
+  const isMember = fakeDb.tables.workspace_members.some(
+    (row) => row.user_id === USER_ID && row.workspace_id === args.p_workspace_id,
+  )
+  // `btrim` do banco tira só espaços.
+  const term = fold(typeof args.p_query === 'string' ? args.p_query : '').replace(/^ +| +$/g, '')
+  const limit = Math.min(Math.max(typeof args.p_limit === 'number' ? args.p_limit : 20, 1), 50)
+  const starts = (row: Row) => fold(String(row.title)).startsWith(term)
+
+  const found =
+    isMember && term !== ''
+      ? fakeDb.tables.pages.filter(
+          (row) =>
+            row.workspace_id === args.p_workspace_id &&
+            row.trashed_at == null &&
+            fold(String(row.title)).includes(term),
+        )
+      : []
+  found.sort((a, b) => {
+    if (starts(a) !== starts(b)) return starts(a) ? -1 : 1
+    const edited = String(b.last_edited_at).localeCompare(String(a.last_edited_at))
+    return edited !== 0 ? edited : String(a.id) < String(b.id) ? -1 : 1
+  })
+  const data = found.slice(0, limit).map((row) => ({
+    id: row.id,
+    workspace_id: row.workspace_id,
+    parent_id: row.parent_id,
+    title: row.title,
+    icon: row.icon,
+    last_edited_at: row.last_edited_at,
+  }))
+  return { data, error: null }
+}
+
+/** `trash_page`, `restore_page` e `search_pages`, com a mesma semântica das funções do banco (…0005 e …0006). */
+async function rpc(
+  name: string,
+  args: Record<string, unknown>,
+  signal?: AbortSignal,
+): Promise<QueryResult> {
   fakeDb.rpcCalls.push({ name, args })
   const gate = fakeDb.rpcGates.findIndex((g) => g.name === name)
   if (gate >= 0) {
     const [held] = fakeDb.rpcGates.splice(gate, 1)
     await held?.open
   }
+  // Como o supabase-js: pedido cancelado volta como erro, não como exceção.
+  if (signal?.aborted) return { data: null, error: { message: 'AbortError' } }
   const failure = fakeDb.rpcFailures.findIndex((f) => f.name === name)
   if (failure >= 0) {
     const [failed] = fakeDb.rpcFailures.splice(failure, 1)
     if (failed) return { data: null, error: failed.error }
   }
   fakeDb.order.push(`rpc:${name}`)
-  if (name === 'trash_page') return trashPage(args.p_page_id)
-  if (name === 'restore_page') return restorePage(args.p_page_id)
+  if (name === 'trash_page') return trashPage(String(args.p_page_id))
+  if (name === 'restore_page') return restorePage(String(args.p_page_id))
+  if (name === 'search_pages') return searchPages(args)
   return { data: null, error: { message: 'rpc?' } }
+}
+
+/** O retorno do `rpc` é "esperável" e aceita `.abortSignal(signal)`, como o do supabase-js. */
+function startRpc(name: string, args: Record<string, unknown>) {
+  let signal: AbortSignal | undefined
+  const builder = {
+    abortSignal(next: AbortSignal) {
+      signal = next
+      return builder
+    },
+    then<R1 = QueryResult, R2 = never>(
+      onFulfilled?: ((value: QueryResult) => R1 | PromiseLike<R1>) | null,
+      onRejected?: ((reason: unknown) => R2 | PromiseLike<R2>) | null,
+    ): PromiseLike<R1 | R2> {
+      return Promise.resolve()
+        .then(() => rpc(name, args, signal))
+        .then(onFulfilled, onRejected)
+    },
+  }
+  return builder
 }
 
 export const fakeSupabase = {
   auth: fakeAuth,
   from: vi.fn((table: Table) => new FakeQuery(table)),
-  rpc: vi.fn(rpc),
+  rpc: vi.fn(startRpc),
 }
 
 /** Zera chamadas, ouvintes e dados entre testes. */

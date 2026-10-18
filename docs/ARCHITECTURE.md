@@ -48,7 +48,8 @@ src/
                   # (árvore, ordem, validação de mover), página inicial (home.ts)
     favorites/    # favoritos do usuário: estrela, seção da sidebar, ordem (favorites.ts), mutations otimistas
     recents/      # recentes do usuário: registro da visita ao abrir a página, seção da sidebar (recents.ts)
-    trash/  search/   # (T4b e T4c) lixeira em /lixeira e busca Ctrl+K
+    trash/        # lixeira em /lixeira: restaurar, excluir definitivamente (T4b)
+    search/       # busca Ctrl/Cmd+K por título: diálogo (combobox + listbox), atalho, RPC search_pages (T4c)
     pages/        # tela da página /p/:pageId: título, ícone, breadcrumb, "Editada há…" (editor na Fase 2)
     editor/       # BlockNote, schema, blocos customizados, menus pt-BR, Yjs
     sync/         # y-indexeddb, persistência no Supabase, outbox, status online/offline
@@ -92,7 +93,17 @@ cadastro. O restante do rascunho abaixo entra nas fases indicadas. Detalhes do q
 - **Lixeira em cascata:** `trash_page(id)` marca a subárvore inteira com o MESMO `trashed_at`;
   `restore_page(id)` restaura só quem tem esse carimbo (subpágina enviada antes continua na lixeira) e
   recusa se o pai ainda estiver na lixeira. Exclusão definitiva = `delete` só em página já na lixeira.
-- **Busca:** `search_pages(ws, texto, limite)` com `immutable_unaccent` + índice trigram, só por título.
+- **Busca:** `search_pages(ws, texto, limite)` com `immutable_unaccent` + índice trigram, só por título. O servidor
+  trata acento, caixa, espaços nas pontas, `%`, `_` e `\`, a lixeira e o limite (1 a 50); é `security invoker`,
+  então a RLS de `pages` vale (leitor busca, quem é de fora recebe vazio). O cliente manda o termo cru, sem escapar.
+- **Busca no cliente (T4c):** `src/features/search/`. Um `SearchDialog` montado uma vez no `AppLayout` (Radix Dialog),
+  aberto por Ctrl+K / ⌘K (`use-search-shortcut`, com `preventDefault`) ou pelo botão "Buscar" da sidebar/gaveta
+  (`search-store`, Zustand, sem persistência). Termo → `normalizeTerm` (trim, NFC, 200 caracteres) → debounce de
+  200 ms → `useQuery(['search', workspaceId, termo])` (cada termo tem a própria resposta, `gcTime: 0`, sem repetição
+  automática; o `signal` cancela o pedido anterior). Sem texto mostra os mesmos recentes da sidebar
+  (`useVisibleRecents`). Combobox + listbox com `aria-activedescendant`; o foco fica no campo. O caminho (breadcrumb
+  curto) vem de `usePages` + `ancestorsOf`, não do servidor. No iOS o diálogo é ancorado no topo e medido pelo
+  `visualViewport` (o teclado não redimensiona o layout). No mobile abre por cima da gaveta.
 - **Políticas de `pages`** usam `is_workspace_member(workspace_id, …)` direto; `can_access_page(id)` serve
   às tabelas por usuário (favoritos, recentes) e é o ponto único para estender com permissões por página.
 - **Árvore no cliente (T3b):** `usePages` traz todas as páginas fora da lixeira (id, parent_id, title, icon,

@@ -191,6 +191,26 @@ export const ptBR = {
     loading: 'Carregando recentes…',
     loadError: 'Não foi possível carregar os recentes.',
   },
+  search: {
+    button: 'Buscar',
+    shortcutMac: '⌘K',
+    shortcutOther: 'Ctrl K',
+    dialogTitle: 'Buscar páginas',
+    dialogDescription:
+      'Digite para buscar páginas pelo título. Use as setas para escolher e Enter para abrir.',
+    inputLabel: 'Buscar páginas',
+    placeholder: 'Buscar páginas…',
+    recentsHeading: 'Recentes',
+    recentsEmpty: 'As páginas que você abrir aparecem aqui.',
+    recentsLabel: 'Páginas recentes',
+    resultsLabel: 'Resultados da busca',
+    loading: 'Buscando…',
+    empty: 'Nenhuma página encontrada.',
+    error: 'Não foi possível buscar. Verifique a conexão e tente de novo.',
+    oneResult: '1 resultado.',
+    results: '{count} resultados.',
+    pathSeparator: ' / ',
+  },
   trash: {
     title: 'Lixeira',
     description: 'As páginas ficam aqui até você restaurá-las ou excluí-las definitivamente.',
@@ -225,8 +245,7 @@ export const ptBR = {
     errors: {
       trash: 'Não foi possível mover a página para a lixeira. Tente novamente.',
       restore: 'Não foi possível restaurar a página. Tente novamente.',
-      restoreParentTrashed:
-        'A página pai ainda está na lixeira. Restaure a página pai primeiro.',
+      restoreParentTrashed: 'A página pai ainda está na lixeira. Restaure a página pai primeiro.',
       delete: 'Não foi possível excluir a página. Tente novamente.',
       deleteGone:
         'Não foi possível excluir: a página já foi restaurada ou excluída em outro lugar. A lista foi atualizada.',

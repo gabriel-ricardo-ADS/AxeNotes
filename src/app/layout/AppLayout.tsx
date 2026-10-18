@@ -3,6 +3,7 @@ import { Outlet } from 'react-router'
 import { MobileNav } from '@/app/layout/MobileNav'
 import { Sidebar } from '@/app/layout/Sidebar'
 import { TopBarSlotContext } from '@/app/layout/top-bar-context'
+import { SearchDialog } from '@/features/search/components/SearchDialog'
 import { useMediaQuery } from '@/hooks/use-media-query'
 import { t } from '@/i18n'
 
@@ -44,6 +45,8 @@ export function AppLayout() {
             <Outlet />
           </main>
         </div>
+
+        <SearchDialog />
       </div>
     </TopBarSlotContext.Provider>
   )
