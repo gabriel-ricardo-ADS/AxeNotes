@@ -4,6 +4,7 @@ import {
   isSearchShortcut,
   moveActive,
   normalizeTerm,
+  resolveSearchMode,
   resultsAnnouncement,
   searchPath,
   SEARCH_MAX_LENGTH,
@@ -169,6 +170,59 @@ describe('searchPath', () => {
     expect(searchPath([page('home', 'Página inicial'), page('2', 'Livros')], 'home')).toBe('Livros')
     expect(searchPath([page('home', 'Página inicial')], 'home')).toBeNull()
     expect(searchPath([page('1', '')], null)).toBe('Sem título')
+  })
+})
+
+describe('resolveSearchMode', () => {
+  type Input = Parameters<typeof resolveSearchMode>[0]
+  const base: Input = {
+    normalized: 'filmes',
+    debounced: 'filmes',
+    workspace: 'ready',
+    recents: { failed: false, loading: false },
+    search: { isPending: false, isError: false },
+  }
+  const mode = (patch: Partial<Input>) => resolveSearchMode({ ...base, ...patch })
+
+  it('shows the results once the term settled and the search answered', () => {
+    expect(mode({})).toBe('results')
+  })
+
+  it('is loading while the debounce has not caught up or the search is pending', () => {
+    expect(mode({ debounced: 'fil' })).toBe('loading')
+    expect(mode({ search: { isPending: true, isError: false } })).toBe('loading')
+  })
+
+  it('shows the error when the search failed', () => {
+    expect(mode({ search: { isPending: false, isError: true } })).toBe('error')
+  })
+
+  it('with a term: loads while the workspace loads, errors when it failed', () => {
+    const pending = { isPending: true, isError: false }
+    expect(mode({ workspace: 'pending', search: pending })).toBe('loading')
+    expect(mode({ workspace: 'error', search: pending })).toBe('error')
+    // O erro do workspace vale mesmo com o debounce ainda correndo.
+    expect(mode({ workspace: 'error', debounced: 'fil', search: pending })).toBe('error')
+  })
+
+  it('with a term and no workspace (none, including an idle query): never loads, shows the empty results', () => {
+    const pending = { isPending: true, isError: false }
+    expect(mode({ workspace: 'none', search: pending })).toBe('results')
+    expect(mode({ workspace: 'none', debounced: 'fil', search: pending })).toBe('results')
+  })
+
+  it('without a term: follows the recents when the workspace is fine', () => {
+    const empty = { normalized: '', debounced: '' }
+    expect(mode(empty)).toBe('recents')
+    expect(mode({ ...empty, recents: { failed: false, loading: true } })).toBe('loading')
+    expect(mode({ ...empty, recents: { failed: true, loading: false } })).toBe('error')
+  })
+
+  it('without a term: the workspace state wins over the recents', () => {
+    const empty = { normalized: '', debounced: '' }
+    expect(mode({ ...empty, workspace: 'pending' })).toBe('loading')
+    expect(mode({ ...empty, workspace: 'error' })).toBe('error')
+    expect(mode({ ...empty, workspace: 'none' })).toBe('recents')
   })
 })
 

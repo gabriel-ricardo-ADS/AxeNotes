@@ -10,7 +10,7 @@ export interface VisibleRecents {
   pages: PageRow[]
   loading: boolean
   failed: boolean
-  /** Recarrega as visitas e a lista de páginas. */
+  /** Recarrega as visitas, o workspace e a lista de páginas. */
   retry: () => void
 }
 
@@ -21,16 +21,23 @@ export interface VisibleRecents {
 export function useVisibleRecents(): VisibleRecents {
   const recents = useRecents()
   const pages = usePages()
-  const homeId = useWorkspace().data?.homePageId ?? null
+  const workspace = useWorkspace()
+  const homeId = workspace.data?.homePageId ?? null
 
   const visible = useMemo(
     () => visibleRecents(recents.data ?? [], pages.data ?? [], homeId),
     [recents.data, pages.data, homeId],
   )
 
-  const failed = recents.isError || pages.isError
+  // Sem workspace as páginas ficam paradas (`idle`): um erro dele sem dados é falha, não "lista vazia".
+  // Workspace `null` (usuário sem workspace) não é falha: não há páginas e o vazio está certo.
+  const workspaceFailed = workspace.isError && workspace.data === undefined
+  const failed = recents.isError || pages.isError || workspaceFailed
   const loading =
-    !failed && (recents.isPending || (pages.isPending && pages.fetchStatus !== 'idle'))
+    !failed &&
+    (recents.isPending ||
+      (workspace.isPending && workspace.fetchStatus !== 'idle') ||
+      (pages.isPending && pages.fetchStatus !== 'idle'))
 
   return {
     pages: visible,
@@ -38,7 +45,9 @@ export function useVisibleRecents(): VisibleRecents {
     failed,
     retry: () => {
       void recents.refetch()
-      void pages.refetch()
+      // Sem workspace as páginas estão paradas (refazê-las consultaria com id vazio): ao carregar, elas rodam sozinhas.
+      if (workspace.data) void pages.refetch()
+      else void workspace.refetch()
     },
   }
 }

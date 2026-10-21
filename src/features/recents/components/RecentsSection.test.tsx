@@ -4,6 +4,8 @@ import { resetVisitGuard } from '@/features/recents/hooks/use-record-visit'
 import { RECENTS_KEPT } from '@/features/recents/recents'
 import { useTreeUiStore } from '@/features/workspace/tree-ui-store'
 import {
+  clearFailures,
+  failAlways,
   failNext,
   fakeDb,
   fakeId,
@@ -95,6 +97,21 @@ describe('seção Recentes da sidebar', () => {
 
     expect(await screen.findByText('Não foi possível carregar os recentes.')).toBeInTheDocument()
     seedRecents([{ pageId: READINGS, visitedAt: '2026-10-01T10:00:00Z' }])
+    const region = screen.getByRole('region', { name: 'Recentes' })
+    await user.click(within(region).getByRole('button', { name: 'Tentar de novo' }))
+
+    expect(titles(await recentsList())).toEqual(['Leituras'])
+  })
+
+  it('shows a retryable error when the workspace does not load, and reloads it', async () => {
+    const user = userEvent.setup()
+    failAlways('select', 'workspace_members')
+    renderApp()
+
+    expect(await screen.findByText('Não foi possível carregar os recentes.')).toBeInTheDocument()
+    expect(screen.queryByText('As páginas que você abrir aparecem aqui.')).not.toBeInTheDocument()
+    seedRecents([{ pageId: READINGS, visitedAt: '2026-10-01T10:00:00Z' }])
+    clearFailures()
     const region = screen.getByRole('region', { name: 'Recentes' })
     await user.click(within(region).getByRole('button', { name: 'Tentar de novo' }))
 
