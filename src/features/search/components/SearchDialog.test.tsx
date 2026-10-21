@@ -4,15 +4,19 @@ import { resetVisitGuard } from '@/features/recents/hooks/use-record-visit'
 import { useSearchStore } from '@/features/search/search-store'
 import { useTreeUiStore } from '@/features/workspace/tree-ui-store'
 import {
+  clearFailures,
+  failAlways,
   failNextRpc,
   fakeDb,
   fakeId,
+  holdNext,
   holdNextRpc,
   mockProfile,
   resetFakeSupabase,
   seedPages,
   seedRecents,
   seedWorkspace,
+  WORKSPACE_ID,
 } from '@/test/fake-supabase'
 import { installMatchMedia } from '@/test/match-media'
 import { renderApp } from '@/test/render-app'
@@ -346,6 +350,135 @@ describe('sem texto: recentes', () => {
     expect(
       (await inDialog()).getByText('As páginas que você abrir aparecem aqui.'),
     ).toBeInTheDocument()
+  })
+})
+
+describe('sem workspace', () => {
+  const workspaceLoads = () => fakeDb.selects.filter((table) => table === 'workspace_members').length
+
+  /** Renderiza o app (a sidebar não carrega páginas sem workspace) e espera o botão "Buscar" do layout. */
+  async function renderLayout() {
+    renderApp()
+    await sidebarSearchButton()
+  }
+
+  it('shows the error (not "Buscando…") when the workspace fails to load', async () => {
+    const user = userEvent.setup()
+    failAlways('select', 'workspace_members')
+    await renderLayout()
+    const field = await openByShortcut(user)
+
+    await user.type(field, 'filmes')
+
+    const search = await inDialog()
+    expect(await search.findByRole('alert')).toHaveTextContent('Não foi possível buscar')
+    expect(search.queryByText('Buscando…')).not.toBeInTheDocument()
+    expect(searchCalls()).toHaveLength(0)
+  })
+
+  it('"Tentar de novo" reloads the workspace and then runs the search', async () => {
+    const user = userEvent.setup()
+    failAlways('select', 'workspace_members')
+    await renderLayout()
+    const field = await openByShortcut(user)
+    await user.type(field, 'filmes')
+    const search = await inDialog()
+    await search.findByRole('alert')
+    const before = workspaceLoads()
+    clearFailures()
+
+    await user.click(search.getByRole('button', { name: 'Tentar de novo' }))
+
+    expect(await screen.findByRole('option', { name: /Filmes/ })).toBeInTheDocument()
+    expect(search.queryByRole('alert')).not.toBeInTheDocument()
+    expect(workspaceLoads()).toBeGreaterThan(before)
+    expect(searchCalls()).toHaveLength(1)
+    expect(searchCalls()[0]?.args).toEqual({
+      p_workspace_id: WORKSPACE_ID,
+      p_query: 'filmes',
+      p_limit: 20,
+    })
+  })
+
+  it('shows the empty message (not "Buscando…") when the user has no workspace', async () => {
+    const user = userEvent.setup()
+    fakeDb.tables.workspace_members = []
+    await renderLayout()
+    const field = await openByShortcut(user)
+
+    await user.type(field, 'filmes')
+
+    const search = await inDialog()
+    expect(await search.findByText('Nenhuma página encontrada.', { selector: 'p' })).toBeInTheDocument()
+    expect(search.queryByText('Buscando…')).not.toBeInTheDocument()
+    expect(field).toHaveAttribute('aria-expanded', 'false')
+    expect(searchCalls()).toHaveLength(0)
+  })
+
+  it('keeps "Buscando…" while the workspace is still loading, then shows the results', async () => {
+    const user = userEvent.setup()
+    const gate = holdNext('select', 'workspace_members')
+    await renderLayout()
+    const field = await openByShortcut(user)
+
+    await user.type(field, 'filmes')
+    await new Promise((resolve) => setTimeout(resolve, 350))
+
+    const search = await inDialog()
+    expect(search.getByText('Buscando…')).toBeInTheDocument()
+    expect(search.queryByRole('alert')).not.toBeInTheDocument()
+    expect(searchCalls()).toHaveLength(0)
+
+    gate.release()
+    expect(await search.findByRole('option', { name: /Filmes/ })).toBeInTheDocument()
+  })
+
+  it('recents: shows the error with "Tentar de novo" when the workspace fails', async () => {
+    const user = userEvent.setup()
+    failAlways('select', 'workspace_members')
+    await renderLayout()
+    await openByShortcut(user)
+
+    const search = await inDialog()
+    expect(await search.findByRole('alert')).toHaveTextContent('Não foi possível buscar')
+    expect(search.queryByText('As páginas que você abrir aparecem aqui.')).not.toBeInTheDocument()
+    const before = workspaceLoads()
+    clearFailures()
+
+    await user.click(search.getByRole('button', { name: 'Tentar de novo' }))
+
+    await waitFor(() => {
+      expect(search.queryByRole('alert')).not.toBeInTheDocument()
+    })
+    expect(workspaceLoads()).toBeGreaterThan(before)
+  })
+
+  it('recents: does not flash the "no recents" hint while the workspace loads', async () => {
+    const user = userEvent.setup()
+    const gate = holdNext('select', 'workspace_members')
+    await renderLayout()
+    await openByShortcut(user)
+    await new Promise((resolve) => setTimeout(resolve, 50))
+
+    const search = await inDialog()
+    expect(search.queryByText('As páginas que você abrir aparecem aqui.')).not.toBeInTheDocument()
+    expect(search.getByText('Buscando…')).toBeInTheDocument()
+
+    gate.release()
+    expect(await search.findByText('As páginas que você abrir aparecem aqui.')).toBeInTheDocument()
+  })
+
+  it('recents: shows the "no recents" hint when the user has no workspace', async () => {
+    const user = userEvent.setup()
+    fakeDb.tables.workspace_members = []
+    await renderLayout()
+    await openByShortcut(user)
+
+    const search = await inDialog()
+    expect(
+      await search.findByText('As páginas que você abrir aparecem aqui.'),
+    ).toBeInTheDocument()
+    expect(search.queryByRole('alert')).not.toBeInTheDocument()
   })
 })
 
