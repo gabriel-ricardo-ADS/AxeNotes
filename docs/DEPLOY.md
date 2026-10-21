@@ -57,6 +57,58 @@ página) quebraria.
    curl -s -o /dev/null -w "%{http_code}\n" https://<projeto>.pages.dev/lixeira
    ```
 
+## Headers de segurança e CSP
+
+Ficam em `public/_headers`, que o Vite copia para `dist/` e o Cloudflare Pages aplica a todas as respostas (regra
+`/*`, inclusive o `index.html` do fallback de SPA). Não usamos `<meta http-equiv>`: `frame-ancestors` não funciona por
+meta, e o arquivo de headers não atrapalha o `pnpm dev` (o HMR do Vite injeta estilos e scripts inline).
+
+| Header | Valor | Para quê |
+| --- | --- | --- |
+| `Content-Security-Policy` | ver abaixo | só carrega código, estilos, fontes e conexões do próprio app e do Supabase |
+| `X-Content-Type-Options` | `nosniff` | o navegador não "adivinha" o tipo de um arquivo |
+| `Referrer-Policy` | `strict-origin-when-cross-origin` | outros sites só veem a origem, nunca a rota (ids de página) |
+| `Permissions-Policy` | `camera=(), microphone=(), geolocation=(), payment=(), usb=()` | desliga APIs que o app não usa |
+| `X-Frame-Options` | `DENY` | reforço do `frame-ancestors 'none'` para navegadores antigos |
+
+CSP: `default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob: https:;
+font-src 'self'; connect-src 'self' https://*.supabase.co wss://*.supabase.co; frame-ancestors 'none';
+base-uri 'self'; form-action 'self'; object-src 'none'`.
+
+- **`'unsafe-inline'` em `style-src`** tem motivo concreto: o `react-remove-scroll-bar` (via `react-style-singleton`,
+  usado pelo Dialog, Sheet, AlertDialog e DropdownMenu do Radix) injeta um `<style>` com o travamento da rolagem e
+  a largura da barra calculada na hora. Sem ele, o Console mostra "Applying inline style violates the following
+  Content Security Policy directive 'style-src 'self''" ao abrir a busca, um menu, o diálogo da lixeira ou a gaveta.
+  O conteúdo é dinâmico (hash não serve) e nonce exigiria gerar a resposta no servidor (Pages Functions). Script
+  inline continua bloqueado.
+- **zod sem `eval`:** o zod 4 testa `new Function` para compilar validadores; sob `script-src 'self'` o teste vira
+  violação de CSP. `src/lib/zod-config.ts` liga `jitless` antes de qualquer schema rodar.
+- **Supabase local:** a CSP só libera `*.supabase.co`. Com `VITE_SUPABASE_URL` apontando para o Supabase local
+  (`http://127.0.0.1:54321`), o `pnpm preview` bloqueia as chamadas; use `pnpm dev` nesse caso.
+- **Cloudflare Web Analytics** (se for ligado no painel) injeta um script de outro domínio e viola a CSP: liberar o
+  domínio dele em `script-src`/`connect-src` antes de ligar.
+- **Fases futuras:** os embeds da Fase 3 (YouTube, Google Drive, Vimeo) vão exigir `frame-src` com esses domínios
+  (hoje cai no `default-src 'self'` e é bloqueado); o PWA da Fase 6 usa `worker-src`/`manifest-src`, hoje cobertos por
+  `default-src 'self'`; o BlockNote da Fase 2 precisa ser conferido contra a CSP.
+- **Formato do arquivo:** o `pnpm preview` lê o mesmo `public/_headers` (`scripts/cloudflare-headers.ts`) e aplica os
+  headers localmente. O leitor aceita só a regra `/*` com linhas `Nome: valor` indentadas; o teste
+  `scripts/cloudflare-headers.test.ts` falha se o arquivo sair desse formato ou perder uma diretiva.
+
+### Como conferir
+
+Localmente: `pnpm build && pnpm preview` (porta 4173) já serve os headers. No preview do Cloudflare (a fonte de
+verdade):
+
+1. Abra a URL de preview do PR (ou o alias da branch) numa aba anônima do Chrome ou do Edge.
+2. Abra o DevTools (F12) → aba **Network** → marque **Disable cache** → recarregue a página.
+3. Clique na primeira linha (o documento, tipo `document`) → **Headers** → **Response Headers**. Confira os 5 headers
+   da tabela acima, com os valores iguais.
+4. Vá para a aba **Console**, limpe (Ctrl+L) e use o app: entrar, abrir e fechar a busca (Ctrl+K), abrir o menu "⋯"
+   de uma página da árvore, a lixeira e o diálogo "Excluir definitivamente" (cancele), e "Sair". Esperado: nenhuma
+   mensagem "Content Security Policy" / "Refused to …".
+5. No iPhone (Safari) ou no modo dispositivo do DevTools (390×844), repita o passo 4 abrindo e fechando a gaveta (☰).
+6. Opcional: em **Application** → **Frames** → **top**, a seção de segurança mostra a CSP aplicada.
+
 ## Checklist do teste
 
 Feito em 2026-10-20 no deploy de teste: desktop (Chrome), iPhone e iPad (Safari).

@@ -39,7 +39,7 @@ Licenças: toda dependência precisa ser compatível com GPL-3.0 (DECISÃO-003).
 
 ```
 src/
-  app/            # rotas, providers, error boundary
+  app/            # rotas (lazy, dois chunks: route-modules.ts), providers, RouteErrorBoundary
     layout/       # AppLayout: sidebar fixa (>= 768 px) ou gaveta pelo ☰ (MobileNav) + conteúdo
   components/ui/  # shadcn/ui (hoje só o Sheet, adaptado: animações próprias, sem tw-animate-css)
   features/
@@ -62,7 +62,9 @@ src/
     settings/
   hooks/          # hooks genéricos (use-media-query)
   lib/            # supabase.ts (cliente tipado; env validada em supabase-env.ts), query-client.ts,
-                  # database.types.ts (gerado), fractional-index, utils (cn)
+                  # database.types.ts (gerado), fractional-index, utils (cn), create-store.ts (stores
+                  # Zustand), reset-client-state.ts (limpeza do logout), lazy-with-reload.ts e
+                  # chunk-reload.ts (chunk antigo após deploy), zod-config.ts (zod sem eval, por causa da CSP)
   i18n/           # pt-BR.ts (todos os textos) + index.ts (t() com chaves tipadas)
   styles/         # tokens.css (variáveis do tema) + index.css (Tailwind v4, @theme, base)
   test/           # helpers de teste (ex.: stub de matchMedia)
@@ -74,7 +76,8 @@ e2e/              # specs do Playwright (auth.setup.ts salva a sessão por proje
                   # projeto real; pages-tree.spec.ts e favoritos-recentes.spec.ts (fixture em support/run-fixture.ts)
                   # escrevem só páginas "e2e-…" do usuário de teste 1 (e favoritos/recentes delas) e as
                   # apaga, com faxina inicial em cleanup.setup.ts) + screenshot.ts (pnpm screenshots)
-public/
+public/           # _headers: CSP e headers de segurança do Cloudflare Pages (docs/DEPLOY.md)
+scripts/          # check-licenses.mjs; cloudflare-headers.ts (lê o _headers para o pnpm preview)
 ```
 
 ## 4. Modelo de dados (rascunho — refinar nas fases 1 e 5)
@@ -233,6 +236,11 @@ Editor (BlockNote) ── Y.Doc ──┬─ y-indexeddb (aparelho, offline)
   em páginas mesclam via Yjs; em bases, outbox com "último a gravar vence" por campo.
 - Autenticação do provedor Yjs: o cliente envia o JWT do Supabase; o Worker valida e confere o
   papel do usuário no workspace antes de aceitar a conexão.
+- **Logout:** todo estado de cliente sai pelo ponto único `src/lib/reset-client-state.ts` (ver §9). Quem criar
+  um banco IndexedDB (y-indexeddb na Fase 2), um service worker ou um cache (Fase 6) não precisa de código novo
+  para a limpeza quando o navegador tem `indexedDB.databases()`; para os demais, registra o nome em
+  `KNOWN_IDB_DATABASES`. Antes de apagar o IndexedDB, a Fase 2 precisa esperar os updates Yjs pendentes ou avisar
+  que há alterações não salvas (critério em `docs/ROADMAP.md`).
 
 ## 6. Lembretes, notificações e agenda
 
@@ -265,3 +273,14 @@ Editor (xl-ai) ──► Edge Function ai-proxy (valida JWT, limite de uso, lê 
 - Segredos de usuário no Vault. Sanitizar HTML colado; `rel="noopener noreferrer"` em links.
 - Edge Functions validam JWT e entrada (zod), com timeout e limite de uso.
 - Repositório público: push protection e secret scanning do GitHub ligados.
+- **Logout limpo (ponto único):** `resetClientState(queryClient)` em `src/lib/reset-client-state.ts`, chamado
+  pelo `AuthProvider` no evento `SIGNED_OUT` (botão "Sair", sessão expirada ou logout em outra aba) e na troca
+  de usuário; o "Sair" espera a mesma limpeza (roda uma vez por logout). Na hora, antes do próximo render:
+  cancela e apaga o cache do TanStack Query e devolve **todas** as stores Zustand ao estado inicial. Depois:
+  apaga os bancos IndexedDB do app, desregistra service workers e apaga o Cache Storage. Erros de limpeza só vão
+  para o log (sem dados da conta) e não impedem o logout. A sessão do Supabase fica por conta do `signOut`.
+- **Stores Zustand:** sempre com `create` de `src/lib/create-store.ts`, que registra a store para o reset. O
+  ESLint (`no-restricted-imports`) barra `create`/`createStore` do `zustand` em qualquer outro arquivo, então
+  uma store nova não tem como escapar da limpeza.
+- **Headers HTTP:** CSP e demais headers de segurança em `public/_headers` (Cloudflare Pages); o que cada um faz,
+  por que `style-src` tem `'unsafe-inline'` e como conferir estão em `docs/DEPLOY.md`.

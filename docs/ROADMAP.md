@@ -71,6 +71,11 @@ Supabase remoto sem o ok do Gabriel (DECISÃO-015).
 ## Fase 2 — Editor de blocos local-first (Yjs)
 **Antes de abrir esta fase:** se o diferencial de produto da campanha de lançamento (tratada em outro projeto) exigir
 mudança no editor, isso precisa ser **decidido antes** de abrir a Fase 2 (junto do ADR da DECISÃO-012/016).
+**Pré-requisitos (feitos, num PR só, antes de abrir a fase):** logout limpo (ponto único em
+`src/lib/reset-client-state.ts`: cache do Query, stores Zustand, IndexedDB, service worker e Cache Storage),
+code-splitting por rota (dois chunks lazy + vendors `react`, `supabase` e `vendor`; entrada de 876,93 kB para
+36,54 kB, com recarga única quando um chunk antigo some depois de um deploy) e CSP + headers de segurança em
+`public/_headers` (`docs/DEPLOY.md`).
 - ADR curto em `docs/` confirmando a DECISÃO-012/016 antes de codar: log de updates Yjs com
   compactação na tabela `page_contents`.
 - BlockNote + `@blocknote/shadcn`, tema escuro com nossos tokens, idioma pt-BR.
@@ -83,6 +88,11 @@ mudança no editor, isso precisa ser **decidido antes** de abrir a Fase 2 (junto
   barra de formatação; blocos nativos (texto, títulos, listas, checklist, toggle, citação,
   código, divisor, tabela simples); blocos `callout` e `pageLink`/`subpage`.
 - Mobile: alça ao tocar, barra acima do teclado, menus em bottom sheet.
+- O logout espera a sincronização dos updates Yjs pendentes ou avisa que há alterações não salvas antes de apagar
+  o IndexedDB (a limpeza em si já existe: `src/lib/reset-client-state.ts`). Registrar o nome (ou prefixo) dos
+  bancos do y-indexeddb em `KNOWN_IDB_DATABASES`, para navegadores sem `indexedDB.databases()`.
+- Revisar a CSP (`public/_headers`) com o BlockNote: estilos e atributos `style` do editor não podem gerar
+  violação no Console.
 **Pronto quando:** recriar a Home (`01-home.jpg`) sem colunas; editar offline (DevTools offline),
 voltar online e ver salvo em outro navegador.
 
@@ -130,7 +140,9 @@ funcionalidade nova entra no app por causa dela sem decisão registrada em `docs
 - c) SMTP com domínio próprio (SPF/DKIM) e limites do plano gratuito conferidos para o volume de códigos OTP.
 - d) Plano e backups do Supabase conferidos para uso além de Gabriel e da cliente (o plano Free pausa por inatividade);
   backup semanal da DECISÃO-021 já em funcionamento.
-- e) Logout limpando IndexedDB, service worker e stores Zustand.
+- e) Logout limpando IndexedDB, service worker e stores Zustand. **Atendido** nos pré-requisitos da Fase 2
+  (`src/lib/reset-client-state.ts`, com teste de integração entrar com A, sair, entrar com B). A Fase 2 acrescenta
+  esperar os updates Yjs pendentes antes de apagar o IndexedDB.
 - f) Cloudflare Access ativo nos previews (`docs/DEPLOY.md`). **Parcialmente atendido:** "Restrict previews" ligado em
   2026-10-20 (só previews); a produção `<projeto>.pages.dev` continua pública, protegida pelo login.
 - g) DECISÃO-027 (nome, marca e domínio) e DECISÃO-028 (licença e contribuições) decididas.
