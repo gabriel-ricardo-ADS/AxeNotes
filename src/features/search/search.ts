@@ -105,3 +105,42 @@ export function resultsAnnouncement(count: number): string {
   if (count <= 0) return t('search.empty')
   return count === 1 ? t('search.oneResult') : t('search.results', { count })
 }
+
+/** Como está o workspace do usuário, do ponto de vista da busca. */
+export type WorkspaceState = 'pending' | 'error' | 'none' | 'ready'
+
+export type SearchMode = 'recents' | 'loading' | 'error' | 'results'
+
+interface SearchModeInput {
+  /** Termo digitado, já normalizado (vazio = sem texto). */
+  normalized: string
+  /** O mesmo termo depois do debounce. */
+  debounced: string
+  /**
+   * `pending` = carregando de verdade (`isPending` com a consulta rodando); `error` = falhou e não há dados;
+   * `none` = não há workspace (resposta `null` ou consulta parada, que nunca vai carregar); `ready` = tem workspace.
+   */
+  workspace: WorkspaceState
+  recents: { failed: boolean; loading: boolean }
+  search: { isPending: boolean; isError: boolean }
+}
+
+/**
+ * O que o diálogo mostra. O workspace vem primeiro: a busca só é habilitada com ele, e uma consulta desabilitada
+ * fica `isPending` para sempre, então sem este filtro "Buscando…" nunca terminaria. Sem workspace (`none`) não
+ * há o que buscar: com texto, resultado vazio; sem texto, recentes (vazios).
+ */
+export function resolveSearchMode({
+  normalized,
+  debounced,
+  workspace,
+  recents,
+  search,
+}: SearchModeInput): SearchMode {
+  if (workspace === 'error') return 'error'
+  if (workspace === 'pending') return 'loading'
+  if (normalized === '') return recents.failed ? 'error' : recents.loading ? 'loading' : 'recents'
+  if (workspace === 'none') return 'results'
+  if (debounced !== normalized || search.isPending) return 'loading'
+  return search.isError ? 'error' : 'results'
+}

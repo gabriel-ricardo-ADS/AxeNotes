@@ -20,10 +20,12 @@ import { useVisualViewport } from '@/features/search/hooks/use-visual-viewport'
 import {
   moveActive,
   normalizeTerm,
+  resolveSearchMode,
   resultsAnnouncement,
   searchPath,
   SEARCH_DEBOUNCE_MS,
   SEARCH_MAX_LENGTH,
+  type WorkspaceState,
 } from '@/features/search/search'
 import { useSearchStore } from '@/features/search/search-store'
 import { usePages } from '@/features/workspace/hooks/use-pages'
@@ -39,6 +41,17 @@ function restoreFocus(opener: HTMLElement | null) {
       : (document.querySelector<HTMLElement>('[data-search-return]') ??
         document.getElementById('conteudo'))
   target?.focus()
+}
+
+/**
+ * Estado do workspace para a busca. Consulta parada (`idle`) sem dados nunca vai carregar: conta como `none`,
+ * não como `pending` (mesmo critério de `usePages`).
+ */
+function workspaceStateOf(workspace: ReturnType<typeof useWorkspace>): WorkspaceState {
+  if (workspace.data) return 'ready'
+  if (workspace.data === null) return 'none'
+  if (workspace.isError) return 'error'
+  return workspace.isPending && workspace.fetchStatus !== 'idle' ? 'pending' : 'none'
 }
 
 /**
@@ -84,8 +97,6 @@ export function SearchDialog() {
   )
 }
 
-type Mode = 'recents' | 'loading' | 'error' | 'results'
-
 /** Conteúdo do diálogo: só existe com ele aberto, então as consultas só rodam aberto e o estado zera ao fechar. */
 function SearchBody() {
   const listId = useId()
@@ -94,7 +105,9 @@ function SearchBody() {
   const setTerm = useSearchStore((state) => state.setTerm)
   const closeSearch = useSearchStore((state) => state.closeSearch)
   const notifyPick = useSearchStore((state) => state.notifyPick)
-  const homeId = useWorkspace().data?.homePageId ?? null
+  const workspace = useWorkspace()
+  const homeId = workspace.data?.homePageId ?? null
+  const workspaceState = workspaceStateOf(workspace)
   const pages = usePages()
   const recents = useVisibleRecents()
   const [activeId, setActiveId] = useState<string | null>(null)
@@ -103,10 +116,13 @@ function SearchBody() {
   const debounced = useDebouncedValue(normalized, SEARCH_DEBOUNCE_MS)
   const search = useSearch(debounced)
 
-  let mode: Mode
-  if (normalized === '') mode = recents.failed ? 'error' : recents.loading ? 'loading' : 'recents'
-  else if (debounced !== normalized || search.isPending) mode = 'loading'
-  else mode = search.isError ? 'error' : 'results'
+  const mode = resolveSearchMode({
+    normalized,
+    debounced,
+    workspace: workspaceState,
+    recents,
+    search,
+  })
 
   const items = useMemo<SearchItem[]>(() => {
     if (mode === 'recents') return recents.pages
@@ -157,6 +173,8 @@ function SearchBody() {
   const hasOptions = items.length > 0
   const retry = () => {
     if (normalized === '') recents.retry()
+    // Sem workspace a busca está desabilitada: recarrega o workspace e ela habilita sozinha.
+    else if (workspaceState !== 'ready') void workspace.refetch()
     else void search.refetch()
   }
 
