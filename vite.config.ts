@@ -10,6 +10,27 @@ export default defineConfig({
     alias: { '@': fileURLToPath(new URL('./src', import.meta.url)) },
   },
   server: { port: 5173 },
+  build: {
+    rolldownOptions: {
+      output: {
+        // Vendors em chunks próprios: mudam pouco, então o navegador reaproveita o cache entre deploys.
+        // As telas vêm em dois chunks de rota (src/app/route-modules.ts). `vendor` junta as outras
+        // libs usadas por mais de um chunk (Query, Radix base, lucide…), para não sobrar chunk
+        // minúsculo; libs só do app logado (dnd-kit, diálogos) ficam no chunk do app.
+        codeSplitting: {
+          groups: [
+            {
+              name: 'react',
+              test: /node_modules[\\/](react|react-dom|scheduler|react-router)[\\/]/,
+              priority: 3,
+            },
+            { name: 'supabase', test: /node_modules[\\/]@supabase[\\/]/, priority: 2 },
+            { name: 'vendor', test: /node_modules[\\/]/, minShareCount: 2, priority: 1 },
+          ],
+        },
+      },
+    },
+  },
   test: {
     environment: 'jsdom',
     globals: true,

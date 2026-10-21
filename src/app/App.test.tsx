@@ -21,13 +21,14 @@ import {
   seedRecents,
 } from '@/test/fake-supabase'
 import { installMatchMedia } from '@/test/match-media'
+import { waitForRoutes } from '@/test/render-app'
 
 vi.mock('@/lib/supabase', async () => ({
   supabase: (await import('@/test/fake-supabase')).fakeSupabase,
 }))
 
 /** Renderiza o app com a sessão já carregada (`signedIn: false` = carregada, sem usuário). */
-function renderApp(path = '/', signedIn = true, queryClient = new QueryClient()) {
+async function renderApp(path = '/', signedIn = true, queryClient = new QueryClient()) {
   const result = render(
     <QueryClientProvider client={queryClient}>
       <MemoryRouter initialEntries={[path]}>
@@ -38,6 +39,7 @@ function renderApp(path = '/', signedIn = true, queryClient = new QueryClient())
     </QueryClientProvider>,
   )
   emitAuthEvent('INITIAL_SESSION', signedIn ? fakeSession() : null)
+  await waitForRoutes(result.container)
   return result
 }
 
@@ -51,8 +53,8 @@ describe('layout (desktop)', () => {
     installMatchMedia(true)
   })
 
-  it('shows the fixed sidebar and no menu button', () => {
-    renderApp()
+  it('shows the fixed sidebar and no menu button', async () => {
+    await renderApp()
 
     const nav = screen.getByRole('navigation', { name: 'Navegação principal' })
     expect(within(nav).getByRole('link', { name: 'Página inicial' })).toHaveAttribute(
@@ -63,15 +65,15 @@ describe('layout (desktop)', () => {
   })
 
   it('renders the home page title in the content area', async () => {
-    renderApp()
+    await renderApp()
 
     expect(
       await screen.findByRole('heading', { level: 1, name: 'Página inicial' }),
     ).toBeInTheDocument()
   })
 
-  it('shows the not found page for unknown routes', () => {
-    renderApp('/nao-existe')
+  it('shows the not found page for unknown routes', async () => {
+    await renderApp('/nao-existe')
 
     expect(screen.getByRole('heading', { name: 'Página não encontrada' })).toBeInTheDocument()
   })
@@ -84,8 +86,8 @@ describe('layout (mobile)', () => {
     media = installMatchMedia(false)
   })
 
-  it('has no sidebar until the menu button is used', () => {
-    renderApp()
+  it('has no sidebar until the menu button is used', async () => {
+    await renderApp()
 
     expect(screen.queryByRole('navigation')).not.toBeInTheDocument()
     expect(screen.getByRole('button', { name: 'Abrir menu' })).toBeInTheDocument()
@@ -93,7 +95,7 @@ describe('layout (mobile)', () => {
 
   it('opens the drawer from the menu button', async () => {
     const user = userEvent.setup()
-    renderApp()
+    await renderApp()
 
     await user.click(screen.getByRole('button', { name: 'Abrir menu' }))
 
@@ -103,7 +105,7 @@ describe('layout (mobile)', () => {
 
   it('closes the drawer with Escape and returns focus to the menu button', async () => {
     const user = userEvent.setup()
-    renderApp()
+    await renderApp()
     const button = screen.getByRole('button', { name: 'Abrir menu' })
 
     await user.click(button)
@@ -116,7 +118,7 @@ describe('layout (mobile)', () => {
 
   it('closes the drawer after choosing a link', async () => {
     const user = userEvent.setup()
-    renderApp()
+    await renderApp()
 
     await user.click(screen.getByRole('button', { name: 'Abrir menu' }))
     const drawer = await screen.findByRole('dialog')
@@ -127,7 +129,7 @@ describe('layout (mobile)', () => {
 
   it('switches to the fixed sidebar when the viewport becomes wide', async () => {
     const user = userEvent.setup()
-    renderApp()
+    await renderApp()
     await user.click(screen.getByRole('button', { name: 'Abrir menu' }))
     await screen.findByRole('dialog')
 
@@ -146,15 +148,15 @@ describe('auth in the app shell', () => {
     installMatchMedia(true)
   })
 
-  it('sends visitors without a session to the sign-in screen', () => {
-    renderApp('/', false)
+  it('sends visitors without a session to the sign-in screen', async () => {
+    await renderApp('/', false)
 
     expect(screen.getByRole('heading', { level: 1, name: 'Entrar' })).toBeInTheDocument()
     expect(screen.queryByRole('navigation')).not.toBeInTheDocument()
   })
 
   it('shows the user name and a sign-out button in the sidebar footer', async () => {
-    renderApp()
+    await renderApp()
 
     const nav = screen.getByRole('navigation', { name: 'Navegação principal' })
     expect(await within(nav).findByText('Ana Teste')).toBeInTheDocument()
@@ -163,14 +165,14 @@ describe('auth in the app shell', () => {
 
   it('falls back to a generic label when the profile has no name', async () => {
     mockProfile(null)
-    renderApp()
+    await renderApp()
 
     expect(await screen.findByText('Minha conta')).toBeInTheDocument()
   })
 
   it('signs out only this device and goes back to the sign-in screen', async () => {
     const user = userEvent.setup()
-    renderApp()
+    await renderApp()
 
     await user.click(screen.getByRole('button', { name: 'Sair' }))
 
@@ -237,7 +239,7 @@ describe('switching accounts', () => {
   it('shows nothing from account A after "Sair" and signing in as B', async () => {
     const user = userEvent.setup()
     // Cliente com a config real (staleTime de 30 s): sem a limpeza, o cache de A apareceria para B.
-    renderApp(`/p/${SECRET}`, true, createQueryClient())
+    await renderApp(`/p/${SECRET}`, true, createQueryClient())
     expect(await screen.findByRole('textbox', { name: 'Título da página' })).toHaveValue(
       'Segredo da conta A',
     )
@@ -255,7 +257,7 @@ describe('switching accounts', () => {
 
   it('also cleans up when the session ends elsewhere (expired or another tab)', async () => {
     const user = userEvent.setup()
-    renderApp('/', true, createQueryClient())
+    await renderApp('/', true, createQueryClient())
     await screen.findAllByRole('link', { name: 'Diário da conta A' })
     await user.keyboard('{Control>}k{/Control}')
     await user.type(await screen.findByRole('combobox', { name: 'Buscar páginas' }), 'Segredo')

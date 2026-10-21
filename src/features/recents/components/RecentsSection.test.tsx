@@ -58,7 +58,7 @@ describe('seção Recentes da sidebar', () => {
       { pageId: MISSING, visitedAt: '2026-10-04T10:00:00Z' },
       { pageId: MOVIES, visitedAt: '2026-10-03T10:00:00Z' },
     ])
-    renderApp()
+    await renderApp()
 
     expect(titles(await recentsList())).toEqual(['Filmes', 'Leituras'])
   })
@@ -79,13 +79,13 @@ describe('seção Recentes da sidebar', () => {
         visitedAt: new Date(Date.UTC(2026, 9, 1, 0, 0, index)).toISOString(),
       })),
     )
-    renderApp()
+    await renderApp()
 
     expect(titles(await recentsList())).toHaveLength(8)
   })
 
   it('explains when there are no visits yet', async () => {
-    renderApp()
+    await renderApp()
 
     expect(await screen.findByText('As páginas que você abrir aparecem aqui.')).toBeInTheDocument()
   })
@@ -93,7 +93,7 @@ describe('seção Recentes da sidebar', () => {
   it('shows a retryable error when the recents do not load', async () => {
     const user = userEvent.setup()
     failNext('select', 'user_recents')
-    renderApp()
+    await renderApp()
 
     expect(await screen.findByText('Não foi possível carregar os recentes.')).toBeInTheDocument()
     seedRecents([{ pageId: READINGS, visitedAt: '2026-10-01T10:00:00Z' }])
@@ -106,7 +106,7 @@ describe('seção Recentes da sidebar', () => {
   it('shows a retryable error when the workspace does not load, and reloads it', async () => {
     const user = userEvent.setup()
     failAlways('select', 'workspace_members')
-    renderApp()
+    await renderApp()
 
     expect(await screen.findByText('Não foi possível carregar os recentes.')).toBeInTheDocument()
     expect(screen.queryByText('As páginas que você abrir aparecem aqui.')).not.toBeInTheDocument()
@@ -121,7 +121,7 @@ describe('seção Recentes da sidebar', () => {
 
 describe('registro da visita', () => {
   it('records the visit once, with only page_id and visited_at, and lists it right away', async () => {
-    renderApp(`/p/${READINGS}`)
+    await renderApp(`/p/${READINGS}`)
 
     expect(titles(await recentsList())).toEqual(['Leituras'])
     await waitFor(() => {
@@ -135,7 +135,7 @@ describe('registro da visita', () => {
   })
 
   it('does not record the home page', async () => {
-    renderApp('/')
+    await renderApp('/')
 
     await screen.findByRole('textbox', { name: 'Título da página' })
     await screen.findByText('As páginas que você abrir aparecem aqui.')
@@ -144,13 +144,13 @@ describe('registro da visita', () => {
 
   it('does not record a page that does not exist, nor one that is in the trash', async () => {
     trashInDb(MOVIES)
-    const first = renderApp(`/p/${MISSING}`)
+    const first = await renderApp(`/p/${MISSING}`)
     expect(
       await screen.findByRole('heading', { name: 'Página não encontrada' }),
     ).toBeInTheDocument()
     first.unmount()
 
-    renderApp(`/p/${MOVIES}`)
+    await renderApp(`/p/${MOVIES}`)
     expect(
       await screen.findByRole('heading', { name: 'Página não encontrada' }),
     ).toBeInTheDocument()
@@ -160,7 +160,7 @@ describe('registro da visita', () => {
 
   it('does not record the same page again within a few seconds', async () => {
     const user = userEvent.setup()
-    renderApp(`/p/${READINGS}`)
+    await renderApp(`/p/${READINGS}`)
     const list = await recentsList()
     await waitFor(() => {
       expect(visits()).toHaveLength(1)
@@ -177,7 +177,7 @@ describe('registro da visita', () => {
 
   it('records A → B → A as three visits, so the order follows the last one', async () => {
     const user = userEvent.setup()
-    renderApp(`/p/${READINGS}`)
+    await renderApp(`/p/${READINGS}`)
     await recentsList()
 
     const tree = await screen.findByRole('tree', { name: 'Árvore de páginas' })
@@ -198,7 +198,7 @@ describe('registro da visita', () => {
 
   it('keeps working silently when the write fails, and reloads the list from the server', async () => {
     failNext('upsert', 'user_recents')
-    renderApp(`/p/${READINGS}`)
+    await renderApp(`/p/${READINGS}`)
 
     await screen.findByRole('heading', { level: 1, name: 'Leituras' })
     await waitFor(() => {
@@ -223,7 +223,7 @@ describe('registro da visita', () => {
       })),
     ])
     seedRecents(old)
-    renderApp(`/p/${READINGS}`)
+    await renderApp(`/p/${READINGS}`)
 
     await waitFor(() => {
       expect(fakeDb.writes.some((w) => w.table === 'user_recents' && w.op === 'delete')).toBe(true)
