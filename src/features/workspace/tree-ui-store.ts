@@ -1,4 +1,4 @@
-import { create } from 'zustand'
+import { create } from '@/lib/create-store'
 
 interface TreeUiState {
   /** De quem é o estado abaixo; se o usuário mudar, tudo é zerado (nada vaza entre contas). */
@@ -19,8 +19,9 @@ interface TreeUiState {
 const empty = { ownerId: null, expanded: new Set<string>(), renamingId: null, notice: null }
 
 /**
- * Estado só de interface da árvore. Fica em memória e NÃO é persistido (sem localStorage): o
- * logout ainda não limpa stores persistidas. A expansão volta ao recolhido ao recarregar.
+ * Estado só de interface da árvore. Fica em memória e NÃO é persistido (sem localStorage): a
+ * expansão volta ao recolhido ao recarregar. O logout devolve a store ao estado inicial
+ * (`resetClientState`); o `ownerId` ainda protege a troca de conta sem logout no meio.
  */
 export const useTreeUiStore = create<TreeUiState>((set, get) => ({
   ...empty,

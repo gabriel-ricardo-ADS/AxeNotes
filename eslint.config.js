@@ -53,7 +53,22 @@ export default tseslint.config(
       'react-refresh/only-export-components': ['warn', { allowConstantExport: true }],
       '@typescript-eslint/no-explicit-any': 'error',
       '@typescript-eslint/consistent-type-imports': ['error', { fixStyle: 'inline-type-imports' }],
+      // Stores só pelo wrapper, que as registra para o reset do logout (src/lib/reset-client-state.ts).
+      'no-restricted-imports': [
+        'error',
+        {
+          paths: ['zustand', 'zustand/vanilla', 'zustand/react'].map((name) => ({
+            name,
+            importNames: ['create', 'createStore'],
+            message: "Crie stores com `create` de '@/lib/create-store' (o logout as reseta).",
+          })),
+        },
+      ],
     },
+  },
+  {
+    files: ['src/lib/create-store.ts'],
+    rules: { 'no-restricted-imports': 'off' },
   },
   {
     // Scripts Node em JavaScript (sem checagem de tipos).

@@ -4,12 +4,21 @@ import userEvent from '@testing-library/user-event'
 import { MemoryRouter } from 'react-router'
 import { AppRoutes } from '@/app/App'
 import { AuthProvider } from '@/features/auth/AuthProvider'
+import { useSearchStore } from '@/features/search/search-store'
+import { useTreeUiStore } from '@/features/workspace/tree-ui-store'
+import { resetAllStores } from '@/lib/create-store'
+import { createQueryClient } from '@/lib/query-client'
 import {
   emitAuthEvent,
   fakeAuth,
+  fakeDb,
+  fakeId,
   fakeSession,
   mockProfile,
   resetFakeSupabase,
+  seedFavorites,
+  seedPages,
+  seedRecents,
 } from '@/test/fake-supabase'
 import { installMatchMedia } from '@/test/match-media'
 
@@ -18,9 +27,9 @@ vi.mock('@/lib/supabase', async () => ({
 }))
 
 /** Renderiza o app com a sessão já carregada (`signedIn: false` = carregada, sem usuário). */
-function renderApp(path = '/', signedIn = true) {
+function renderApp(path = '/', signedIn = true, queryClient = new QueryClient()) {
   const result = render(
-    <QueryClientProvider client={new QueryClient()}>
+    <QueryClientProvider client={queryClient}>
       <MemoryRouter initialEntries={[path]}>
         <AuthProvider>
           <AppRoutes />
@@ -169,5 +178,95 @@ describe('auth in the app shell', () => {
     await waitFor(() => {
       expect(screen.getByRole('heading', { level: 1, name: 'Entrar' })).toBeInTheDocument()
     })
+  })
+})
+
+describe('switching accounts', () => {
+  const HOME = fakeId(1000)
+  const DIARY = fakeId(1)
+  const SECRET = fakeId(2)
+  const RECIPES = fakeId(3)
+  const USER_B = 'user-2'
+
+  beforeEach(() => {
+    installMatchMedia(true)
+    resetAllStores()
+    // Conta A: uma página com subpágina, favoritada e visitada.
+    seedPages([
+      { id: HOME, title: 'Página inicial', sortKey: 'a0' },
+      { id: DIARY, title: 'Diário da conta A', sortKey: 'a0' },
+      { id: SECRET, parentId: DIARY, title: 'Segredo da conta A', sortKey: 'a0' },
+    ])
+    seedFavorites([{ pageId: DIARY, sortKey: 'a0' }])
+    seedRecents([{ pageId: SECRET, visitedAt: '2026-10-10T12:00:00Z' }])
+  })
+
+  /** Troca o "banco" para a conta B e entra com ela. */
+  function signInAsB() {
+    seedPages([
+      { id: HOME, title: 'Página inicial', sortKey: 'a0' },
+      { id: RECIPES, title: 'Receitas da conta B', sortKey: 'a0' },
+    ])
+    seedFavorites([{ pageId: RECIPES, sortKey: 'a0' }])
+    seedRecents([{ pageId: RECIPES, visitedAt: '2026-10-11T12:00:00Z' }])
+    fakeDb.tables.profiles = [{ id: USER_B, display_name: 'Bruno Teste' }]
+    // Linhas por usuário (membro, favoritos, recentes) passam a ser de B.
+    for (const table of ['workspace_members', 'user_favorites', 'user_recents'] as const) {
+      fakeDb.tables[table] = fakeDb.tables[table].map((row) => ({ ...row, user_id: USER_B }))
+    }
+    emitAuthEvent('SIGNED_IN', fakeSession(USER_B))
+  }
+
+  async function expectNothingFromA() {
+    const nav = screen.getByRole('navigation', { name: 'Navegação principal' })
+    expect(await within(nav).findByText('Bruno Teste')).toBeInTheDocument()
+    await within(nav).findAllByRole('link', { name: 'Receitas da conta B' })
+    expect(screen.queryByText(/conta A/)).not.toBeInTheDocument()
+    expect(screen.queryByText('Ana Teste')).not.toBeInTheDocument()
+    expect(useTreeUiStore.getState().expanded.has(DIARY)).toBe(false)
+    expect(useSearchStore.getState()).toMatchObject({ open: false, term: '' })
+
+    // A busca sem texto lista os recentes: só os de B.
+    const user = userEvent.setup()
+    await user.click(within(nav).getByRole('button', { name: /^Buscar/ }))
+    const search = within(await screen.findByRole('dialog', { name: 'Buscar páginas' }))
+    expect(await search.findByRole('option', { name: /Receitas da conta B/ })).toBeInTheDocument()
+    expect(search.queryByText(/conta A/)).not.toBeInTheDocument()
+  }
+
+  it('shows nothing from account A after "Sair" and signing in as B', async () => {
+    const user = userEvent.setup()
+    // Cliente com a config real (staleTime de 30 s): sem a limpeza, o cache de A apareceria para B.
+    renderApp(`/p/${SECRET}`, true, createQueryClient())
+    expect(await screen.findByRole('textbox', { name: 'Título da página' })).toHaveValue(
+      'Segredo da conta A',
+    )
+    await screen.findAllByRole('link', { name: 'Diário da conta A' })
+    expect(useTreeUiStore.getState().expanded.has(DIARY)).toBe(true)
+
+    await user.click(screen.getByRole('button', { name: 'Sair' }))
+    expect(await screen.findByRole('heading', { level: 1, name: 'Entrar' })).toBeInTheDocument()
+    expect(screen.queryByText(/conta A/)).not.toBeInTheDocument()
+
+    signInAsB()
+
+    await expectNothingFromA()
+  })
+
+  it('also cleans up when the session ends elsewhere (expired or another tab)', async () => {
+    const user = userEvent.setup()
+    renderApp('/', true, createQueryClient())
+    await screen.findAllByRole('link', { name: 'Diário da conta A' })
+    await user.keyboard('{Control>}k{/Control}')
+    await user.type(await screen.findByRole('combobox', { name: 'Buscar páginas' }), 'Segredo')
+
+    emitAuthEvent('SIGNED_OUT', null)
+
+    expect(await screen.findByRole('heading', { level: 1, name: 'Entrar' })).toBeInTheDocument()
+    expect(useSearchStore.getState()).toMatchObject({ open: false, term: '' })
+
+    signInAsB()
+
+    await expectNothingFromA()
   })
 })
