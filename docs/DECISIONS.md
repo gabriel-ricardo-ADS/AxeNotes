@@ -338,6 +338,9 @@ marca sem o Gabriel decidir aqui.**
   - domínio próprio disponível (a verificar).
 - Prazo: decidir **antes do deploy em produção** (conectar o Cloudflare Pages, `docs/DEPLOY.md`) e antes do "Marco —
   lançamento público" (`docs/ROADMAP.md`).
+- 2026-10-20: deploy de teste no Cloudflare Pages com o nome provisório "axenotes-dev". A decisão do nome definitivo
+  continua **ABERTA** e segue como pré-requisito do "Marco — lançamento público". Renomear = recriar o projeto no
+  Cloudflare e ajustar o *Site URL* do Supabase (`docs/DEPLOY.md`).
 - Sem recomendação por enquanto. Não é aconselhamento jurídico.
 
 ### DECISÃO-028 — Licença e política de contribuição

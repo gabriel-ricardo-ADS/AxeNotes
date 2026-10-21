@@ -54,6 +54,8 @@ SMTP (Brevo ou Resend) para o OTP.
   combobox/listbox acessível; sem migration). **A T4 está completa** (T4a + T4b + T4c).
   **Correções pós-T3b:** o título digitado é salvo ao ocultar/recarregar a página (`keepalive` + aviso de
   saída) e mover entre vizinhos com a mesma `sort_key` é recusado em vez de gravar uma chave inócua.
+  **Correção da busca sem workspace:** feita, na `main` (#11): sem workspace carregado, o diálogo de busca não fica mais
+  em "Buscando…" para sempre.
   Pendência (decidir com o Gabriel): `sort_key` empatadas entre irmãos (hoje só se recusa o movimento; ver DECISÃO-025, ABERTA).
   **Fase 1 funcionalmente completa** (`main` em `2d28e67`): T2 (#3), T3a (#4), T3b (#5), correção pós-T3b (#6), T4a (#7),
   T4b (#8) e T4c (#9). **Pendências que continuam dentro da Fase 1** (nenhuma bloqueia o uso de Gabriel e da cliente):
@@ -62,9 +64,6 @@ SMTP (Brevo ou Resend) para o OTP.
     o relatório do CI é um artefato de repositório público).
   - **Exclusão de conta:** DECISÃO-023 (ABERTA); hoje só Gabriel apaga contas, à mão, no painel.
   - **`sort_key` empatadas entre irmãos:** DECISÃO-025 (ABERTA); nada implementado.
-  - **Fix pequeno da busca (só registrado, não corrigido):** se o workspace não carregar (erro ou sem workspace),
-    `useSearch` fica desabilitado e o diálogo mostra "Buscando…" para sempre, sem erro e sem "Tentar de novo"
-    (`src/features/search/hooks/use-search.ts` e `src/features/search/components/SearchDialog.tsx`).
 **Pronto quando:** teste de RLS (Postgres local/PGlite) prova que usuário B não vê o workspace de
 A, e que um viewer não edita; árvore funciona no desktop e no mobile. Nada é aplicado no
 Supabase remoto sem o ok do Gabriel (DECISÃO-015).
@@ -132,9 +131,11 @@ funcionalidade nova entra no app por causa dela sem decisão registrada em `docs
 - d) Plano e backups do Supabase conferidos para uso além de Gabriel e da cliente (o plano Free pausa por inatividade);
   backup semanal da DECISÃO-021 já em funcionamento.
 - e) Logout limpando IndexedDB, service worker e stores Zustand.
-- f) Cloudflare Access ativo nos previews (`docs/DEPLOY.md`).
+- f) Cloudflare Access ativo nos previews (`docs/DEPLOY.md`). **Parcialmente atendido:** "Restrict previews" ligado em
+  2026-10-20 (só previews); a produção `<projeto>.pages.dev` continua pública, protegida pelo login.
 - g) DECISÃO-027 (nome, marca e domínio) e DECISÃO-028 (licença e contribuições) decididas.
-- h) Teste em iPhone e iPad reais depois do deploy.
+- h) Teste em iPhone e iPad reais depois do deploy. **Feito no deploy de teste de 2026-10-20 (desktop, iPhone e iPad);
+  repetir antes do lançamento público.**
 - i) PRD.md e UI-REFERENCE.md sem dados identificáveis da cliente (persona genérica), com o ok dela.
 
 ## Fase 7 — Mais vistas
