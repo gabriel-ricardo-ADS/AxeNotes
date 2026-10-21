@@ -30,7 +30,7 @@ Confira no projeto remoto sempre que criar ou recriar o projeto:
 - **Confirm email** ligado (Authentication → Sign In / Providers → Email).
 - **Email OTP Length = 6** (Authentication → Sign In / Providers → Email). Precisa bater com
   `CODE_LENGTH` em `src/features/auth/schemas.ts`; se divergir, o app rejeita o código recebido.
-- **Templates de e-mail** (Authentication → Email Templates) usando só `{{ .Token }}`, sem link de
+- **Templates de e-mail** (Authentication → Emails → Templates) usando só `{{ .Token }}`, sem link de
   confirmação:
 
   | Template | Assunto |
