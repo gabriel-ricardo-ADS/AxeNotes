@@ -1,0 +1,11 @@
+# Headers de segurança do Cloudflare Pages (copiado para dist/ pelo Vite). Ver docs/DEPLOY.md.
+# Formato suportado pelo parser do `pnpm preview` (scripts/cloudflare-headers.ts): só a regra /*,
+# um header por linha, indentado, sem `!` nem placeholders. Cada header numa linha só.
+# style-src 'unsafe-inline': o react-remove-scroll-bar (Dialog/Sheet/AlertDialog/DropdownMenu do
+# Radix) injeta um <style> com conteúdo dinâmico ao travar a rolagem; hash não serve. Ver docs/DEPLOY.md.
+/*
+  Content-Security-Policy: default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob: https:; font-src 'self'; connect-src 'self' https://*.supabase.co wss://*.supabase.co; frame-ancestors 'none'; base-uri 'self'; form-action 'self'; object-src 'none'
+  X-Content-Type-Options: nosniff
+  Referrer-Policy: strict-origin-when-cross-origin
+  Permissions-Policy: camera=(), microphone=(), geolocation=(), payment=(), usb=()
+  X-Frame-Options: DENY

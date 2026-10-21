@@ -26,6 +26,7 @@ export default tseslint.config(
       'src/**/*.{ts,tsx}',
       'e2e/**/*.ts',
       'supabase/tests/**/*.ts',
+      'scripts/**/*.ts',
       '*.config.ts',
       'vitest.setup.ts',
     ],

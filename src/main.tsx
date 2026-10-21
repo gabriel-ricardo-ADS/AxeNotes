@@ -1,3 +1,5 @@
+// Primeiro import: configura o zod antes de qualquer schema rodar (ver o arquivo).
+import '@/lib/zod-config'
 import { StrictMode } from 'react'
 import { createRoot } from 'react-dom/client'
 import '@fontsource-variable/inter'

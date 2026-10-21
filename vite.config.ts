@@ -1,8 +1,10 @@
 /// <reference types="vitest/config" />
+import { readFileSync } from 'node:fs'
 import { fileURLToPath } from 'node:url'
 import tailwindcss from '@tailwindcss/vite'
 import react from '@vitejs/plugin-react'
 import { defineConfig } from 'vite'
+import { parseHeadersFile } from './scripts/cloudflare-headers.ts'
 
 export default defineConfig({
   plugins: [react(), tailwindcss()],
@@ -10,6 +12,9 @@ export default defineConfig({
     alias: { '@': fileURLToPath(new URL('./src', import.meta.url)) },
   },
   server: { port: 5173 },
+  // O `pnpm preview` serve os mesmos headers que o Cloudflare Pages lê do public/_headers (CSP
+  // inclusa). O `pnpm dev` não: o HMR do Vite injeta estilos e scripts inline.
+  preview: { headers: parseHeadersFile(readFileSync('public/_headers', 'utf8')) },
   build: {
     rolldownOptions: {
       output: {
