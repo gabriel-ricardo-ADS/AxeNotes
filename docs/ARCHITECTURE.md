@@ -50,9 +50,11 @@ src/
     recents/      # recentes do usuário: registro da visita ao abrir a página, seção da sidebar (recents.ts)
     trash/        # lixeira em /lixeira: restaurar, excluir definitivamente (T4b)
     search/       # busca Ctrl/Cmd+K por título: diálogo (combobox + listbox), atalho, RPC search_pages (T4c)
-    pages/        # tela da página /p/:pageId: título, ícone, breadcrumb, "Editada há…" (editor na Fase 2)
-    editor/       # BlockNote, schema, blocos customizados, menus pt-BR, Yjs
-    sync/         # y-indexeddb, persistência no Supabase, outbox, status online/offline
+    pages/        # tela da página /p/:pageId: título, ícone, breadcrumb, "Editada há…", editor (lazy); página
+                  # na lixeira abre só para leitura
+    editor/       # PageEditor (chunk próprio), schema (blocos), dicionário pt-BR, menu "/", editor.css
+    sync/         # Y.Doc por página + y-indexeddb (page-doc.ts), ponto de extensão do 2b (content-sync.ts);
+                  # depois: persistência no Supabase, outbox, status online/offline
     databases/    # propriedades e vistas (table, gallery, board, calendar, list)
     agenda/       # agenda própria + Google Agenda (iCal, depois OAuth)
     reminders/    # lembretes, central, push
@@ -66,7 +68,8 @@ src/
                   # Zustand), reset-client-state.ts (limpeza do logout), lazy-with-reload.ts e
                   # chunk-reload.ts (chunk antigo após deploy), zod-config.ts (zod sem eval, por causa da CSP)
   i18n/           # pt-BR.ts (todos os textos) + index.ts (t() com chaves tipadas)
-  styles/         # tokens.css (variáveis do tema) + index.css (Tailwind v4, @theme, base)
+  styles/         # tokens.css (variáveis do tema), theme.css (@theme do Tailwind, também usado pelo editor.css)
+                  # + index.css (Tailwind v4, base)
   test/           # helpers de teste (ex.: stub de matchMedia)
 supabase/
   migrations/  functions/  tests/  seed.sql   # seed só com dados fictícios
@@ -171,8 +174,7 @@ pages (
   database_id uuid null references databases,   -- se a página é linha de base
   title text not null default '',
   icon jsonb, cover jsonb,
-  content_json jsonb,          -- snapshot BlockNote para prévias/export (fase 2)
-  content_text text default '',-- texto puro para busca por conteúdo (fase 2)
+  -- texto/JSON para busca e prévias NÃO ficam aqui: tabela 1:1 page_texts (ADR 0001, Fase 2b)
   properties jsonb default '{}',
   sort_key text not null,      -- índice fracionário
   full_width bool default false,
@@ -182,6 +184,7 @@ pages (
 )
 
 -- Fase 2 (DECISÃO-016): conteúdo Yjs fora de `pages`, como log de updates + estado compactado.
+-- Formato definitivo (colunas, RPCs, limites, retenção) no docs/adr/0001-conteudo-yjs.md; migration no 2b.
 page_contents (
   id bigint generated always as identity pk,
   page_id uuid not null references pages on delete cascade,
@@ -236,10 +239,36 @@ Editor (BlockNote) ── Y.Doc ──┬─ y-indexeddb (aparelho, offline)
   em páginas mesclam via Yjs; em bases, outbox com "último a gravar vence" por campo.
 - Autenticação do provedor Yjs: o cliente envia o JWT do Supabase; o Worker valida e confere o
   papel do usuário no workspace antes de aceitar a conexão.
+- **Editor local (Fase 2a):** `PageView` carrega `src/features/editor/PageEditor.tsx` por `lazyWithReload` (chunk
+  próprio: BlockNote, tiptap, ProseMirror e Yjs só descem ao abrir uma página). `usePageDoc(pageId)` abre um Y.Doc por
+  página (`openPageDoc` em `src/features/sync/page-doc.ts`) com `y-indexeddb` num banco **`axenotes-page-<id>`**
+  (prefixo em `src/lib/idb-names.ts`); o editor só monta depois de carregar o que já está no aparelho (fragmento
+  `document-store`, `withCollaboration` do BlockNote sem provedor de rede). Trocar de página desmonta o editor e
+  destrói o Y.Doc e a conexão do banco (`PageView` tem `key` por página). O título continua em `pages.title`.
+  - **Falha do IndexedDB** (inexistente, erro ao abrir, cota, mais de 8 s): o Y.Doc segue só em memória, com aviso
+    "não será salvo"; nunca tela de erro. O banco é aberto e preparado antes de entregar ao y-indexeddb (que não
+    trata a falha ao abrir).
+  - **Aviso de prévia** fixo acima do editor ("o conteúdo fica salvo só neste aparelho"); o 2b remove.
+  - **Ponto de extensão do 2b:** `ContentSync` (`src/features/sync/content-sync.ts`): `start(pageId, doc)` roda depois
+    de carregar o doc local e `stop()` antes de fechar. No 2a só existe `localOnlySync` (não faz nada).
+  - **Só leitura:** leitor (viewer) e página na lixeira → `editable=false` (página na lixeira abre pela rota e pela
+    lista da `/lixeira`, com aviso e link para a lixeira; não grava visita nem oferece favoritar).
+  - **Blocos:** lista explícita em `schema.ts` (texto, títulos, listas, checklist, toggle, citação, código, divisor,
+    tabela); imagem, vídeo, áudio, arquivo e emoji ficam fora dos menus. Dicionário `pt` do BlockNote + placeholders
+    de `src/i18n/pt-BR.ts`.
+  - **Estilo:** `editor.css` (só no chunk do editor) gera os utilitários do `@blocknote/shadcn` **escopados em
+    `.bn-root`** (sem o escopo, um `.flex-col` do editor vencia o `md:flex-row` do app) e troca as cores do BlockNote
+    pelos tokens. Usa `src/styles/theme.css` como referência, sem emitir as variáveis de novo.
+  - **Mod+K:** o BlockNote só captura Ctrl/⌘+K com a barra de formatação aberta (com seleção) e chama
+    `preventDefault`; a busca ignora eventos já tratados. Resultado: com seleção = link, sem seleção = busca.
 - **Logout:** todo estado de cliente sai pelo ponto único `src/lib/reset-client-state.ts` (ver §9). Quem criar
   um banco IndexedDB (y-indexeddb na Fase 2), um service worker ou um cache (Fase 6) não precisa de código novo
   para a limpeza quando o navegador tem `indexedDB.databases()`; para os demais, registra o nome em
-  `KNOWN_IDB_DATABASES`. Antes de apagar o IndexedDB, a Fase 2 precisa esperar os updates Yjs pendentes ou avisar
+  `KNOWN_IDB_DATABASES`. Com `indexedDB.databases()` (Chrome, Edge, Safari 14+, Firefox 126+) o logout apaga **todos**
+  os bancos da origem, os `axenotes-page-*` inclusos; sem ela, apaga `KNOWN_IDB_DATABASES` e os bancos de página
+  abertos **nesta aba** (`rememberOpenedDatabase`) — bancos de sessões anteriores ficam (limitação conhecida). Antes de
+  apagar, roda os ganchos de `onBeforeStorageClear` (o `page-doc` fecha os docs abertos, senão o delete fica
+  bloqueado pela própria aba). Antes de apagar o IndexedDB, a Fase 2b precisa esperar os updates Yjs pendentes ou avisar
   que há alterações não salvas (critério em `docs/ROADMAP.md`).
 
 ## 6. Lembretes, notificações e agenda

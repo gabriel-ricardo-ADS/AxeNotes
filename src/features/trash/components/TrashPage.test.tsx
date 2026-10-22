@@ -70,7 +70,7 @@ const rowOf = async (title: string) => {
   const list = await trashList()
   const item = within(list)
     .getAllByRole('listitem')
-    .find((li) => within(li).queryByText(title, { selector: 'p' }))
+    .find((li) => within(li).queryByRole('link', { name: title }))
   if (!item) throw new Error(`sem linha para ${title}`)
   return item
 }
@@ -82,9 +82,12 @@ describe('tela /lixeira', () => {
 
     const list = await trashList()
     const rows = within(list).getAllByRole('listitem')
-    expect(
-      rows.map((row) => within(row).getAllByText(/./, { selector: 'p' })[0]?.textContent),
-    ).toEqual(['Projeto', 'Tarefa', 'Receitas', 'Resenha antiga'])
+    expect(rows.map((row) => within(row).getByRole('link').textContent)).toEqual([
+      'Projeto',
+      'Tarefa',
+      'Receitas',
+      'Resenha antiga',
+    ])
     expect(screen.getByRole('heading', { level: 1, name: 'Lixeira' })).toBeInTheDocument()
 
     const recipes = await rowOf('Receitas')
@@ -149,10 +152,16 @@ describe('tela /lixeira', () => {
     expect(link).toHaveAttribute('aria-current', 'page')
   })
 
-  it('keeps a direct link to a trashed page on the single "not found" screen', async () => {
-    await renderApp(`/p/${RECIPES}`)
+  it('opens a trashed page read-only from its title in the list', async () => {
+    const user = userEvent.setup()
+    await renderApp('/lixeira')
 
-    expect(await screen.findByRole('heading', { name: 'Página não encontrada' })).toBeVisible()
+    await user.click(within(await rowOf('Receitas')).getByRole('link', { name: 'Receitas' }))
+
+    expect(
+      await screen.findByText('Esta página está na lixeira. Para editá-la, restaure-a.'),
+    ).toBeVisible()
+    expect(screen.getByRole('heading', { level: 1, name: 'Receitas' })).toBeInTheDocument()
   })
 })
 

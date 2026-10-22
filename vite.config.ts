@@ -46,6 +46,11 @@ export default defineConfig({
       'supabase/tests/**/*.test.ts',
     ],
     css: false,
+    // O fake-indexeddb (editor da página) agenda as transações com setImmediate: os timers falsos
+    // não podem tomá-lo, senão a transação fecha antes da hora.
+    fakeTimers: {
+      toFake: ['setTimeout', 'clearTimeout', 'setInterval', 'clearInterval', 'Date'],
+    },
     // Os testes de banco sobem um Postgres (PGlite/WASM) por arquivo.
     testTimeout: 20_000,
     hookTimeout: 60_000,

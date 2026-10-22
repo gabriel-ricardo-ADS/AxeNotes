@@ -265,10 +265,24 @@ export const ptBR = {
     iconAdd: 'Adicionar ícone',
     breadcrumbLabel: 'Caminho da página',
     breadcrumbMore: 'Páginas anteriores',
-    bodyEmpty: 'O editor de blocos chega na Fase 2. Por enquanto, a página tem só título e ícone.',
+    trashedNotice: 'Esta página está na lixeira. Para editá-la, restaure-a.',
+    trashedOpenTrash: 'Abrir a lixeira',
     loading: 'Carregando a página…',
     loadError: 'Não foi possível carregar a página.',
     noHome: 'Este workspace ainda não tem uma página inicial.',
     saveError: 'Não foi possível salvar o título. O texto continua aqui; tente de novo.',
+  },
+  editor: {
+    label: 'Conteúdo da página',
+    loading: 'Carregando o conteúdo…',
+    previewNotice: 'Prévia: o conteúdo fica salvo só neste aparelho.',
+    memoryNotice:
+      'Este navegador não deixou guardar dados: o conteúdo desta página não será salvo ao fechar.',
+    placeholders: {
+      default: "Digite '/' para comandos",
+      heading: 'Título',
+      list: 'Lista',
+      toggle: 'Lista expansível',
+    },
   },
 } as const

@@ -1,6 +1,6 @@
-import { SmilePlusIcon, XIcon } from 'lucide-react'
-import { useEffect, useMemo, useState } from 'react'
-import { useLocation, useNavigate } from 'react-router'
+import { SmilePlusIcon, Trash2Icon, XIcon } from 'lucide-react'
+import { Suspense, useEffect, useMemo, useState } from 'react'
+import { Link, useLocation, useNavigate } from 'react-router'
 import { DESKTOP_QUERY } from '@/app/layout/AppLayout'
 import { TopBarPortal } from '@/app/layout/top-bar-slot'
 import { FavoriteButton } from '@/features/favorites/components/FavoriteButton'
@@ -19,10 +19,20 @@ import { canEdit as canEditWorkspace, type PageRow } from '@/features/workspace/
 import { useMediaQuery } from '@/hooks/use-media-query'
 import { useNow } from '@/hooks/use-now'
 import { t } from '@/i18n'
+import { lazyWithReload } from '@/lib/lazy-with-reload'
 import { formatEditedAgo } from '@/lib/relative-time'
 
-/** Página aberta: breadcrumb no topo, ícone, título editável, "Editada há…" e o corpo (editor na Fase 2). */
-export function PageView({ page }: { page: PageRow }) {
+// BlockNote e Yjs só descem quando uma página abre (chunk próprio; a entrada e o app logado não crescem).
+const PageEditor = lazyWithReload(() => import('@/features/editor/PageEditor'))
+
+interface PageViewProps {
+  page: PageRow
+  /** Página na lixeira: abre só para leitura, com aviso. */
+  trashed?: boolean
+}
+
+/** Página aberta: breadcrumb no topo, ícone, título, "Editada há…" e o editor de blocos. */
+export function PageView({ page, trashed = false }: PageViewProps) {
   const location = useLocation()
   const navigate = useNavigate()
   const isDesktop = useMediaQuery(DESKTOP_QUERY)
@@ -33,11 +43,12 @@ export function PageView({ page }: { page: PageRow }) {
   const [pickingIcon, setPickingIcon] = useState(false)
   const [actionError, setActionError] = useState<string | null>(null)
 
-  useRecordVisit(page.id)
+  useRecordVisit(trashed ? null : page.id)
 
-  const editable = workspace ? canEditWorkspace(workspace) : false
+  const editable = !trashed && (workspace ? canEditWorkspace(workspace) : false)
   const ancestors = useMemo(() => ancestorsOf(rows ?? [], page.id), [rows, page.id])
-  const trashable = canTrash(rows ?? [], workspace?.homePageId ?? null, page.id, editable)
+  const trashable =
+    !trashed && canTrash(rows ?? [], workspace?.homePageId ?? null, page.id, editable)
 
   // A navegação de "nova página" pede foco no título; consome o aviso para não repetir ao voltar.
   const [focusTitle] = useState(() => wantsTitleFocus(location.state))
@@ -59,7 +70,7 @@ export function PageView({ page }: { page: PageRow }) {
         <Breadcrumb ancestors={ancestors} page={page} compact={!isDesktop} />
         <div className="flex shrink-0 items-center gap-2">
           {isDesktop ? edited : null}
-          <FavoriteButton pageId={page.id} onError={setActionError} />
+          {trashed ? null : <FavoriteButton pageId={page.id} onError={setActionError} />}
           {trashable ? (
             <PageMenu
               pageId={page.id}
@@ -73,6 +84,21 @@ export function PageView({ page }: { page: PageRow }) {
       </TopBarPortal>
 
       <article className="mx-auto w-full max-w-content px-6 py-8 md:px-16 md:py-12">
+        {trashed ? (
+          <div
+            role="status"
+            className="mb-4 flex flex-wrap items-center gap-x-3 gap-y-1 rounded-tag bg-red-block px-3 py-2 text-ui text-strong"
+          >
+            <Trash2Icon className="size-4 shrink-0 text-red" aria-hidden="true" />
+            <p className="flex-1">{t('page.trashedNotice')}</p>
+            <Link
+              to="/lixeira"
+              className="inline-flex min-h-11 items-center rounded-tag px-2 font-medium underline md:min-h-8"
+            >
+              {t('page.trashedOpenTrash')}
+            </Link>
+          </div>
+        ) : null}
         {actionError === null ? null : (
           <div
             role="alert"
@@ -121,7 +147,11 @@ export function PageView({ page }: { page: PageRow }) {
         />
         {isDesktop ? null : <div className="mt-2">{edited}</div>}
 
-        <p className="mt-10 text-muted-foreground">{t('page.bodyEmpty')}</p>
+        <Suspense
+          fallback={<p className="mt-6 text-ui text-muted-foreground">{t('editor.loading')}</p>}
+        >
+          <PageEditor pageId={page.id} editable={editable} />
+        </Suspense>
       </article>
 
       <IconPickerDialog

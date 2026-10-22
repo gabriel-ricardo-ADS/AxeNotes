@@ -1,11 +1,28 @@
 import type { QueryClient } from '@tanstack/react-query'
 import { resetAllStores } from '@/lib/create-store'
+import { forgetOpenedDatabases, openedDatabases } from '@/lib/idb-names'
 
 /**
- * Bancos IndexedDB do app, para navegadores sem `indexedDB.databases()`. Vazio por enquanto: quem
- * criar um banco (ex.: y-indexeddb na Fase 2) registra o nome aqui.
+ * Bancos IndexedDB de nome fixo, para navegadores sem `indexedDB.databases()`. Os bancos por página
+ * (`axenotes-page-<id>`, src/lib/idb-names.ts) não cabem numa lista fixa: sem `databases()` só saem os
+ * abertos nesta aba (limitação documentada em docs/ARCHITECTURE.md).
  */
 export const KNOWN_IDB_DATABASES: readonly string[] = []
+
+type BeforeStorageClear = () => Promise<void> | void
+
+const beforeStorageClear = new Set<BeforeStorageClear>()
+
+/**
+ * Registra uma tarefa que roda no logout ANTES de apagar o IndexedDB (ex.: fechar os Y.Docs abertos,
+ * senão o `deleteDatabase` fica bloqueado pela própria aba). Devolve a função que desfaz o registro.
+ */
+export function onBeforeStorageClear(task: BeforeStorageClear): () => void {
+  beforeStorageClear.add(task)
+  return () => {
+    beforeStorageClear.delete(task)
+  }
+}
 
 let pending: Promise<void> | null = null
 
@@ -43,12 +60,24 @@ async function clearBrowserStorage(): Promise<void> {
 }
 
 async function deleteDatabases(): Promise<void> {
+  await runBeforeStorageClear()
   if (typeof indexedDB === 'undefined') return
+  // Com `databases()`: todos os bancos da origem (os `axenotes-page-*` inclusos).
   const names =
     typeof indexedDB.databases === 'function'
       ? (await indexedDB.databases()).flatMap((info) => (info.name ? [info.name] : []))
-      : KNOWN_IDB_DATABASES
+      : [...new Set([...KNOWN_IDB_DATABASES, ...openedDatabases()])]
   await Promise.all(names.map(deleteDatabase))
+  forgetOpenedDatabases()
+}
+
+async function runBeforeStorageClear(): Promise<void> {
+  const results = await Promise.allSettled([...beforeStorageClear].map(async (task) => task()))
+  for (const result of results) {
+    if (result.status === 'rejected') {
+      console.error('Falha ao preparar a limpeza do IndexedDB no logout', result.reason)
+    }
+  }
 }
 
 /** Resolve também em `blocked` (conexão aberta em outra aba): o banco some quando ela fechar. */

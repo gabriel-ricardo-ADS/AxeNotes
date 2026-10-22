@@ -19,12 +19,12 @@ export type PageLookup =
   | { status: 'loading' }
   | { status: 'error' }
   | { status: 'notFound' }
-  | { status: 'found'; page: PageRow }
+  | { status: 'found'; page: PageRow; trashed: boolean }
 
 /**
- * Procura a página na lista já carregada; se não estiver lá (criada em outra aba, por exemplo),
- * confirma com uma consulta pontual. Inexistente, na lixeira e sem acesso dão o MESMO resultado
- * (`notFound`), para a tela não revelar quais páginas existem.
+ * Procura a página na lista já carregada; se não estiver lá (criada em outra aba, ou na lixeira),
+ * confirma com uma consulta pontual. Página na lixeira volta com `trashed` (abre só para leitura).
+ * Inexistente e sem acesso dão o MESMO resultado (`notFound`), para não revelar quais páginas existem.
  */
 export function usePage(pageId: string | undefined): { lookup: PageLookup; retry: () => void } {
   const pages = usePages()
@@ -43,9 +43,9 @@ export function usePage(pageId: string | undefined): { lookup: PageLookup; retry
   }
 
   if (pageId === undefined) return { lookup: { status: 'notFound' }, retry }
-  if (inList) return { lookup: { status: 'found', page: inList }, retry }
+  if (inList) return { lookup: { status: 'found', page: inList, trashed: false }, retry }
   if (pages.isError || single.isError) return { lookup: { status: 'error' }, retry }
   if (!pages.isSuccess || single.isPending) return { lookup: { status: 'loading' }, retry }
-  if (single.data) return { lookup: { status: 'found', page: single.data }, retry }
+  if (single.data) return { lookup: { status: 'found', ...single.data }, retry }
   return { lookup: { status: 'notFound' }, retry }
 }

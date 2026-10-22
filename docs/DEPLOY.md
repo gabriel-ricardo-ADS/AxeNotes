@@ -89,7 +89,13 @@ base-uri 'self'; form-action 'self'; object-src 'none'`.
   domínio dele em `script-src`/`connect-src` antes de ligar.
 - **Fases futuras:** os embeds da Fase 3 (YouTube, Google Drive, Vimeo) vão exigir `frame-src` com esses domínios
   (hoje cai no `default-src 'self'` e é bloqueado); o PWA da Fase 6 usa `worker-src`/`manifest-src`, hoje cobertos por
-  `default-src 'self'`; o BlockNote da Fase 2 precisa ser conferido contra a CSP.
+  `default-src 'self'`.
+- **Editor (Fase 2a):** o BlockNote foi conferido contra esta CSP **sem mudar nada**: `pnpm build && pnpm preview`,
+  Chromium e WebKit, abrindo o menu "/", um toggle, uma tabela, a barra de formatação e a alça do bloco, com um
+  ouvinte de `securitypolicyviolation`: zero violações e zero erros no Console. Os estilos inline do editor e dos
+  menus flutuantes já estão cobertos por `style-src 'unsafe-inline'`; não há `eval` no código do BlockNote; o seletor
+  de emoji (emoji-mart) está desligado. O BlockNote só avisa no Console (`console.warn`, não é CSP) que a meta
+  viewport não tem `interactive-widget=resizes-content`: fica para o 2c (barra acima do teclado no mobile).
 - **Formato do arquivo:** o `pnpm preview` lê o mesmo `public/_headers` (`scripts/cloudflare-headers.ts`) e aplica os
   headers localmente. O leitor aceita só a regra `/*` com linhas `Nome: valor` indentadas; o teste
   `scripts/cloudflare-headers.test.ts` falha se o arquivo sair desse formato ou perder uma diretiva.

@@ -1,4 +1,6 @@
+import { Link } from 'react-router'
 import { Button } from '@/components/ui/button'
+import { pagePath } from '@/features/pages/routes'
 import type { TrashRowAction } from '@/features/trash/hooks/use-trash-actions'
 import { separateCount, type TrashOrigin, type TrashRoot } from '@/features/trash/trash'
 import { PageIconView } from '@/features/workspace/components/PageIconView'
@@ -53,7 +55,13 @@ export function TrashRow({ root, now, canEdit, busy, onRestore, onDelete }: Tras
       <div className="flex min-w-0 flex-1 items-start gap-2">
         <PageIconView icon={page.icon} className="mt-1" />
         <div className="min-w-0">
-          <p className="truncate font-medium text-strong">{title}</p>
+          {/* Abre a página só para leitura (dá para conferir o conteúdo antes de restaurar). */}
+          <Link
+            to={pagePath(page.id)}
+            className="block truncate rounded-tag font-medium text-strong hover:underline focus-visible:outline-2 focus-visible:outline-ring"
+          >
+            {title}
+          </Link>
           <p className="text-meta text-muted-foreground">{meta}</p>
           {origin === null ? null : (
             <p className="truncate text-meta text-muted-foreground">{origin}</p>
