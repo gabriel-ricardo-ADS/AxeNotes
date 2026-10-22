@@ -9,7 +9,16 @@ import { reloadOnChunkError, type ReloadDeps } from '@/lib/chunk-reload'
 export function lazyWithReload<T extends ComponentType>(
   factory: () => Promise<{ default: T }>,
   deps?: ReloadDeps,
-): LazyExoticComponent<T> {
+): LazyExoticComponent<T>
+/** Mesma coisa para um componente com props (ex.: o editor da página). */
+export function lazyWithReload<P extends object>(
+  factory: () => Promise<{ default: ComponentType<P> }>,
+  deps?: ReloadDeps,
+): LazyExoticComponent<ComponentType<P>>
+export function lazyWithReload<P extends object>(
+  factory: () => Promise<{ default: ComponentType<P> }>,
+  deps?: ReloadDeps,
+): LazyExoticComponent<ComponentType<P>> {
   return lazy(() =>
     factory().catch((error: unknown) => {
       if (reloadOnChunkError(error, deps)) return new Promise<never>(() => undefined)

@@ -1,0 +1,118 @@
+/*
+ * Tema do Tailwind: tokens (tokens.css) mapeados para utilitários. Fica num arquivo próprio porque o
+ * CSS do editor (src/features/editor/editor.css, carregado só no chunk da página) usa o mesmo tema
+ * como referência, sem emitir as variáveis de novo.
+ */
+/* Mapeia os tokens para utilitários do Tailwind (bg-sidebar, text-muted-foreground, ...). */
+@theme inline {
+  --font-sans: 'Inter Variable', ui-sans-serif, system-ui, 'Segoe UI', sans-serif;
+
+  --color-background: var(--bg);
+  --color-foreground: var(--text);
+  --color-strong: var(--text-strong);
+  --color-muted-foreground: var(--text-muted);
+  --color-faint: var(--text-faint);
+  --color-sidebar: var(--bg-sidebar);
+  --color-hover: var(--bg-hover);
+  --color-popover: var(--bg-elevated);
+  --color-popover-foreground: var(--text);
+  --color-border: var(--border);
+  --color-ring: var(--accent);
+  --color-primary: var(--accent);
+  --color-primary-hover: var(--accent-hover);
+  --color-danger: var(--danger);
+
+  /* paleta nomeada: text-brown, bg-brown-block, bg-brown-tag, ... */
+  --color-default: var(--c-default-text);
+  --color-default-block: var(--c-default-block);
+  --color-default-tag: var(--c-default-tag);
+  --color-gray: var(--c-gray-text);
+  --color-gray-block: var(--c-gray-block);
+  --color-gray-tag: var(--c-gray-tag);
+  --color-brown: var(--c-brown-text);
+  --color-brown-block: var(--c-brown-block);
+  --color-brown-tag: var(--c-brown-tag);
+  --color-orange: var(--c-orange-text);
+  --color-orange-block: var(--c-orange-block);
+  --color-orange-tag: var(--c-orange-tag);
+  --color-yellow: var(--c-yellow-text);
+  --color-yellow-block: var(--c-yellow-block);
+  --color-yellow-tag: var(--c-yellow-tag);
+  --color-green: var(--c-green-text);
+  --color-green-block: var(--c-green-block);
+  --color-green-tag: var(--c-green-tag);
+  --color-blue: var(--c-blue-text);
+  --color-blue-block: var(--c-blue-block);
+  --color-blue-tag: var(--c-blue-tag);
+  --color-purple: var(--c-purple-text);
+  --color-purple-block: var(--c-purple-block);
+  --color-purple-tag: var(--c-purple-tag);
+  --color-pink: var(--c-pink-text);
+  --color-pink-block: var(--c-pink-block);
+  --color-pink-tag: var(--c-pink-tag);
+  --color-red: var(--c-red-text);
+  --color-red-block: var(--c-red-block);
+  --color-red-tag: var(--c-red-tag);
+
+  /* tipografia: título da página 40, H1 30, H2 24, H3 20, texto 16, UI 14, metadados 12 */
+  --text-title: 2.5rem;
+  --text-title--line-height: 1.2;
+  --text-h1: 1.875rem;
+  --text-h1--line-height: 1.3;
+  --text-h2: 1.5rem;
+  --text-h2--line-height: 1.3;
+  --text-h3: 1.25rem;
+  --text-h3--line-height: 1.3;
+  --text-body: 1rem;
+  --text-body--line-height: 1.5;
+  --text-ui: 0.875rem;
+  --text-ui--line-height: 1.5;
+  --text-meta: 0.75rem;
+  --text-meta--line-height: 1.5;
+
+  --radius-tag: var(--r-tag);
+  --radius-card: var(--r-card);
+  --radius-popover: var(--r-popover);
+
+  --spacing-sidebar: var(--sidebar-width);
+  --container-content: var(--content-width);
+
+  /* gaveta (Sheet): entra e sai pela lateral; o overlay escurece com fade */
+  --animate-overlay-in: overlay-in var(--duration-ui) ease-out;
+  --animate-overlay-out: overlay-out var(--duration-ui) ease-in;
+  --animate-sheet-in-left: sheet-in-left 180ms ease-out;
+  --animate-sheet-out-left: sheet-out-left 150ms ease-in;
+  --animate-sheet-in-right: sheet-in-right 180ms ease-out;
+  --animate-sheet-out-right: sheet-out-right 150ms ease-in;
+
+  @keyframes overlay-in {
+    from {
+      opacity: 0;
+    }
+  }
+  @keyframes overlay-out {
+    to {
+      opacity: 0;
+    }
+  }
+  @keyframes sheet-in-left {
+    from {
+      transform: translateX(-100%);
+    }
+  }
+  @keyframes sheet-out-left {
+    to {
+      transform: translateX(-100%);
+    }
+  }
+  @keyframes sheet-in-right {
+    from {
+      transform: translateX(100%);
+    }
+  }
+  @keyframes sheet-out-right {
+    to {
+      transform: translateX(100%);
+    }
+  }
+}

@@ -1,0 +1,86 @@
+/*
+ * Estilos do editor (BlockNote + @blocknote/shadcn). Este arquivo só é importado pelo chunk da página:
+ * nada daqui entra no CSS de entrada. O Tailwind gera aqui só as classes usadas pelos componentes do
+ * @blocknote/shadcn, com o tema do app como referência (sem emitir as variáveis de novo).
+ */
+@import 'tailwindcss/theme.css' theme(reference inline);
+@import '../../styles/theme.css' theme(reference);
+@import 'tailwindcss/utilities.css' layer(utilities) source(none);
+@import '@blocknote/shadcn/style.css';
+
+@source '../../../node_modules/@blocknote/shadcn/dist';
+
+/* O app é sempre escuro; o BlockNote marca as suas raízes (inclusive os menus flutuantes). */
+@custom-variant dark (&:where([data-color-scheme='dark'], [data-color-scheme='dark'] *));
+
+/* Nomes do shadcn que o app não usa (e `accent`, que no app é o azul): valem só aqui. */
+@theme inline {
+  --color-accent: var(--bg-hover);
+  --color-accent-foreground: var(--text-strong);
+  --color-card: var(--bg-elevated);
+  --color-card-foreground: var(--text);
+  --color-destructive: var(--danger);
+  --color-input: var(--border);
+  --color-muted: var(--bg-hover);
+  --color-primary-foreground: var(--text-strong);
+  --color-secondary: var(--bg-hover);
+  --color-secondary-foreground: var(--text);
+}
+
+/* Tokens do design-axenotes no lugar das cores do BlockNote. */
+.bn-root[data-color-scheme='dark'] {
+  --bn-font-family: var(--font-sans);
+  --bn-border-radius: var(--r-card);
+  --bn-colors-editor-text: var(--text);
+  --bn-colors-editor-background: var(--bg);
+  --bn-colors-menu-text: var(--text);
+  --bn-colors-menu-background: var(--bg-elevated);
+  --bn-colors-tooltip-text: var(--text);
+  --bn-colors-tooltip-background: var(--bg-hover);
+  --bn-colors-hovered-text: var(--text-strong);
+  --bn-colors-hovered-background: var(--bg-hover);
+  --bn-colors-selected-text: var(--text-strong);
+  --bn-colors-selected-background: var(--bg-hover);
+  --bn-colors-disabled-text: var(--text-faint);
+  --bn-colors-disabled-background: var(--bg-elevated);
+  --bn-colors-shadow: rgb(0 0 0 / 0.5);
+  --bn-colors-border: var(--border);
+  --bn-colors-side-menu: var(--text-faint);
+  --bn-colors-highlights-gray-text: var(--c-gray-text);
+  --bn-colors-highlights-gray-background: var(--c-gray-block);
+  --bn-colors-highlights-brown-text: var(--c-brown-text);
+  --bn-colors-highlights-brown-background: var(--c-brown-block);
+  --bn-colors-highlights-red-text: var(--c-red-text);
+  --bn-colors-highlights-red-background: var(--c-red-block);
+  --bn-colors-highlights-orange-text: var(--c-orange-text);
+  --bn-colors-highlights-orange-background: var(--c-orange-block);
+  --bn-colors-highlights-yellow-text: var(--c-yellow-text);
+  --bn-colors-highlights-yellow-background: var(--c-yellow-block);
+  --bn-colors-highlights-green-text: var(--c-green-text);
+  --bn-colors-highlights-green-background: var(--c-green-block);
+  --bn-colors-highlights-blue-text: var(--c-blue-text);
+  --bn-colors-highlights-blue-background: var(--c-blue-block);
+  --bn-colors-highlights-purple-text: var(--c-purple-text);
+  --bn-colors-highlights-purple-background: var(--c-purple-block);
+  --bn-colors-highlights-pink-text: var(--c-pink-text);
+  --bn-colors-highlights-pink-background: var(--c-pink-block);
+}
+
+/* O texto dos blocos alinha com o título; a alça "+ ⋮⋮" fica na margem do artigo. */
+.axn-editor .bn-editor {
+  padding-inline: 0;
+  font-size: var(--text-body);
+}
+
+/* Títulos dos blocos na escala do app: H1 30, H2 24, H3 20. */
+.axn-editor [data-content-type='heading'] {
+  --level: 1.875em;
+}
+
+.axn-editor [data-content-type='heading'][data-level='2'] {
+  --level: 1.5em;
+}
+
+.axn-editor [data-content-type='heading'][data-level='3'] {
+  --level: 1.25em;
+}

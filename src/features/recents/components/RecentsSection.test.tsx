@@ -150,9 +150,10 @@ describe('registro da visita', () => {
     ).toBeInTheDocument()
     first.unmount()
 
+    // Página na lixeira abre só para leitura, mas não conta como visita.
     await renderApp(`/p/${MOVIES}`)
     expect(
-      await screen.findByRole('heading', { name: 'Página não encontrada' }),
+      await screen.findByText('Esta página está na lixeira. Para editá-la, restaure-a.'),
     ).toBeInTheDocument()
 
     expect(visits()).toHaveLength(0)

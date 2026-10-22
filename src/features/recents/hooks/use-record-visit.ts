@@ -22,16 +22,17 @@ export function resetVisitGuard() {
 
 /**
  * Registra que o usuário abriu esta página. Chame SÓ de uma tela que já encontrou a página (a RLS
- * barra o resto, mas inexistente/sem acesso/lixeira nem chegam aqui). A página inicial não entra.
- * A lista em cache sobe a página na hora; a gravação falhar é silencioso (a lista só é recarregada).
+ * barra o resto, mas inexistente/sem acesso nem chegam aqui). `null` não grava (página na lixeira).
+ * A página inicial não entra. A lista em cache sobe a página na hora; a gravação falhar é silencioso (a lista só é recarregada).
  */
-export function useRecordVisit(pageId: string) {
+export function useRecordVisit(pageId: string | null) {
   const queryClient = useQueryClient()
   const userId = useAuth().session?.user.id
   const homePageId = useWorkspace().data?.homePageId
 
   useEffect(() => {
-    if (userId === undefined || homePageId === undefined || pageId === homePageId) return
+    if (pageId === null || userId === undefined || homePageId === undefined) return
+    if (pageId === homePageId) return
     const key = `${userId}:${pageId}`
     const now = Date.now()
     if (!shouldRecord(lastWrite, key, now)) return

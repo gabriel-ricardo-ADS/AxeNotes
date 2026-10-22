@@ -2,6 +2,7 @@ import { act, screen, waitFor, within } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { TITLE_DEBOUNCE_MS } from '@/features/pages/components/PageTitle'
 import { FOCUS_TITLE_STATE } from '@/features/pages/routes'
+import { openPageDocCount } from '@/features/sync/page-doc'
 import { useTreeUiStore } from '@/features/workspace/tree-ui-store'
 import {
   clearFailures,
@@ -27,6 +28,16 @@ const PARENT = fakeId(1)
 const CHILD = fakeId(2)
 const GRAND = fakeId(3)
 const ago = (days: number) => new Date(Date.now() - days * 86_400_000).toISOString()
+
+/** Área editável do BlockNote (o contenteditable dentro da região do conteúdo). */
+async function editorSurface(): Promise<HTMLElement> {
+  const region = await screen.findByRole('region', { name: 'Conteúdo da página' })
+  return waitFor(() => {
+    const surface = region.querySelector<HTMLElement>('[contenteditable]')
+    if (!surface) throw new Error('editor ainda não montou')
+    return surface
+  })
+}
 
 beforeEach(() => {
   resetFakeSupabase()
@@ -57,7 +68,6 @@ describe('tela da página', () => {
     expect(await titleField()).toHaveValue('Cantinho 2026')
     expect(screen.getByRole('heading', { level: 1, name: 'Cantinho 2026' })).toBeInTheDocument()
     expect(screen.getByText('Editada há 19 dias')).toBeInTheDocument()
-    expect(screen.getByText(/O editor de blocos chega na Fase 2/)).toBeInTheDocument()
 
     const crumbs = screen.getByRole('navigation', { name: 'Caminho da página' })
     expect(within(crumbs).getByRole('link', { name: /Leituras/ })).toHaveAttribute(
@@ -122,15 +132,26 @@ describe('tela da página', () => {
     expect(hidden.parentElement?.innerHTML).toBe(invalidScreen)
   })
 
-  it('treats a trashed page as not found', async () => {
+  it('opens a trashed page read-only, with a notice and a way to the trash', async () => {
     const trashed = fakeDb.tables.pages.find((row) => row.id === GRAND)
     if (trashed) trashed.trashed_at = '2026-10-01T00:00:00Z'
 
     await renderApp(`/p/${GRAND}`)
 
-    expect(
-      await screen.findByRole('heading', { name: 'Página não encontrada' }),
-    ).toBeInTheDocument()
+    const notice = (
+      await screen.findByText('Esta página está na lixeira. Para editá-la, restaure-a.')
+    ).closest('[role="status"]')
+    if (!(notice instanceof HTMLElement)) throw new Error('aviso da lixeira sem role="status"')
+    expect(within(notice).getByRole('link', { name: 'Abrir a lixeira' })).toHaveAttribute(
+      'href',
+      '/lixeira',
+    )
+    // Título e ícone sem edição, sem favoritar nem mandar de novo para a lixeira.
+    expect(screen.getByRole('heading', { level: 1 })).toBeInTheDocument()
+    expect(screen.queryByRole('textbox', { name: 'Título da página' })).not.toBeInTheDocument()
+    expect(screen.queryByRole('button', { name: /ícone/i })).not.toBeInTheDocument()
+    expect(screen.queryByRole('button', { name: /favorit/i })).not.toBeInTheDocument()
+    expect(await editorSurface()).toHaveAttribute('contenteditable', 'false')
   })
 
   it('tells a load failure apart from "not found" and lets you retry', async () => {
@@ -277,6 +298,46 @@ describe('título da página', () => {
     expect(await screen.findByRole('heading', { level: 1, name: 'Leituras' })).toBeInTheDocument()
     expect(screen.queryByRole('textbox', { name: 'Título da página' })).not.toBeInTheDocument()
     expect(screen.queryByRole('button', { name: /ícone/i })).not.toBeInTheDocument()
+    expect(await editorSurface()).toHaveAttribute('contenteditable', 'false')
+  })
+})
+
+describe('editor da página', () => {
+  it('mounts an editable editor below the title, with the preview notice', async () => {
+    await renderApp(`/p/${CHILD}`)
+
+    expect(await editorSurface()).toHaveAttribute('contenteditable', 'true')
+    expect(screen.getByText('Prévia: o conteúdo fica salvo só neste aparelho.')).toBeInTheDocument()
+    expect(screen.queryByRole('alert')).not.toBeInTheDocument()
+  })
+
+  it('keeps editing in memory, with a warning, when IndexedDB fails to open', async () => {
+    vi.spyOn(indexedDB, 'open').mockImplementation(() => {
+      throw new DOMException('cota excedida', 'QuotaExceededError')
+    })
+    await renderApp(`/p/${CHILD}`)
+
+    expect(await editorSurface()).toHaveAttribute('contenteditable', 'true')
+    expect(screen.getByRole('alert')).toHaveTextContent(
+      'Este navegador não deixou guardar dados: o conteúdo desta página não será salvo ao fechar.',
+    )
+    expect(screen.queryByText(/Não foi possível carregar/)).not.toBeInTheDocument()
+    vi.restoreAllMocks()
+  })
+
+  it('closes the previous page doc when switching pages (one open doc at a time)', async () => {
+    const user = userEvent.setup()
+    await renderApp(`/p/${CHILD}`)
+    await editorSurface()
+
+    const crumbs = screen.getByRole('navigation', { name: 'Caminho da página' })
+    await user.click(within(crumbs).getByRole('link', { name: /Leituras/ }))
+    await screen.findByRole('heading', { level: 1, name: 'Leituras' })
+    await editorSurface()
+
+    await waitFor(() => {
+      expect(openPageDocCount()).toBe(1)
+    })
   })
 })
 

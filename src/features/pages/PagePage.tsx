@@ -20,13 +20,14 @@ export function PageScreen({ pageId }: { pageId: string }) {
       return <NotFoundPage />
     case 'found':
       // `key`: cada página tem seu próprio estado do título (e salva o pendente ao sair).
-      return <PageView key={lookup.page.id} page={lookup.page} />
+      return <PageView key={lookup.page.id} page={lookup.page} trashed={lookup.trashed} />
   }
 }
 
 /**
  * Rota /p/:pageId. Id malformado, página inexistente e página sem acesso mostram a MESMA tela
- * ("Página não encontrada"), para não revelar quais páginas existem.
+ * ("Página não encontrada"), para não revelar quais páginas existem. Página na lixeira abre só para
+ * leitura.
  */
 export function PagePage() {
   const { pageId } = useParams()

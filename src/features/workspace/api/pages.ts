@@ -56,16 +56,27 @@ export async function fetchPages(workspaceId: string): Promise<PageRow[]> {
   }
 }
 
-/** Uma página; null se não existe, está na lixeira ou a RLS não deixa ver (indistinguível de propósito). */
-export async function fetchPage(pageId: string): Promise<PageRow | null> {
+/** Página aberta pela rota: a da lixeira também abre, só para leitura. */
+export interface FoundPage {
+  page: PageRow
+  trashed: boolean
+}
+
+const trashedAtSchema = z.object({ trashed_at: z.string().nullable() })
+
+/**
+ * Uma página, inclusive na lixeira (abre só para leitura). null se não existe ou a RLS não deixa ver
+ * (indistinguível de propósito); quem vê a lixeira já é membro do workspace, então nada vaza.
+ */
+export async function fetchPage(pageId: string): Promise<FoundPage | null> {
   const { data, error } = await supabase
     .from('pages')
-    .select(PAGE_COLUMNS)
+    .select(`${PAGE_COLUMNS}, trashed_at`)
     .eq('id', pageId)
-    .is('trashed_at', null)
     .maybeSingle()
   if (error) throw new Error('pages_fetch_failed')
-  return data === null ? null : toPageRow(data)
+  if (data === null) return null
+  return { page: toPageRow(data), trashed: trashedAtSchema.parse(data).trashed_at !== null }
 }
 
 export interface NewPage {

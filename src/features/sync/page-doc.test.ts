@@ -1,5 +1,3 @@
-import 'fake-indexeddb/auto'
-import { IDBFactory } from 'fake-indexeddb'
 import { QueryClient } from '@tanstack/react-query'
 import * as Y from 'yjs'
 import type { ContentSync } from '@/features/sync/content-sync'
@@ -30,11 +28,6 @@ function open(pageId: string, sync?: ContentSync): PageDoc {
   opened.push(pageDoc)
   return pageDoc
 }
-
-beforeEach(() => {
-  // Banco zerado a cada teste.
-  globalThis.indexedDB = new IDBFactory()
-})
 
 afterEach(async () => {
   await Promise.all(opened.map((pageDoc) => pageDoc.destroy()))
