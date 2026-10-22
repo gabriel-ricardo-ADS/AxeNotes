@@ -36,5 +36,20 @@
       "Bash(pnpm supabase db reset *)",
       "Bash(supabase db reset *)"
     ]
+  },
+  "hooks": {
+    "PostToolUse": [
+      {
+        "matcher": "Edit|Write|MultiEdit",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "node",
+            "args": ["${CLAUDE_PROJECT_DIR}/scripts/format-edited-file.mjs"],
+            "timeout": 30
+          }
+        ]
+      }
+    ]
   }
 }

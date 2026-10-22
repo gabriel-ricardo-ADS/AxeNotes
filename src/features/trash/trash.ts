@@ -13,9 +13,7 @@ export interface TrashedPage {
 
 /** De onde a página saiu. `unknown`: o pai não está em nenhuma das listas (ainda carregando). */
 export type TrashOrigin =
-  | { kind: 'root' }
-  | { kind: 'page'; title: string; trashed: boolean }
-  | { kind: 'unknown' }
+  { kind: 'root' } | { kind: 'page'; title: string; trashed: boolean } | { kind: 'unknown' }
 
 export interface TrashRoot {
   page: TrashedPage
@@ -101,7 +99,11 @@ export function buildTrashRoots(
     })
     .map((page) => ({
       page,
-      sameStampCount: countDescendants(children, page.id, (child) => child.trashedAt === page.trashedAt),
+      sameStampCount: countDescendants(
+        children,
+        page.id,
+        (child) => child.trashedAt === page.trashedAt,
+      ),
       descendantCount: countDescendants(children, page.id, () => true),
       origin: originOf(page, trashedById, liveById, homeId),
     }))

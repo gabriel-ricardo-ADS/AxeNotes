@@ -76,7 +76,10 @@ describe('buildPageTree', () => {
   })
 
   it('does not loop forever if a cycle ever got into the data', () => {
-    const tree = buildPageTree([page('x', 'y', 'a0'), page('y', 'x', 'a0'), page('r', null, 'a1')], null)
+    const tree = buildPageTree(
+      [page('x', 'y', 'a0'), page('y', 'x', 'a0'), page('r', null, 'a1')],
+      null,
+    )
 
     expect(ids(tree)).toContain('r')
   })
@@ -109,7 +112,9 @@ describe('flattenVisible', () => {
   })
 
   it('ignores expansion of a node without children', () => {
-    expect(flattenVisible(tree, new Set(['b'])).find((i) => i.page.id === 'b')?.expanded).toBe(false)
+    expect(flattenVisible(tree, new Set(['b'])).find((i) => i.page.id === 'b')?.expanded).toBe(
+      false,
+    )
   })
 })
 

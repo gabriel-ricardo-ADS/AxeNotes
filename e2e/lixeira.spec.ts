@@ -14,7 +14,10 @@ test.skip(!hasE2ECredentials, SKIP_NO_CREDENTIALS)
 const titleField = (page: Page) => page.getByRole('textbox', { name: 'Título da página' })
 const tree = (page: Page) => page.getByRole('tree', { name: 'Árvore de páginas' })
 const trashRow = (page: Page, title: string) =>
-  page.getByRole('list', { name: 'Páginas na lixeira' }).getByRole('listitem').filter({ hasText: title })
+  page
+    .getByRole('list', { name: 'Páginas na lixeira' })
+    .getByRole('listitem')
+    .filter({ hasText: title })
 
 async function openApp(page: Page, path = '/') {
   await page.goto(path)
@@ -70,7 +73,9 @@ test('trashes from the tree, finds it in /lixeira, restores, trashes again and d
   await sendToTrashFromTree(page, title)
   await expect.poll(() => pageState(run.api, id)).toBe('trashed')
   await openTrash(page)
-  await trashRow(page, title).getByRole('button', { name: `Excluir ${title} definitivamente` }).click()
+  await trashRow(page, title)
+    .getByRole('button', { name: `Excluir ${title} definitivamente` })
+    .click()
   const dialog = page.getByRole('alertdialog')
   await expect(dialog).toBeVisible()
   await expect(dialog.getByRole('button', { name: 'Cancelar' })).toBeFocused()

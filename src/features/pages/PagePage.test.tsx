@@ -52,7 +52,7 @@ beforeEach(() => {
       sortKey: 'a0',
       icon: { type: 'emoji', value: '📚' },
     },
-    { id: CHILD, parentId: PARENT, title: 'Cantinho 2026', sortKey: 'a0', lastEditedAt: ago(19) },
+    { id: CHILD, parentId: PARENT, title: 'Notas da semana', sortKey: 'a0', lastEditedAt: ago(19) },
     { id: GRAND, parentId: CHILD, title: 'Resenhas', sortKey: 'a0' },
   ])
 })
@@ -65,8 +65,8 @@ describe('tela da página', () => {
   it('shows icon, title as the page heading, breadcrumb with icons and "Editada há…"', async () => {
     await renderApp(`/p/${CHILD}`)
 
-    expect(await titleField()).toHaveValue('Cantinho 2026')
-    expect(screen.getByRole('heading', { level: 1, name: 'Cantinho 2026' })).toBeInTheDocument()
+    expect(await titleField()).toHaveValue('Notas da semana')
+    expect(screen.getByRole('heading', { level: 1, name: 'Notas da semana' })).toBeInTheDocument()
     expect(screen.getByText('Editada há 19 dias')).toBeInTheDocument()
 
     const crumbs = screen.getByRole('navigation', { name: 'Caminho da página' })
@@ -75,7 +75,7 @@ describe('tela da página', () => {
       `/p/${PARENT}`,
     )
     expect(within(crumbs).getByText('📚')).toBeInTheDocument()
-    expect(within(crumbs).getByText('Cantinho 2026').closest('li')).toHaveAttribute(
+    expect(within(crumbs).getByText('Notas da semana').closest('li')).toHaveAttribute(
       'aria-current',
       'page',
     )
@@ -165,7 +165,7 @@ describe('tela da página', () => {
     const main = screen.getByRole('main')
     await user.click(within(main).getByRole('button', { name: 'Tentar de novo' }))
 
-    expect(await titleField()).toHaveValue('Cantinho 2026')
+    expect(await titleField()).toHaveValue('Notas da semana')
   })
 })
 
@@ -214,7 +214,7 @@ describe('título da página', () => {
     await waitFor(() => {
       expect(updates()).toHaveLength(1)
     })
-    expect(updates()[0]?.payload).toEqual({ title: 'Cantinho 2026!' })
+    expect(updates()[0]?.payload).toEqual({ title: 'Notas da semana!' })
     await waitFor(() => {
       expect(pageSelects()).toBe(selectsBefore + 1)
     })
@@ -233,7 +233,7 @@ describe('título da página', () => {
     )
 
     await waitFor(() => {
-      expect(dbPage(CHILD)?.title).toBe('Cantinho 2026?')
+      expect(dbPage(CHILD)?.title).toBe('Notas da semana?')
     })
   })
 
@@ -247,14 +247,14 @@ describe('título da página', () => {
     await user.tab()
 
     expect(await screen.findByText(/Não foi possível salvar o título/)).toBeInTheDocument()
-    expect(field).toHaveValue('Cantinho 2026!')
-    expect(dbPage(CHILD)?.title).toBe('Cantinho 2026')
+    expect(field).toHaveValue('Notas da semana!')
+    expect(dbPage(CHILD)?.title).toBe('Notas da semana')
 
     await user.type(field, '?')
     await user.tab()
 
     await waitFor(() => {
-      expect(dbPage(CHILD)?.title).toBe('Cantinho 2026!?')
+      expect(dbPage(CHILD)?.title).toBe('Notas da semana!?')
     })
     expect(screen.queryByText(/Não foi possível salvar o título/)).not.toBeInTheDocument()
   })
@@ -267,7 +267,7 @@ describe('título da página', () => {
     await user.type(field, '!{Enter}')
 
     expect(field).not.toHaveFocus()
-    expect(field).toHaveValue('Cantinho 2026!')
+    expect(field).toHaveValue('Notas da semana!')
   })
 
   it('changes the icon and can remove it', async () => {
@@ -439,7 +439,7 @@ describe('título da página ao sair', () => {
       expect(init).toMatchObject({ method: 'PATCH', keepalive: true })
       expect(new Headers(init?.headers).get('Authorization')).toBe('Bearer token-ficticio')
       expect(JSON.parse(typeof init?.body === 'string' ? init.body : '')).toEqual({
-        title: 'Cantinho 2026!',
+        title: 'Notas da semana!',
       })
       // Nem o debounce nem o pagehide repetem o salvamento que já foi enviado.
       expect(updates()).toHaveLength(0)
@@ -498,7 +498,7 @@ describe('título da página ao sair', () => {
     window.dispatchEvent(new Event('pagehide'))
 
     expect(await screen.findByText(/Não foi possível salvar o título/)).toBeInTheDocument()
-    expect(field).toHaveValue('Cantinho 2026!')
+    expect(field).toHaveValue('Notas da semana!')
     expect(triesToLeave()).toBe(true)
 
     fetchMock.mockImplementation(() => Promise.resolve(okResponse()))

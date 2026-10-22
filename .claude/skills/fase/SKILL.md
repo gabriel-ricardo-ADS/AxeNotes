@@ -16,8 +16,11 @@ argument-hint: "[número da fase]"
    `novo-bloco` e `migracao-supabase` quando couber. Consulte a documentação atual das libs.
 6. Verifique: `pnpm typecheck && pnpm lint && pnpm test && pnpm build` e `pnpm e2e` quando
    existir; depois a skill `verificar-ui` para tudo que for visual.
-7. Revise o próprio diff (ou peça ao subagente `revisor-seguranca` se mexeu em banco/auth/storage).
+7. Revise o próprio diff. É **OBRIGATÓRIO** rodar o subagente `revisor-seguranca` quando o diff
+   tocar `supabase/`, `src/features/auth/`, `src/features/sync/`, `src/lib/supabase*`,
+   `src/lib/reset-client-state.ts`, `public/_headers` ou Storage, e colar o resumo dos achados no
+   corpo do PR. Antes de abrir o PR, rode também `pnpm knip` e `pnpm size:check` (depois do build).
 8. Abra PR draft com: resumo, como testar (passo a passo), prints desktop/mobile, migrações que o
-   Gabriel precisa aplicar, decisões tomadas, pendências. Marque como pronto para revisão só com
-   tudo verde.
+   Gabriel precisa aplicar, decisões tomadas, pendências, e se o `pnpm e2e` rodou ou não (e por
+   quê). Marque como pronto para revisão só com tudo verde.
 9. Atualize `docs/` se algo mudou (modelo de dados, decisão, roadmap).

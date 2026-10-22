@@ -1,0 +1,11 @@
+# Fim de linha LF no repositório e no checkout (Windows incluso), igual ao "endOfLine" do Prettier.
+* text=auto eol=lf
+
+# Binários: sem conversão de fim de linha nem diff de texto.
+*.png binary
+*.jpg binary
+*.jpeg binary
+*.gif binary
+*.webp binary
+*.woff2 binary
+*.ico binary

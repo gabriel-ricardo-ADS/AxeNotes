@@ -52,7 +52,9 @@ export function useHomePage(): HomePageState {
 
   if (creation.isError) return { status: 'error', retry: () => void creation.refetch() }
   if (creation.isSuccess && !creation.isFetching) {
-    return creation.data === null ? { status: 'missing' } : { status: 'ready', pageId: creation.data }
+    return creation.data === null
+      ? { status: 'missing' }
+      : { status: 'ready', pageId: creation.data }
   }
   return { status: 'loading' }
 }

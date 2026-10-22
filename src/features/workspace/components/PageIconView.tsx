@@ -21,7 +21,10 @@ export function PageIconView({ icon, className }: PageIconViewProps) {
   return (
     <span
       aria-hidden="true"
-      className={cn('inline-flex size-4 shrink-0 items-center justify-center leading-none', className)}
+      className={cn(
+        'inline-flex size-4 shrink-0 items-center justify-center leading-none',
+        className,
+      )}
     >
       {icon.value}
     </span>
