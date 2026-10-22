@@ -1,5 +1,6 @@
+import { useQueryClient } from '@tanstack/react-query'
 import { SmilePlusIcon, Trash2Icon, XIcon } from 'lucide-react'
-import { Suspense, useEffect, useMemo, useState } from 'react'
+import { Suspense, useCallback, useEffect, useMemo, useState } from 'react'
 import { Link, useLocation, useNavigate } from 'react-router'
 import { DESKTOP_QUERY } from '@/app/layout/AppLayout'
 import { TopBarPortal } from '@/app/layout/top-bar-slot'
@@ -13,6 +14,7 @@ import { wantsTitleFocus } from '@/features/pages/routes'
 import { IconPickerDialog } from '@/features/workspace/components/IconPickerDialog'
 import { PageIconView } from '@/features/workspace/components/PageIconView'
 import { usePageMutations } from '@/features/workspace/hooks/use-page-mutations'
+import { markPageEditedLocally } from '@/features/workspace/last-edited'
 import { usePages } from '@/features/workspace/hooks/use-pages'
 import { useWorkspace } from '@/features/workspace/hooks/use-workspace'
 import { ancestorsOf, canTrash } from '@/features/workspace/tree'
@@ -33,7 +35,11 @@ interface PageViewProps {
   trashed?: boolean
 }
 
-/** Página aberta: breadcrumb no topo, ícone, título, "Editada há…" e o editor de blocos. */
+/**
+ * Página aberta: breadcrumb no topo, ícone, título, "Editada há…" com o status do salvamento ao lado
+ * (o editor o desenha no `statusSlot`, para o código de sincronização ficar no chunk do editor) e o
+ * editor de blocos.
+ */
 export function PageView({ page, trashed = false }: PageViewProps) {
   const location = useLocation()
   const navigate = useNavigate()
@@ -44,6 +50,12 @@ export function PageView({ page, trashed = false }: PageViewProps) {
   const { setPageIcon } = usePageMutations()
   const [pickingIcon, setPickingIcon] = useState(false)
   const [actionError, setActionError] = useState<string | null>(null)
+  const [statusSlot, setStatusSlot] = useState<HTMLElement | null>(null)
+  const queryClient = useQueryClient()
+  const workspaceId = workspace?.id
+  const onContentSaved = useCallback(() => {
+    markPageEditedLocally(queryClient, workspaceId, page.id, Date.now())
+  }, [queryClient, workspaceId, page.id])
 
   useRecordVisit(trashed ? null : page.id)
 
@@ -61,9 +73,12 @@ export function PageView({ page, trashed = false }: PageViewProps) {
   }, [location.state, location.pathname, navigate])
 
   const edited = (
-    <p className="shrink-0 text-meta text-muted-foreground">
-      {formatEditedAgo(page.lastEditedAt, now)}
-    </p>
+    <div className="flex min-w-0 flex-wrap items-center gap-x-2 gap-y-0.5">
+      <p className="shrink-0 text-meta text-muted-foreground">
+        {formatEditedAgo(page.lastEditedAt, now)}
+      </p>
+      <span ref={setStatusSlot} className="flex min-w-0" />
+    </div>
   )
 
   return (
@@ -152,7 +167,12 @@ export function PageView({ page, trashed = false }: PageViewProps) {
         <Suspense
           fallback={<p className="mt-6 text-ui text-muted-foreground">{t('editor.loading')}</p>}
         >
-          <PageEditor pageId={page.id} editable={editable} />
+          <PageEditor
+            pageId={page.id}
+            editable={editable}
+            statusSlot={statusSlot}
+            onContentSaved={onContentSaved}
+          />
         </Suspense>
       </article>
 

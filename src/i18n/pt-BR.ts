@@ -95,6 +95,11 @@ export const ptBR = {
       fallbackName: 'Minha conta',
       signOut: 'Sair',
       signingOut: 'Saindo…',
+      syncing: 'Sincronizando…',
+      pendingTitle: 'Há alterações não sincronizadas. Sair mesmo assim?',
+      pendingDescription:
+        'Algumas edições ainda não chegaram ao servidor. Se sair agora, elas serão apagadas deste aparelho e perdidas.',
+      pendingConfirm: 'Sair mesmo assim',
     },
     errors: {
       nameRequired: 'Informe seu nome.',
@@ -202,7 +207,7 @@ export const ptBR = {
     shortcutOther: 'Ctrl K',
     dialogTitle: 'Buscar páginas',
     dialogDescription:
-      'Digite para buscar páginas pelo título. Use as setas para escolher e Enter para abrir.',
+      'Digite para buscar páginas pelo título ou pelo conteúdo. Use as setas para escolher e Enter para abrir.',
     inputLabel: 'Buscar páginas',
     placeholder: 'Buscar páginas…',
     recentsHeading: 'Recentes',
@@ -272,12 +277,19 @@ export const ptBR = {
     noHome: 'Este workspace ainda não tem uma página inicial.',
     saveError: 'Não foi possível salvar o título. O texto continua aqui; tente de novo.',
   },
+  sync: {
+    saved: 'Salvo',
+    saving: 'Salvando…',
+    offline: 'Offline — será sincronizado',
+    error: 'Erro ao salvar (tentando de novo)',
+    tooLarge: 'Página grande demais para sincronizar (salva só neste aparelho)',
+    blocked: 'Sem permissão para salvar (página na lixeira ou acesso removido)',
+  },
   editor: {
     label: 'Conteúdo da página',
     loading: 'Carregando o conteúdo…',
-    previewNotice: 'Prévia: o conteúdo fica salvo só neste aparelho.',
     memoryNotice:
-      'Este navegador não deixou guardar dados: o conteúdo desta página não será salvo ao fechar.',
+      'Este navegador não deixou guardar dados neste aparelho: o conteúdo é salvo no servidor enquanto você estiver online, mas edições feitas sem internet se perdem ao fechar.',
     placeholders: {
       default: "Digite '/' para comandos",
       heading: 'Título',

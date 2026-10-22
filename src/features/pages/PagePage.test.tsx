@@ -303,11 +303,12 @@ describe('título da página', () => {
 })
 
 describe('editor da página', () => {
-  it('mounts an editable editor below the title, with the preview notice', async () => {
+  it('mounts an editable editor below the title, with the save status and no preview notice', async () => {
     await renderApp(`/p/${CHILD}`)
 
     expect(await editorSurface()).toHaveAttribute('contenteditable', 'true')
-    expect(screen.getByText('Prévia: o conteúdo fica salvo só neste aparelho.')).toBeInTheDocument()
+    expect(screen.queryByText(/Prévia/)).not.toBeInTheDocument()
+    expect(await screen.findByText('Salvo')).toBeInTheDocument()
     expect(screen.queryByRole('alert')).not.toBeInTheDocument()
   })
 
@@ -319,7 +320,7 @@ describe('editor da página', () => {
 
     expect(await editorSurface()).toHaveAttribute('contenteditable', 'true')
     expect(screen.getByRole('alert')).toHaveTextContent(
-      'Este navegador não deixou guardar dados: o conteúdo desta página não será salvo ao fechar.',
+      'o conteúdo é salvo no servidor enquanto você estiver online',
     )
     expect(screen.queryByText(/Não foi possível carregar/)).not.toBeInTheDocument()
     vi.restoreAllMocks()

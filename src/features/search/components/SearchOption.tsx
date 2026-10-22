@@ -1,3 +1,4 @@
+import { highlightParts } from '@/features/search/search'
 import { PageIconView } from '@/features/workspace/components/PageIconView'
 import type { PageIcon } from '@/features/workspace/page-icon'
 import { t } from '@/i18n'
@@ -7,6 +8,8 @@ export interface SearchItem {
   id: string
   title: string
   icon: PageIcon | null
+  /** Trecho do corpo que casou com o termo (só nos resultados). */
+  snippet?: string | null
 }
 
 interface SearchOptionProps {
@@ -14,6 +17,8 @@ interface SearchOptionProps {
   item: SearchItem
   /** Caminho curto da página (ancestrais), quando se sabe. */
   path: string | null
+  /** Termo buscado, para destacar no trecho. */
+  term?: string
   active: boolean
   onPick: () => void
   onActivate: () => void
@@ -23,7 +28,15 @@ interface SearchOptionProps {
  * Uma opção do listbox da busca. O foco de verdade fica no campo (aria-activedescendant); o teclado
  * é tratado lá, então a opção só reage a clique/toque e ao ponteiro do mouse.
  */
-export function SearchOption({ id, item, path, active, onPick, onActivate }: SearchOptionProps) {
+export function SearchOption({
+  id,
+  item,
+  path,
+  term = '',
+  active,
+  onPick,
+  onActivate,
+}: SearchOptionProps) {
   return (
     // eslint-disable-next-line jsx-a11y/click-events-have-key-events -- o teclado (↑ ↓ Enter) é tratado no campo do combobox
     <li
@@ -45,14 +58,29 @@ export function SearchOption({ id, item, path, active, onPick, onActivate }: Sea
       )}
     >
       <PageIconView icon={item.icon} />
-      {/* Mobile: o caminho vai numa segunda linha (o título não pode ser cortado por ele); desktop: ao lado. */}
-      <span className="flex min-w-0 flex-1 flex-col md:flex-row md:items-center md:gap-2">
-        <span className="truncate md:min-w-0 md:flex-1">
-          {item.title || t('workspace.tree.untitled')}
+      <span className="flex min-w-0 flex-1 flex-col">
+        {/* Mobile: o caminho vai numa segunda linha (o título não pode ser cortado por ele); desktop: ao lado. */}
+        <span className="flex min-w-0 flex-col md:flex-row md:items-center md:gap-2">
+          <span className="truncate md:min-w-0 md:flex-1">
+            {item.title || t('workspace.tree.untitled')}
+          </span>
+          {path === null ? null : (
+            <span className="truncate text-meta text-faint md:max-w-[45%] md:shrink-0">{path}</span>
+          )}
         </span>
-        {path === null ? null : (
-          <span className="truncate text-meta text-faint md:max-w-[45%] md:shrink-0">{path}</span>
-        )}
+        {item.snippet ? (
+          <span className="line-clamp-2 text-meta text-muted-foreground">
+            {highlightParts(item.snippet, term).map((part, index) =>
+              part.match ? (
+                <mark key={index} className="rounded-sm bg-yellow-tag text-strong">
+                  {part.text}
+                </mark>
+              ) : (
+                <span key={index}>{part.text}</span>
+              ),
+            )}
+          </span>
+        ) : null}
       </span>
     </li>
   )

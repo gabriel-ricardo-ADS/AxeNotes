@@ -1,13 +1,13 @@
 import type { QueryClient } from '@tanstack/react-query'
 import { resetAllStores } from '@/lib/create-store'
-import { forgetOpenedDatabases, openedDatabases } from '@/lib/idb-names'
+import { forgetOpenedDatabases, openedDatabases, SYNC_META_DB } from '@/lib/idb-names'
 
 /**
  * Bancos IndexedDB de nome fixo, para navegadores sem `indexedDB.databases()`. Os bancos por página
  * (`axenotes-page-<id>`, src/lib/idb-names.ts) não cabem numa lista fixa: sem `databases()` só saem os
  * abertos nesta aba (limitação documentada em docs/ARCHITECTURE.md).
  */
-export const KNOWN_IDB_DATABASES: readonly string[] = []
+export const KNOWN_IDB_DATABASES: readonly string[] = [SYNC_META_DB]
 
 type BeforeStorageClear = () => Promise<void> | void
 

@@ -19,6 +19,8 @@ export interface SearchResult {
   icon: PageRow['icon']
   /** ISO 8601. */
   lastEditedAt: string
+  /** Trecho do corpo em volta do termo, quando só o corpo casou (o título casou: null). */
+  snippet: string | null
 }
 
 /**
@@ -98,6 +100,45 @@ export function searchPath(ancestors: readonly PageRow[], homeId: string | null)
   if (titles.length === 0) return null
   const shown = titles.slice(-MAX_PATH_PARTS)
   return [...(titles.length > shown.length ? ['…'] : []), ...shown].join(t('search.pathSeparator'))
+}
+
+export interface HighlightPart {
+  text: string
+  match: boolean
+}
+
+/** Um caractere como a busca o compara: sem acento e em minúsculas (como o `immutable_unaccent`). */
+const fold = (char: string) => char.normalize('NFD').replace(/\p{M}/gu, '').toLowerCase()
+
+/**
+ * Divide o trecho em partes, marcando as ocorrências do termo (ignora acento e caixa, como o servidor).
+ * Só texto: quem desenha usa `<mark>` nas partes `match`, sem HTML vindo do servidor.
+ */
+export function highlightParts(text: string, term: string): HighlightPart[] {
+  const needle = Array.from(term.trim()).map(fold).join('')
+  if (needle === '') return [{ text, match: false }]
+  const chars = Array.from(text)
+  // Texto "dobrado" e, para cada posição dele, o caractere original de onde veio.
+  let folded = ''
+  const origin: number[] = []
+  chars.forEach((char, index) => {
+    const piece = fold(char)
+    folded += piece
+    origin.push(...Array<number>(piece.length).fill(index))
+  })
+  const parts: HighlightPart[] = []
+  let cursor = 0
+  let from = folded.indexOf(needle)
+  while (from !== -1) {
+    const start = origin[from] ?? chars.length
+    const end = (origin[from + needle.length - 1] ?? chars.length - 1) + 1
+    if (start > cursor) parts.push({ text: chars.slice(cursor, start).join(''), match: false })
+    parts.push({ text: chars.slice(start, end).join(''), match: true })
+    cursor = end
+    from = folded.indexOf(needle, from + needle.length)
+  }
+  if (cursor < chars.length) parts.push({ text: chars.slice(cursor).join(''), match: false })
+  return parts
 }
 
 /** Texto anunciado ao leitor de tela quando os resultados chegam. */

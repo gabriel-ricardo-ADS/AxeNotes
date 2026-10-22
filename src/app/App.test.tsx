@@ -176,7 +176,10 @@ describe('auth in the app shell', () => {
 
     await user.click(screen.getByRole('button', { name: 'Sair' }))
 
-    expect(fakeAuth.signOut).toHaveBeenCalledWith({ scope: 'local' })
+    // Antes de sair, o app tenta enviar o conteúdo pendente (nada aqui): o signOut vem logo depois.
+    await waitFor(() => {
+      expect(fakeAuth.signOut).toHaveBeenCalledWith({ scope: 'local' })
+    })
     await waitFor(() => {
       expect(screen.getByRole('heading', { level: 1, name: 'Entrar' })).toBeInTheDocument()
     })
@@ -220,7 +223,7 @@ describe('switching accounts', () => {
   }
 
   async function expectNothingFromA() {
-    const nav = screen.getByRole('navigation', { name: 'Navegação principal' })
+    const nav = await screen.findByRole('navigation', { name: 'Navegação principal' })
     expect(await within(nav).findByText('Bruno Teste')).toBeInTheDocument()
     await within(nav).findAllByRole('link', { name: 'Receitas da conta B' })
     expect(screen.queryByText(/conta A/)).not.toBeInTheDocument()

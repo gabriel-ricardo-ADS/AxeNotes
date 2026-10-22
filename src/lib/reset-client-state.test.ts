@@ -105,10 +105,10 @@ describe('resetClientState', () => {
     expect(deleteDatabase.mock.calls).toEqual(
       expect.arrayContaining([['axenotes-page-p1'], ['axenotes-page-p2']]),
     )
-    // Os nomes saem do registro junto com os bancos.
+    // Os nomes saem do registro junto com os bancos (os de nome fixo continuam na lista).
     deleteDatabase.mockClear()
     await resetClientState(new QueryClient())
-    expect(deleteDatabase).not.toHaveBeenCalled()
+    expect(deleteDatabase.mock.calls).toEqual(KNOWN_IDB_DATABASES.map((name) => [name]))
   })
 
   it('runs the before-clear tasks before deleting, and a failing task does not stop the logout', async () => {

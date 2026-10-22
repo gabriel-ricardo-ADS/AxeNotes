@@ -9,10 +9,12 @@ const searchRowSchema = z.object({
   title: z.string(),
   icon: z.unknown(),
   last_edited_at: z.string(),
+  // Ausente enquanto a migration do 2b não estiver aplicada.
+  snippet: z.string().nullable().optional(),
 })
 
 /**
- * Busca por título com o RPC `search_pages`. O termo vai cru (já sem espaços nas pontas): acento, caixa,
+ * Busca por título e pelo texto do corpo com o RPC `search_pages`. O termo vai cru (já sem espaços nas pontas): acento, caixa,
  * `%`, `_`, `\` e a lixeira são tratados no servidor. O termo vai no corpo do POST, nunca na URL. `signal`
  * cancela o pedido quando o termo muda.
  */
@@ -36,6 +38,7 @@ export async function searchPages(
       title: row.title,
       icon: parsePageIcon(row.icon),
       lastEditedAt: row.last_edited_at,
+      snippet: row.snippet ?? null,
     }
   })
 }
