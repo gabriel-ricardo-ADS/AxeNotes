@@ -22,6 +22,8 @@ describe('guarda-corpo do schema public', () => {
        order by c.relname`,
     )
     expect(tables.map((t) => t.name)).toEqual([
+      'page_contents',
+      'page_texts',
       'pages',
       'profiles',
       'user_favorites',
@@ -73,11 +75,15 @@ describe('guarda-corpo do schema public', () => {
        order by p.proname`,
     )
     expect(functions.map((f) => f.name)).toEqual([
+      'append_page_updates',
       'can_access_page',
+      'compact_page_content',
+      'get_page_content',
       'immutable_unaccent',
       'is_workspace_member',
       'restore_page',
       'search_pages',
+      'set_page_text',
       'trash_page',
     ])
   })

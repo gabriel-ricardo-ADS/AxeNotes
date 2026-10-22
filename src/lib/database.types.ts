@@ -39,6 +39,79 @@ export type Database = {
   }
   public: {
     Tables: {
+      page_contents: {
+        Row: {
+          byte_size: number | null
+          covers_up_to: number | null
+          created_at: string
+          created_by: string | null
+          data: string
+          id: number
+          kind: string
+          page_id: string
+          superseded_at: string | null
+        }
+        Insert: {
+          byte_size?: number | null
+          covers_up_to?: number | null
+          created_at?: string
+          created_by?: string | null
+          data: string
+          id?: never
+          kind: string
+          page_id: string
+          superseded_at?: string | null
+        }
+        Update: {
+          byte_size?: number | null
+          covers_up_to?: number | null
+          created_at?: string
+          created_by?: string | null
+          data?: string
+          id?: never
+          kind?: string
+          page_id?: string
+          superseded_at?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "page_contents_page_id_fkey"
+            columns: ["page_id"]
+            isOneToOne: false
+            referencedRelation: "pages"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      page_texts: {
+        Row: {
+          json: Json | null
+          page_id: string
+          text: string
+          updated_at: string
+        }
+        Insert: {
+          json?: Json | null
+          page_id: string
+          text?: string
+          updated_at?: string
+        }
+        Update: {
+          json?: Json | null
+          page_id?: string
+          text?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "page_texts_page_id_fkey"
+            columns: ["page_id"]
+            isOneToOne: true
+            referencedRelation: "pages"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       pages: {
         Row: {
           created_at: string
@@ -262,15 +335,36 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
+      append_page_updates: {
+        Args: { p_page_id: string; p_updates: string[] }
+        Returns: number[]
+      }
       can_access_page: {
         Args: { p_min_role?: string; p_page_id: string }
         Returns: boolean
+      }
+      compact_page_content: {
+        Args: { p_page_id: string; p_snapshot: string; p_up_to: number }
+        Returns: boolean
+      }
+      get_page_content: {
+        Args: { p_after?: number; p_page_id: string }
+        Returns: {
+          byte_size: number
+          covers_up_to: number
+          data: string
+          id: number
+          kind: string
+        }[]
       }
       immutable_unaccent: { Args: { p_text: string }; Returns: string }
       is_workspace_member: {
         Args: { p_min_role?: string; p_workspace_id: string }
         Returns: boolean
       }
+      page_content_decode: { Args: { p_data: string }; Returns: string }
+      page_content_writable: { Args: { p_page_id: string }; Returns: boolean }
+      prune_page_contents: { Args: { p_page_id: string }; Returns: number }
       restore_page: { Args: { p_page_id: string }; Returns: undefined }
       search_pages: {
         Args: { p_limit?: number; p_query: string; p_workspace_id: string }
@@ -279,9 +373,14 @@ export type Database = {
           id: string
           last_edited_at: string
           parent_id: string
+          snippet: string
           title: string
           workspace_id: string
         }[]
+      }
+      set_page_text: {
+        Args: { p_json: Json; p_page_id: string; p_text: string }
+        Returns: undefined
       }
       trash_page: { Args: { p_page_id: string }; Returns: undefined }
       workspace_role_rank: { Args: { p_role: string }; Returns: number }

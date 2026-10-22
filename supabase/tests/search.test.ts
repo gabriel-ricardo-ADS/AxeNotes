@@ -82,3 +82,82 @@ describe('search_pages', () => {
     expect((await search(diego, f.workspaceA, 'a', 1000)).length).toBeLessThanOrEqual(50)
   })
 })
+
+describe('search_pages no corpo (page_texts)', () => {
+  const setText = (userId: string, pageId: string, text: string) =>
+    db.as({ userId }, (q) => q.rows('select public.set_page_text($1, $2, null)', [pageId, text]))
+
+  const hits = (userId: string, workspaceId: string, query: string) =>
+    db.as({ userId }, (q) =>
+      q.rows<{ title: string; snippet: string | null }>(
+        'select title, snippet from public.search_pages($1, $2, 20)',
+        [workspaceId, query],
+      ),
+    )
+
+  it('acha palavra do corpo sem acento e sem diferenciar maiúsculas, com trecho', async () => {
+    await setText(ana, PAGES.matematica, 'Revisar o Teorema de Pitágoras antes da prova.')
+    expect(await hits(diego, f.workspaceA, 'pitagoras')).toEqual([
+      { title: 'Matemática', snippet: 'Revisar o Teorema de Pitágoras antes da prova.' },
+    ])
+    expect(await hits(diego, f.workspaceA, 'TEOREMA')).toHaveLength(1)
+  })
+
+  it('o trecho corta o texto longo em volta do termo, com reticências', async () => {
+    const text = `${'antes '.repeat(40)}palavrachave${' depois'.repeat(40)}`
+    await setText(ana, PAGES.algebra, text)
+    const [hit] = await hits(diego, f.workspaceA, 'palavrachave')
+    expect(hit?.snippet?.startsWith('…')).toBe(true)
+    expect(hit?.snippet?.endsWith('…')).toBe(true)
+    expect(hit?.snippet).toContain('palavrachave')
+    expect(hit?.snippet?.length ?? 0).toBeLessThanOrEqual(162)
+  })
+
+  it('título vem antes do corpo e, quando o título casa, não há trecho', async () => {
+    await setText(ana, PAGES.estudos, 'Uma nota sobre cálculo diferencial.')
+    const result = await hits(diego, f.workspaceA, 'calculo')
+    expect(result.map((r) => r.title)).toEqual(['Cálculo diferencial', 'Estudos'])
+    expect(result[0]?.snippet).toBeNull()
+    expect(result[1]?.snippet).toContain('cálculo')
+  })
+
+  it('respeita a RLS e a lixeira', async () => {
+    await setText(ana, PAGES.leituras, 'segredo de leitura zzqx')
+    expect(await hits(bruno, f.workspaceA, 'zzqx')).toEqual([])
+    expect(await hits(bruno, f.workspaceB, 'zzqx')).toEqual([])
+    await db.as({ userId: ana }, (q) => q.rows('select public.trash_page($1)', [PAGES.leituras]))
+    expect(await hits(diego, f.workspaceA, 'zzqx')).toEqual([])
+    await db.as({ userId: ana }, (q) => q.rows('select public.restore_page($1)', [PAGES.leituras]))
+    expect(await hits(diego, f.workspaceA, 'zzqx')).toHaveLength(1)
+  })
+
+  it('corpo de página de outro workspace não aparece mesmo para quem lê os dois', async () => {
+    await setText(bruno, PAGES.segredo, 'texto exclusivo qwzk')
+    expect(await hits(bruno, f.workspaceA, 'qwzk')).toEqual([])
+    expect(await hits(bruno, f.workspaceB, 'qwzk')).toHaveLength(1)
+  })
+
+  it('o filtro do corpo usa o índice trigram (mesma expressão do índice)', async () => {
+    const plan = await db.admin.transaction(async (tx) => {
+      await tx.exec('set local enable_seqscan = off')
+      const result = await tx.query<{ 'QUERY PLAN': string }>(
+        `explain select t.page_id from public.page_texts t
+         where public.immutable_unaccent(lower(t.text)) like '%' || $1 || '%' escape '\\'`,
+        ['pitagoras'],
+      )
+      return result.rows.map((row) => row['QUERY PLAN']).join('\n')
+    })
+    expect(plan).toContain('page_texts_text_search_idx')
+  })
+})
+
+describe('permissões da search_pages recriada', () => {
+  it('anon não executa; authenticated executa', async () => {
+    await expect(
+      db.as('anon', (q) =>
+        q.rows('select * from public.search_pages($1, $2, 20)', [f.workspaceA, 'x']),
+      ),
+    ).rejects.toMatchObject({ code: '42501' })
+    await expect(search(diego, f.workspaceA, 'x')).resolves.toBeDefined()
+  })
+})
