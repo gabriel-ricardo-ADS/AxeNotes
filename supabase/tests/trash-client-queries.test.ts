@@ -158,11 +158,10 @@ describe('excluir definitivamente (delete … returning id)', () => {
     const grand = await makePage('neta', child)
     await trash(carla, child) // saiu antes
     await trash(carla, root)
-    await db.admin.query('insert into public.user_favorites (user_id, page_id, sort_key) values ($1, $2, $3)', [
-      carla,
-      grand,
-      'a0',
-    ])
+    await db.admin.query(
+      'insert into public.user_favorites (user_id, page_id, sort_key) values ($1, $2, $3)',
+      [carla, grand, 'a0'],
+    )
     await db.admin.query('update public.workspaces set home_page_id = $2 where id = $1', [
       f.workspaceA,
       root,
@@ -170,8 +169,12 @@ describe('excluir definitivamente (delete … returning id)', () => {
 
     expect(await del(carla, root)).toEqual([{ id: root }])
 
-    expect(await db.rows('select id from public.pages where id = any($1)', [[root, child, grand]])).toEqual([])
-    expect(await db.rows('select * from public.user_favorites where page_id = $1', [grand])).toEqual([])
+    expect(
+      await db.rows('select id from public.pages where id = any($1)', [[root, child, grand]]),
+    ).toEqual([])
+    expect(
+      await db.rows('select * from public.user_favorites where page_id = $1', [grand]),
+    ).toEqual([])
     const [workspace] = await db.rows<{ home_page_id: string | null }>(
       'select home_page_id from public.workspaces where id = $1',
       [f.workspaceA],

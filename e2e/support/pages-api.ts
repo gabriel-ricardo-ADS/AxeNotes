@@ -67,7 +67,8 @@ async function workspaceOf(client: Client, userId: string): Promise<string> {
     .order('created_at', { ascending: true })
     .limit(1)
   const workspaceId = data?.[0]?.workspace_id
-  if (error || !workspaceId) throw new Error('Não foi possível achar o workspace do usuário de teste.')
+  if (error || !workspaceId)
+    throw new Error('Não foi possível achar o workspace do usuário de teste.')
   return workspaceId
 }
 
@@ -187,7 +188,8 @@ export async function removePagesWithPrefix(
       continue
     }
     const trashed = await session.client.rpc('trash_page', { p_page_id: top.id })
-    if (trashed.error) throw new Error('Não foi possível mandar uma página de teste para a lixeira.')
+    if (trashed.error)
+      throw new Error('Não foi possível mandar uma página de teste para a lixeira.')
     const deleted = await session.client.from('pages').delete().eq('id', top.id)
     if (deleted.error) throw new Error('Não foi possível apagar uma página de teste.')
     removed += 1

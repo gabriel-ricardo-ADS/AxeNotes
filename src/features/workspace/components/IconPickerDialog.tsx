@@ -1,5 +1,11 @@
 import { Button } from '@/components/ui/button'
-import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from '@/components/ui/dialog'
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogHeader,
+  DialogTitle,
+} from '@/components/ui/dialog'
 import { ICON_CHOICES, type PageIcon } from '@/features/workspace/page-icon'
 import { t } from '@/i18n'
 

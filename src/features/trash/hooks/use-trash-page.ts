@@ -84,7 +84,9 @@ export function useTrashPage() {
     await queryClient.cancelQueries({ queryKey: pagesKey })
     const removed = readPages().filter((row) => ids.has(row.id))
     writePages((rows) => rows.filter((row) => !ids.has(row.id)))
-    await Promise.all([...ids].map((id) => queryClient.cancelQueries({ queryKey: workspaceKeys.page(id) })))
+    await Promise.all(
+      [...ids].map((id) => queryClient.cancelQueries({ queryKey: workspaceKeys.page(id) })),
+    )
     for (const id of ids) queryClient.removeQueries({ queryKey: workspaceKeys.page(id) })
     return removed
   }
