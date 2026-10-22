@@ -12,6 +12,7 @@ import {
   seedPages,
   seedWorkspace,
 } from '@/test/fake-supabase'
+import { LOCAL_DATA_OWNER_KEY } from '@/lib/local-data-owner'
 import { installMatchMedia } from '@/test/match-media'
 import { renderApp } from '@/test/render-app'
 import { useTreeUiStore } from '@/features/workspace/tree-ui-store'
@@ -72,7 +73,8 @@ describe('árvore de páginas na sidebar', () => {
 
     await user.click(screen.getByRole('button', { name: 'Recolher Leituras' }))
     expect(screen.queryByRole('treeitem', { name: 'Estudos' })).not.toBeInTheDocument()
-    expect(localStorage.length).toBe(0)
+    // Só o marcador do dono dos dados locais (do AuthProvider); nada da árvore.
+    expect(Object.keys(localStorage)).toEqual([LOCAL_DATA_OWNER_KEY])
   })
 
   it('creates a root page with only the allowed columns and opens it with the title focused', async () => {

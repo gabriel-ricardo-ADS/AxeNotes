@@ -1,3 +1,4 @@
+import { localDataBelongsTo } from '@/lib/local-data-owner'
 import { readSyncMetaEntries } from '@/lib/sync-meta-read'
 
 /**
@@ -19,10 +20,15 @@ export function registerPendingContentFlusher(fn: PendingContentFlusher): () => 
 /**
  * Tenta enviar o conteúdo pendente (com limite de tempo) ANTES do logout: depois do `signOut` a
  * sessão já não vale e o envio falharia. Sem o sync carregado (ex.: offline sem o chunk do editor),
- * não há como enviar: conta as páginas `dirty` dos metadados para o "Sair" perguntar mesmo assim.
+ * não há como enviar: conta as páginas `dirty` dos metadados para o "Sair" perguntar mesmo assim,
+ * mas só se os dados locais são de `userId` (os de outra conta não são deste logout).
  */
-export async function flushPendingContent(timeoutMs: number): Promise<{ pending: number }> {
+export async function flushPendingContent(
+  timeoutMs: number,
+  userId: string | null,
+): Promise<{ pending: number }> {
   if (!flusher) {
+    if (!localDataBelongsTo(userId)) return { pending: 0 }
     const entries = await readSyncMetaEntries()
     return { pending: entries.filter((entry) => entry.state === 'dirty').length }
   }

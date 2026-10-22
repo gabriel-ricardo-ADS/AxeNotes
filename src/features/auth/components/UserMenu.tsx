@@ -28,7 +28,7 @@ type Phase = 'idle' | 'syncing' | 'confirm' | 'signingOut'
  * sobrar algo, pergunta antes.
  */
 export function UserMenu() {
-  const { signOut } = useAuth()
+  const { session, signOut } = useAuth()
   const profile = useProfile()
   const [phase, setPhase] = useState<Phase>('idle')
   const [errorMessage, setErrorMessage] = useState<string | null>(null)
@@ -52,7 +52,7 @@ export function UserMenu() {
     // A sincronização vive no chunk do editor; carregá-lo registra quem sabe enviar o pendente
     // (inclusive de páginas fechadas). Se não carregar (offline sem cache), segue sem ele.
     await loadPageEditor().catch(() => undefined)
-    const { pending } = await flushPendingContent(SIGN_OUT_FLUSH_MS)
+    const { pending } = await flushPendingContent(SIGN_OUT_FLUSH_MS, session?.user.id ?? null)
     if (pending > 0) {
       setPhase('confirm')
       return

@@ -71,6 +71,12 @@ export async function signOut(): Promise<void> {
   if (error) fail(error)
 }
 
+/** Usuário da sessão guardada (a do JWT que o próximo pedido vai usar), sem ir à rede. */
+export async function currentSessionUserId(): Promise<string | null> {
+  const { data } = await supabase.auth.getSession()
+  return data.session?.user.id ?? null
+}
+
 export type AuthListener = (event: AuthChangeEvent, session: Session | null) => void
 
 /** Assina mudanças de sessão e devolve a função de cancelar. O listener precisa ser síncrono. */

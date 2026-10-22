@@ -47,6 +47,8 @@ function deps(
     databaseNames: () => Promise.resolve([]),
     deleteDatabase: vi.fn(() => Promise.resolve(true)),
     openPageIds: () => new Set<string>(),
+    sessionUserId: () => Promise.resolve('user-a'),
+    localDataOwner: () => 'user-a',
     log: vi.fn(),
     ...overrides,
     meta: memoryMeta(records),
@@ -86,6 +88,32 @@ describe('reenvio em segundo plano', () => {
     await resyncClosedPages(d)
     expect(d.resyncPage).toHaveBeenCalledTimes(2)
     expect(d.log).toHaveBeenCalledTimes(1)
+  })
+
+  it.each([
+    ['de outra conta', 'user-b', 'user-a'],
+    ['de dono desconhecido', 'user-b', null],
+    ['sem sessão', null, 'user-a'],
+  ])('não envia nada com dados locais %s', async (_, session, owner) => {
+    const d = deps([record('a', 'dirty'), record('b', 'dirty')], {
+      sessionUserId: () => Promise.resolve(session),
+      localDataOwner: () => owner,
+    })
+    await resyncClosedPages(d, Number.POSITIVE_INFINITY)
+    expect(d.resyncPage).not.toHaveBeenCalled()
+  })
+
+  it('para no meio da rodada se a sessão troca de conta', async () => {
+    let session = 'user-a'
+    const d = deps([record('a', 'dirty'), record('b', 'dirty')], {
+      sessionUserId: () => Promise.resolve(session),
+      resyncPage: vi.fn(() => {
+        session = 'user-b'
+        return Promise.resolve()
+      }),
+    })
+    await resyncClosedPages(d)
+    expect(vi.mocked(d.resyncPage).mock.calls).toEqual([['a']])
   })
 
   it('bancos de página sem registro (do 2a) entram como dirty', async () => {
@@ -139,6 +167,11 @@ describe('pendente no logout', () => {
       record('d', 'dirty'),
     ])
     expect(await countPendingPages(d)).toBe(2)
+  })
+
+  it('não conta as dirty de dados locais de outra conta', async () => {
+    const d = deps([record('a', 'dirty')], { localDataOwner: () => 'user-b' })
+    expect(await countPendingPages(d)).toBe(0)
   })
 
   it('sem metadados legíveis, não trava o logout', async () => {
