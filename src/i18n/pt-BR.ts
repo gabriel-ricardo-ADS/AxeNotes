@@ -118,6 +118,8 @@ export const ptBR = {
       samePassword: 'A nova senha precisa ser diferente da atual.',
       network: 'Sem conexão. Verifique a internet e tente de novo.',
       unknown: 'Algo deu errado. Tente novamente.',
+      localDataNotCleared:
+        'Não foi possível apagar deste aparelho os dados de outra conta. Feche as outras abas do AxeNotes e entre de novo.',
     },
   },
   home: {

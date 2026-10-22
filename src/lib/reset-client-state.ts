@@ -1,6 +1,7 @@
 import type { QueryClient } from '@tanstack/react-query'
 import { resetAllStores } from '@/lib/create-store'
 import { forgetOpenedDatabases, openedDatabases, pageDbName, SYNC_META_DB } from '@/lib/idb-names'
+import { clearLocalDataOwner } from '@/lib/local-data-owner'
 import { readSyncMetaEntries } from '@/lib/sync-meta-read'
 
 /**
@@ -30,7 +31,7 @@ let pending: Promise<void> | null = null
 /**
  * Ponto ÚNICO de limpeza do cliente ao sair (ou ao trocar de conta). Apaga o cache do TanStack
  * Query e devolve as stores Zustand ao estado inicial na hora, antes do próximo render; depois apaga
- * IndexedDB, service workers e Cache Storage. Erros de limpeza só vão para o log: o logout segue.
+ * IndexedDB, service workers, Cache Storage e o marcador do dono dos dados locais. Erros de limpeza só vão para o log: o logout segue.
  * Chamadas enquanto uma limpeza está em andamento recebem a mesma promise (roda uma vez por logout).
  * A sessão do Supabase não é tocada aqui: o `signOut` cuida dela.
  */
@@ -42,6 +43,11 @@ export function resetClientState(queryClient: QueryClient): Promise<void> {
   pending = clearBrowserStorage().finally(() => {
     pending = null
   })
+  return pending
+}
+
+/** A limpeza em andamento, se houver (o `AuthProvider` só libera uma nova sessão depois dela). */
+export function clientStateResetInProgress(): Promise<void> | null {
   return pending
 }
 
@@ -58,6 +64,9 @@ async function clearBrowserStorage(): Promise<void> {
       console.error(`Falha ao limpar ${steps[index]?.[0] ?? ''} no logout`, result.reason)
     }
   })
+  // O marcador do dono (src/lib/local-data-owner.ts) só sai com o IndexedDB apagado: se a limpeza
+  // falhou, a próxima conta diferente que entrar tenta de novo.
+  if (results[0]?.status === 'fulfilled') clearLocalDataOwner()
 }
 
 async function deleteDatabases(): Promise<void> {

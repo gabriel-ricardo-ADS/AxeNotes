@@ -1,7 +1,9 @@
+import { currentSessionUserId } from '@/features/auth/api/auth'
 import { openPageDoc } from '@/features/sync/page-doc'
 import { openSyncSessions, PageSyncSession, supabaseSync } from '@/features/sync/supabase-sync'
 import { indexedDbSyncMeta, type SyncMeta } from '@/features/sync/sync-meta'
 import { pageDbName, pageIdFromDbName } from '@/lib/idb-names'
+import { readLocalDataOwner } from '@/lib/local-data-owner'
 import { registerPendingContentFlusher } from '@/lib/pending-content'
 
 /** Banco de página sem abrir há mais que isto (e sem nada pendente) é apagado do aparelho. */
@@ -18,19 +20,35 @@ export interface BackgroundDeps {
   databaseNames: () => Promise<string[] | null>
   deleteDatabase: (name: string) => Promise<boolean>
   openPageIds: () => ReadonlySet<string>
+  /** Usuário da sessão do Supabase: o dono do JWT com que o envio sairia. */
+  sessionUserId: () => Promise<string | null>
+  /** Dono gravado dos dados locais (src/lib/local-data-owner.ts). */
+  localDataOwner: () => string | null
   log: (message: string, error?: unknown) => void
 }
 
 /**
+ * Os registros locais são do usuário da sessão? Se não (dono desconhecido, outra conta ou sem
+ * sessão), nada deles é enviado nem contado: sairia com o JWT de quem não os escreveu.
+ */
+async function ownsLocalData(deps: BackgroundDeps): Promise<boolean> {
+  const owner = deps.localDataOwner()
+  return owner !== null && owner === (await deps.sessionUserId())
+}
+
+/**
  * Páginas `dirty` que não estão abertas nesta aba: abre cada uma, envia o que o servidor não tem e
- * fecha. As `blocked` ficam de fora (não entram em loop).
+ * fecha. As `blocked` ficam de fora (não entram em loop). Só envia se os dados locais são do usuário
+ * da sessão, conferido antes de cada página (a sessão pode trocar no meio da rodada).
  */
 export async function resyncClosedPages(deps: BackgroundDeps, limit = RESYNC_BATCH): Promise<void> {
+  if (!(await ownsLocalData(deps))) return
   const open = deps.openPageIds()
   const dirty = (await deps.meta.list()).filter(
     (record) => record.state === 'dirty' && !open.has(record.pageId),
   )
   for (const record of dirty.slice(0, limit)) {
+    if (!(await ownsLocalData(deps))) return
     try {
       await deps.resyncPage(record.pageId)
     } catch (error) {
@@ -71,7 +89,10 @@ export async function evictStalePages(deps: BackgroundDeps): Promise<void> {
   }
 }
 
-/** Quantas páginas ainda têm algo sem sincronizar (abertas aqui ou marcadas `dirty` em qualquer aba). */
+/**
+ * Quantas páginas ainda têm algo sem sincronizar: as abertas aqui e as marcadas `dirty` em qualquer
+ * aba, estas só se os dados locais são do usuário da sessão.
+ */
 export async function countPendingPages(deps: BackgroundDeps): Promise<number> {
   const pending = new Set(
     openSyncSessions()
@@ -79,6 +100,7 @@ export async function countPendingPages(deps: BackgroundDeps): Promise<number> {
       .map((session) => session.pageId),
   )
   try {
+    if (!(await ownsLocalData(deps))) return pending.size
     for (const record of await deps.meta.list()) {
       if (record.state === 'dirty') pending.add(record.pageId)
     }
@@ -147,6 +169,8 @@ const browserDeps: BackgroundDeps = {
       : null,
   deleteDatabase,
   openPageIds: () => new Set(openSyncSessions().map((session) => session.pageId)),
+  sessionUserId: currentSessionUserId,
+  localDataOwner: readLocalDataOwner,
   log: (message, error) => {
     console.warn(message, error)
   },
