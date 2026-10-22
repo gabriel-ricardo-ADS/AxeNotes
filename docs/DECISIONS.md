@@ -273,6 +273,10 @@ A T4 é só cliente: **sem migration** (as tabelas e RPCs vieram na T2). A DECIS
   `trashed_at` do pai (filho lixeado antes do pai segue visível e restaurável por conta própria). "+N subpáginas" conta
   só os descendentes com o **mesmo** `trashed_at` da raiz.
 - Mandar para a lixeira a página aberta (ou uma que a contém) navega para a **página-pai**, ou para `/` se for raiz.
+- **Mudança na Fase 2a (Gabriel, 2026-10-22):** página na lixeira **abre só para leitura** (antes: "Página não
+  encontrada"), com aviso "Esta página está na lixeira" e link para a `/lixeira`; o título de cada item da lixeira
+  vira link para a página. Título, ícone e editor sem edição; não grava visita nem oferece favoritar. Não revela nada
+  novo: só membros do workspace enxergam a página (RLS).
 - "Excluir definitivamente" com `AlertDialog` (`radix-ui`, já dependência) e `parent_trashed` com mensagem clara em pt-BR.
 - **Mandar para a lixeira:** item "Mover para a lixeira" no menu "…" da linha da árvore e no novo "…" do topo da página
   (editor/owner; **não** aparece para leitor, para a página inicial nem para página que a contém — `canTrash`). Pela
@@ -327,6 +331,9 @@ Dialog, que já existia; nada de `cmdk`). Nenhuma decisão nova.
   para "criar link" e chama `preventDefault`, mas o evento ainda sobe ao `document`. Nosso atalho já ignora
   `defaultPrevented`. Proposta: dentro do editor, **com texto selecionado = link, sem seleção = busca**, e o botão "Buscar"
   nunca depende de atalho. A regra final fica para a decisão da Fase 2.
+  **Resolvido na Fase 2a (2026-10-22), sem código novo:** o BlockNote 0.56 só captura Ctrl/⌘+K quando a barra de
+  formatação está aberta (com seleção) e aí chama `preventDefault`; como a busca ignora `defaultPrevented`, vale a regra
+  proposta (com seleção = link, sem seleção = busca). Coberto pelo e2e `e2e/editor.spec.ts`.
 - **Fora desta entrega:** busca no conteúdo (Fase 2+), filtros, busca tolerante a erros, destaque do trecho, Ctrl/Cmd+clique
   para abrir em outra aba, histórico de buscas e criar página a partir da busca.
 

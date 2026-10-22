@@ -76,9 +76,30 @@ mudança no editor, isso precisa ser **decidido antes** de abrir a Fase 2 (junto
 code-splitting por rota (dois chunks lazy + vendors `react`, `supabase` e `vendor`; entrada de 876,93 kB para
 36,54 kB, com recarga única quando um chunk antigo some depois de um deploy) e CSP + headers de segurança em
 `public/_headers` (`docs/DEPLOY.md`).
-- ADR curto em `docs/` confirmando a DECISÃO-012/016 antes de codar: log de updates Yjs com
-  compactação na tabela `page_contents`.
-- BlockNote + `@blocknote/shadcn`, tema escuro com nossos tokens, idioma pt-BR.
+- **Dividida em três PRs:** 2a, 2b e 2c.
+- **2a — ADR + editor local (feita):** ADR `docs/adr/0001-conteudo-yjs.md` (confirma a DECISÃO-012/016:
+  formato de `page_contents`, compactação com retenção, limites, corrida entre aparelhos, snapshot de busca, riscos do
+  armazenamento local). Editor BlockNote (`@blocknote/shadcn`, tema escuro com os tokens, pt-BR) abaixo do título, num
+  chunk próprio; Y.Doc por página com `y-indexeddb` (`axenotes-page-<id>`), sem Supabase; trocar de página destrói o
+  editor e o doc; IndexedDB falhando cai para memória com aviso; aviso fixo "Prévia: o conteúdo fica salvo só neste
+  aparelho."; blocos nativos (texto, títulos, listas, checklist, toggle, citação, código, divisor, tabela), sem mídia;
+  leitor e página na lixeira em só leitura (a página na lixeira passa a abrir, com aviso); logout fecha os docs e apaga
+  os bancos `axenotes-page-*`; ponto de extensão `ContentSync` para o 2b; CSP conferida sem mudança.
+- **2b — sincronização (próximo):** migration `page_contents` + `page_texts` + RPCs do ADR (com testes de RLS em PGlite;
+  o Gabriel aplica), envio dos updates com debounce via `ContentSync`, compactação com retenção, snapshot de texto/JSON,
+  busca no conteúdo, indicador "Salvo / Salvando / Offline — será sincronizado", **remover o aviso de prévia**, logout
+  esperando os updates pendentes (ou avisando) antes de apagar o IndexedDB, despejo dos bancos `axenotes-page-*` antigos.
+  **Pronto quando:** editar no navegador A (inclusive offline), voltar online e ver o conteúdo no navegador B; dois
+  aparelhos editando a mesma página convergem; compactação provada em PGlite sem perder update concorrente; busca
+  acha uma palavra do corpo; logout com update pendente não perde nada; aviso de prévia removido.
+- **2c — blocos e mobile (depois do 2b):** `callout` e `pageLink`/`subpage`, menu do bloco (Transformar em, Cor,
+  Duplicar, Excluir, Link do bloco), alça ao tocar, barra acima do teclado (`visualViewport`; avaliar a meta viewport
+  `interactive-widget=resizes-content` que o BlockNote pede) e menus em bottom sheet.
+  **Pronto quando:** recriar a Home (`01-home.jpg`) sem colunas; no iPhone e no iPad, inserir e transformar blocos só
+  com toque, com a barra acima do teclado.
+
+Escopo original da fase (repartido acima entre 2a, 2b e 2c):
+- BlockNote + `@blocknote/shadcn`, tema escuro com nossos tokens, idioma pt-BR. (2a)
 - Conteúdo da página como Y.Doc: `y-indexeddb` (offline), gravação dos updates Yjs em
   `page_contents` com debounce e compactação periódica, e snapshot de texto/JSON para busca e
   prévias. A busca passa a cobrir o conteúdo, além do título.
@@ -90,10 +111,11 @@ code-splitting por rota (dois chunks lazy + vendors `react`, `supabase` e `vendo
 - Mobile: alça ao tocar, barra acima do teclado, menus em bottom sheet.
 - O logout espera a sincronização dos updates Yjs pendentes ou avisa que há alterações não salvas antes de apagar
   o IndexedDB (a limpeza em si já existe: `src/lib/reset-client-state.ts`). Registrar o nome (ou prefixo) dos
-  bancos do y-indexeddb em `KNOWN_IDB_DATABASES`, para navegadores sem `indexedDB.databases()`.
+  bancos do y-indexeddb em `KNOWN_IDB_DATABASES`, para navegadores sem `indexedDB.databases()`. (2a: prefixo
+  `axenotes-page-` e bancos abertos na aba apagados no logout; esperar os pendentes fica para o 2b.)
 - Revisar a CSP (`public/_headers`) com o BlockNote: estilos e atributos `style` do editor não podem gerar
-  violação no Console.
-**Pronto quando:** recriar a Home (`01-home.jpg`) sem colunas; editar offline (DevTools offline),
+  violação no Console. (2a: conferida, sem mudança; `docs/DEPLOY.md`.)
+**Pronto quando (fase inteira):** recriar a Home (`01-home.jpg`) sem colunas; editar offline (DevTools offline),
 voltar online e ver salvo em outro navegador.
 
 ## Fase 3 — Imagens, PDFs e links
