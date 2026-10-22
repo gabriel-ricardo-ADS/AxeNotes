@@ -1,7 +1,12 @@
 import { QueryClient } from '@tanstack/react-query'
 import type { MockInstance } from 'vitest'
 import { useSearchStore } from '@/features/search/search-store'
-import { KNOWN_IDB_DATABASES, resetClientState } from '@/lib/reset-client-state'
+import { forgetOpenedDatabases, pageDbName, rememberOpenedDatabase } from '@/lib/idb-names'
+import {
+  KNOWN_IDB_DATABASES,
+  onBeforeStorageClear,
+  resetClientState,
+} from '@/lib/reset-client-state'
 
 /** Pedido de `deleteDatabase` que termina como o navegador faria (sucesso, bloqueado ou erro). */
 function fakeDeleteRequest(outcome: 'success' | 'blocked' | 'error' = 'success') {
@@ -37,6 +42,7 @@ beforeEach(() => {
 })
 
 afterEach(() => {
+  forgetOpenedDatabases()
   vi.unstubAllGlobals()
   Reflect.deleteProperty(navigator, 'serviceWorker')
   errorLog.mockRestore()
@@ -86,6 +92,50 @@ describe('resetClientState', () => {
     await resetClientState(new QueryClient())
 
     expect(deleteDatabase.mock.calls).toEqual(KNOWN_IDB_DATABASES.map((name) => [name]))
+  })
+
+  it('without indexedDB.databases(), also deletes the page databases opened in this tab', async () => {
+    const deleteDatabase = vi.fn(() => fakeDeleteRequest())
+    vi.stubGlobal('indexedDB', { deleteDatabase })
+    rememberOpenedDatabase(pageDbName('p1'))
+    rememberOpenedDatabase(pageDbName('p2'))
+
+    await resetClientState(new QueryClient())
+
+    expect(deleteDatabase.mock.calls).toEqual(
+      expect.arrayContaining([['axenotes-page-p1'], ['axenotes-page-p2']]),
+    )
+    // Os nomes saem do registro junto com os bancos.
+    deleteDatabase.mockClear()
+    await resetClientState(new QueryClient())
+    expect(deleteDatabase).not.toHaveBeenCalled()
+  })
+
+  it('runs the before-clear tasks before deleting, and a failing task does not stop the logout', async () => {
+    const order: string[] = []
+    const deleteDatabase = vi.fn(() => {
+      order.push('delete')
+      return fakeDeleteRequest()
+    })
+    vi.stubGlobal('indexedDB', {
+      databases: vi.fn(() => Promise.resolve([{ name: 'axenotes-page-p1' }])),
+      deleteDatabase,
+    })
+    const closeDocs = onBeforeStorageClear(async () => {
+      await Promise.resolve()
+      order.push('close docs')
+    })
+    const failing = onBeforeStorageClear(() => Promise.reject(new Error('falhou')))
+
+    await resetClientState(new QueryClient())
+    closeDocs()
+    failing()
+
+    expect(order).toEqual(['close docs', 'delete'])
+    expect(errorLog).toHaveBeenCalledWith(
+      'Falha ao preparar a limpeza do IndexedDB no logout',
+      expect.anything(),
+    )
   })
 
   it('does not hang when a database is blocked by another tab', async () => {
