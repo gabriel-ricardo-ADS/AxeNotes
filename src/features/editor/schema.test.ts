@@ -45,6 +45,6 @@ describe('editor schema (Fase 2a)', () => {
 
   it('uses the AxeNotes placeholders', () => {
     expect(editorDictionary.placeholders.default).toBe("Digite '/' para comandos")
-    expect(editorDictionary.placeholders.toggleListItem).toBe('Lista recolhível')
+    expect(editorDictionary.placeholders.toggleListItem).toBe('Lista expansível')
   })
 })

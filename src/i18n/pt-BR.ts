@@ -282,7 +282,7 @@ export const ptBR = {
       default: "Digite '/' para comandos",
       heading: 'Título',
       list: 'Lista',
-      toggle: 'Lista recolhível',
+      toggle: 'Lista expansível',
     },
   },
 } as const
