@@ -5,8 +5,17 @@
  */
 @import 'tailwindcss/theme.css' theme(reference inline);
 @import '../../styles/theme.css' theme(reference);
-@import 'tailwindcss/utilities.css' layer(utilities) source(none);
 @import '@blocknote/shadcn/style.css';
+
+/*
+ * Utilitários SÓ dentro das raízes do BlockNote (editor e menus flutuantes). Sem o escopo, um
+ * `.flex-col` daqui chega depois do `md:flex-row` do app e desmonta o layout da página inteira.
+ */
+@layer utilities {
+  .bn-root {
+    @tailwind utilities source(none);
+  }
+}
 
 @source '../../../node_modules/@blocknote/shadcn/dist';
 
@@ -66,10 +75,27 @@
   --bn-colors-highlights-pink-background: var(--c-pink-block);
 }
 
+/* O BlockNote fixa a pilha "Inter, …" (sem a Inter Variable que o app carrega): usa a fonte do app. */
+.bn-root .bn-default-styles,
+.bn-root.bn-default-styles {
+  font-family: var(--bn-font-family);
+}
+
 /* O texto dos blocos alinha com o título; a alça "+ ⋮⋮" fica na margem do artigo. */
 .axn-editor .bn-editor {
   padding-inline: 0;
   font-size: var(--text-body);
+}
+
+/* Cores fixas do BlockNote (pensadas para o tema claro) trocadas pelos tokens. */
+.axn-editor [data-content-type='table'] th,
+.axn-editor [data-content-type='table'] td {
+  border-color: var(--border);
+}
+
+.axn-editor [data-content-type='quote'] blockquote {
+  color: var(--text);
+  border-left-color: var(--text);
 }
 
 /* Títulos dos blocos na escala do app: H1 30, H2 24, H3 20. */
