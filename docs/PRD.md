@@ -8,18 +8,20 @@ Um "caderno digital" pessoal no estilo Notion: páginas que podem conter qualque
 links, imagens, vídeos, checklists, tabelas, bases de dados), organizadas em árvore, divididas em
 colunas e acessíveis do PC e do celular, com agenda e lembretes.
 
-**Usuária principal:** estudante universitária e designer freelancer, usa o Notion em tema escuro,
-todos os dias, para: matérias da faculdade (páginas por semestre/matéria/módulo), controle de
-leituras (base de livros com nota, formato, status e capa), estudo de inglês (bases de vocabulário),
-projetos de clientes, metas pessoais, checklists rápidos e agenda (compromissos com horário).
+**Pessoa usuária principal:** uma pessoa que organiza leituras, estudos e projetos de trabalho, e
+usa o Notion em tema escuro todos os dias para: estudos (páginas por período/matéria/módulo),
+controle de leituras (base de livros com nota, formato, status e capa), bases simples de estudo
+(tags coloridas), projetos de trabalho, metas pessoais, checklists rápidos e agenda (compromissos
+com horário).
 
-**Princípio de produto:** recriar a *sensação* do Notion que ela já ama (escuro, limpo, blocos com
-alça "⋮⋮", menu "/", páginas com capa e ícone, bases coloridas) — sem tentar copiar o Notion inteiro.
+**Princípio de produto:** recriar a *sensação* do Notion que essa pessoa já ama (escuro, limpo,
+blocos com alça "⋮⋮", menu "/", páginas com capa e ícone, bases coloridas) — sem tentar copiar o
+Notion inteiro.
 
-**Critério de sucesso do MVP:** a cliente consegue montar no AxeNotes, sozinha, a página
-"Cantinho de Leitura 2026" do print (callout com citação, 3 colunas, checklist, galeria filtrada
-"Leitura atual" e tabela "Leituras de 2026" com nota em estrelas, formato e status) e usá-la no PC
-e no celular.
+**Critério de sucesso do MVP:** a cliente consegue montar no AxeNotes, sozinha, o painel de
+leituras do print (callout com citação, 3 colunas, checklist, galeria filtrada das leituras em
+andamento e tabela das leituras do ano com nota em estrelas, formato e status) e usá-lo no PC e no
+celular.
 
 ## 2. Requisitos da entrevista → funcionalidades
 
@@ -63,7 +65,7 @@ e no celular.
 ### 3.3 Página (MVP)
 - Capa opcional (imagem/GIF enviada ou de galeria), com "Trocar" e "Reposicionar".
 - Ícone opcional (emoji ou imagem pequena) e título grande.
-- Breadcrumb no topo ("Home / Cantinho de Leitura 2026"), "Editada há X", favoritar, menu "…".
+- Breadcrumb no topo ("Home / Leituras"), "Editada há X", favoritar, menu "…".
 - Hover em link de página mostra prévia (desktop).
 - Largura: padrão centralizada; opção "largura total" (as páginas da cliente usam largura total
   com 3 colunas).
@@ -111,7 +113,7 @@ Tipos de bloco:
 - Galeria: card com capa (propriedade de imagem ou primeira imagem do conteúdo), título e
   propriedades escolhidas (ex.: autor e mês), tamanho de card P/M/G.
 - Vista vinculada: inserir em outra página uma vista de uma base existente com filtro próprio
-  (ex.: "Leitura atual" = galeria filtrada por Status = Em andamento).
+  (ex.: "Em andamento" = galeria filtrada por Status = Em andamento).
 - Exportar base como CSV (V1). Importar CSV (V1).
 
 ### 3.6 Agenda (V1)
