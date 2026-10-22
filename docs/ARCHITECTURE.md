@@ -328,6 +328,19 @@ Editor (BlockNote) ── Y.Doc ──┬─ y-indexeddb (aparelho, offline)
     update ainda não enviado; online o envio acontece em até ~5 s, então a janela é mínima. Offline o refresh falha por
     rede e o supabase-js não desloga. O "Sair" de outra aba lê as flags `dirty` do `axenotes-sync` (inclusive das
     páginas abertas aqui) e avisa.
+  - **Dono dos dados locais** (`src/lib/local-data-owner.ts`): o localStorage `axenotes-local-owner` guarda o id do
+    usuário dono dos bancos `axenotes-page-*` e `axenotes-sync`. Fecha a troca de conta **sem** `SIGNED_OUT` no meio
+    (a sessão de A expira com o app fechado: o primeiro evento é `INITIAL_SESSION` nulo, e B entra em seguida). Quem
+    entra com um id diferente do dono gravado dispara `resetClientState`, e o `AuthProvider` segura a sessão nova até
+    a limpeza acabar (em `loading` ao abrir o app; `unauthenticated` vindo das telas de entrar/recuperar, que não
+    desmontam); só então grava o novo dono. Se a limpeza falha (o dono continua o antigo) ou passa de 10 s, a sessão
+    nova não entra: o app sai (`signOut` local, que tenta limpar de novo) e a tela de entrar avisa
+    (`localDataError`). Sem conta nenhuma (ou com a própria A de volta), os
+    dados ficam: A pode voltar e enviar o pendente. O reenvio em segundo plano e a contagem do "Sair" só consideram
+    os registros quando o dono é o usuário da sessão (o dono do JWT do envio), conferido antes de cada página. O
+    marcador sai no logout só depois de o IndexedDB ser apagado; se a limpeza falhar, a próxima conta diferente tenta
+    de novo. Limitações: dados de antes do marcador (sem dono) passam a ser de quem entrar primeiro; sem localStorage
+    não há dono, e o segundo plano não envia nada (só a página aberta sincroniza).
 
 ## 6. Lembretes, notificações e agenda
 
@@ -362,7 +375,7 @@ Editor (xl-ai) ──► Edge Function ai-proxy (valida JWT, limite de uso, lê 
 - Repositório público: push protection e secret scanning do GitHub ligados.
 - **Logout limpo (ponto único):** `resetClientState(queryClient)` em `src/lib/reset-client-state.ts`, chamado
   pelo `AuthProvider` no evento `SIGNED_OUT` (botão "Sair", sessão expirada ou logout em outra aba) e na troca
-  de usuário; o "Sair" espera a mesma limpeza (roda uma vez por logout). Na hora, antes do próximo render:
+  de usuário, inclusive quando quem entra não é o dono gravado dos dados locais (§5); o "Sair" espera a mesma limpeza (roda uma vez por logout). Na hora, antes do próximo render:
   cancela e apaga o cache do TanStack Query e devolve **todas** as stores Zustand ao estado inicial. Depois:
   apaga os bancos IndexedDB do app, desregistra service workers e apaga o Cache Storage. Erros de limpeza só vão
   para o log (sem dados da conta) e não impedem o logout. A sessão do Supabase fica por conta do `signOut`.
