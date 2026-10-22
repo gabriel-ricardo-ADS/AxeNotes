@@ -31,6 +31,8 @@ jobs:
             script: build
           - name: licenses
             script: license:check
+          - name: knip
+            script: knip
     steps:
       - uses: actions/checkout@v7.0.1
 

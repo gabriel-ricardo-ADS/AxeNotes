@@ -8,8 +8,6 @@ export const USERS = {
   diego: '00000000-0000-4000-8000-0000000000d1', // leitor no workspace A
 } as const
 
-export type UserName = keyof typeof USERS
-
 export const PAGES = {
   estudos: '10000000-0000-4000-8000-000000000001', // A, raiz
   matematica: '10000000-0000-4000-8000-000000000002', // A, filha de estudos
@@ -25,7 +23,7 @@ export interface Fixtures {
   workspaceB: string
 }
 
-export async function personalWorkspaceOf(db: TestDb, userId: string): Promise<string> {
+async function personalWorkspaceOf(db: TestDb, userId: string): Promise<string> {
   const rows = await db.rows<{ workspace_id: string }>(
     "select workspace_id from public.workspace_members where user_id = $1 and role = 'owner'",
     [userId],

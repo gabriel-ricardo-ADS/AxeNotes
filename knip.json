@@ -1,0 +1,15 @@
+{
+  "$schema": "https://unpkg.com/knip@6/schema.json",
+  "entry": ["e2e/*.setup.ts", "scripts/*.mjs"],
+  "project": [
+    "src/**/*.{ts,tsx,css}",
+    "e2e/**/*.ts",
+    "scripts/**/*.{ts,mjs}",
+    "supabase/tests/**/*.ts"
+  ],
+  "ignore": ["src/lib/database.types.ts", "src/components/ui/**"],
+  "playwright": {
+    "config": ["playwright.config.ts"],
+    "entry": ["e2e/**/*.spec.ts", "e2e/*.setup.ts"]
+  }
+}
