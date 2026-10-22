@@ -91,8 +91,10 @@ end;
 $$;
 
 -- Retenção: apaga linhas substituídas há mais de 7 dias, menos os 3 snapshots substituídos mais
--- recentes da página (proteção contra snapshot ruim). Chamada pela compactação; o pg_cron diário
--- para páginas que não compactam mais entra na Fase 6.
+-- recentes da página (proteção contra snapshot ruim). Teto de volume: além desses 3, o substituído
+-- de uma página não passa de 64 MiB (os mais antigos saem antes dos 7 dias), para que ciclos de
+-- append + compactação não façam o histórico crescer sem limite. Chamada pela compactação; o
+-- pg_cron diário para páginas que não compactam mais entra na Fase 6.
 create function public.prune_page_contents(p_page_id uuid)
 returns integer
 language plpgsql
@@ -107,12 +109,18 @@ begin
     where c.page_id = p_page_id and c.kind = 'snapshot' and c.superseded_at is not null
     order by c.superseded_at desc, c.id desc
     limit 3
+  ),
+  retained as (
+    select c.id, c.superseded_at,
+      sum(c.byte_size) over (order by c.superseded_at desc, c.id desc) as running_bytes
+    from public.page_contents c
+    where c.page_id = p_page_id and c.superseded_at is not null
+      and c.id not in (select keep.id from keep)
   )
   delete from public.page_contents c
-  where c.page_id = p_page_id
-    and c.superseded_at is not null
-    and c.superseded_at < now() - interval '7 days'
-    and c.id not in (select keep.id from keep);
+  using retained r
+  where c.id = r.id
+    and (r.superseded_at < now() - interval '7 days' or r.running_bytes > 67108864);
   get diagnostics v_count = row_count;
   return v_count;
 end;
@@ -337,8 +345,11 @@ as $$
       and q.term <> ''
       and public.immutable_unaccent(lower(p.title)) like '%' || q.term || '%' escape '\'
     union
+    -- O join limita o corpo às páginas do workspace (sem ele, a busca percorreria page_texts de todos).
     select t.page_id
-    from public.page_texts t, q
+    from public.page_texts t
+    join public.pages p on p.id = t.page_id and p.workspace_id = p_workspace_id
+    cross join q
     where q.term <> ''
       and public.immutable_unaccent(lower(t.text)) like '%' || q.term || '%' escape '\'
   ),

@@ -398,6 +398,26 @@ describe('abrir: recebe e envia o que falta', () => {
     expect(textOf(doc)).toBe('def')
   })
 
+  it('uma linha corrompida no servidor é pulada e não trava a página', async () => {
+    const server = new FakeServer()
+    server.push(updateWith('antes '))
+    server.push(new Uint8Array([1]))
+    server.push(updateWith('depois'))
+    const { doc, session, env } = setup({
+      server,
+      local: (local) => {
+        type(local, 'local')
+      },
+    })
+    await vi.advanceTimersByTimeAsync(SYNC_TIMING.idleMs)
+    expect(textOf(doc)).toContain('antes')
+    expect(textOf(doc)).toContain('depois')
+    expect(env.log).toHaveBeenCalledWith('Linhas de conteúdo inválidas ignoradas', [2])
+    // O que é local continua indo para o servidor.
+    expect(server.api.append).toHaveBeenCalledTimes(1)
+    expect(session.getStatus()).toBe('saved')
+  })
+
   it('missingOnServer: nada a enviar quando o servidor já tem tudo', () => {
     const doc = new Y.Doc()
     type(doc, 'igual')

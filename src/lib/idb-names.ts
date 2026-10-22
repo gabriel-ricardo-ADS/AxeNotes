@@ -6,6 +6,7 @@ const PAGE_DB_PREFIX = 'axenotes-page-'
 
 /** Metadados da sincronização (estado e última abertura de cada página), nome fixo. */
 export const SYNC_META_DB = 'axenotes-sync'
+export const SYNC_META_STORE = 'pages'
 
 export const pageDbName = (pageId: string): string => `${PAGE_DB_PREFIX}${pageId}`
 

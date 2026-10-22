@@ -149,6 +149,24 @@ describe('search_pages no corpo (page_texts)', () => {
     })
     expect(plan).toContain('page_texts_text_search_idx')
   })
+
+  it('com RLS (authenticated), o corpo fica limitado às páginas do workspace', async () => {
+    // Sob RLS o `like` (não leakproof) não vira condição de índice; o join por workspace evita
+    // percorrer page_texts de todos os workspaces.
+    const plan = await db.as({ userId: ana }, async (q) => {
+      await q.rows('set local enable_seqscan = off')
+      const rows = await q.rows<{ 'QUERY PLAN': string }>(
+        `explain select t.page_id from public.page_texts t
+         join public.pages p on p.id = t.page_id and p.workspace_id = $1
+         where public.immutable_unaccent(lower(t.text)) like '%' || $2 || '%' escape '\\'`,
+        [f.workspaceA, 'pitagoras'],
+      )
+      return rows.map((row) => row['QUERY PLAN']).join('\n')
+    })
+    expect(plan).toContain('pages_tree_idx')
+    expect(plan).toContain('page_texts_pkey')
+    expect(plan).not.toMatch(/Seq Scan on page_texts/)
+  })
 })
 
 describe('permissões da search_pages recriada', () => {

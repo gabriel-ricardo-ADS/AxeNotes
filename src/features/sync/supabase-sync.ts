@@ -79,11 +79,29 @@ export function snapshotMatches(snapshot: Uint8Array, stateVector: Uint8Array): 
   }
 }
 
+/**
+ * Aplica as linhas uma a uma: uma linha corrompida (bug ou update inválido gravado por alguém) é
+ * pulada e registrada só pelo id, sem impedir as outras de chegar. Devolve os ids pulados.
+ */
+function applyRows(doc: Y.Doc, rows: readonly ContentRow[], origin: unknown = null): number[] {
+  const skipped: number[] = []
+  doc.transact(() => {
+    for (const row of rows) {
+      try {
+        Y.applyUpdate(doc, row.data, origin)
+      } catch {
+        skipped.push(row.id)
+      }
+    }
+  }, origin)
+  return skipped
+}
+
 /** O que o aparelho tem e o servidor (montado com `rows`) não tem; `null` se não falta nada. */
 export function missingOnServer(doc: Y.Doc, rows: readonly ContentRow[]): Uint8Array | null {
   const server = new Y.Doc()
   try {
-    if (rows.length > 0) Y.applyUpdate(server, Y.mergeUpdates(rows.map((row) => row.data)))
+    applyRows(server, rows)
     const missing = Y.encodeStateAsUpdate(doc, Y.encodeStateVector(server))
     return Y.snapshotContainsUpdate(Y.snapshot(server), missing) ? null : missing
   } finally {
@@ -123,6 +141,7 @@ export class PageSyncSession implements ContentSyncSession {
   private offline = false
   private stopped = false
   private metaState: SyncMetaState | null = null
+  private readonly metaWrites = new Set<Promise<void>>()
 
   private textSource: (() => readonly TextBlock[]) | null = null
   private lastTextKey: string | null = null
@@ -206,6 +225,8 @@ export class PageSyncSession implements ContentSyncSession {
       SYNC_TIMING.stopFlushMs,
     )
     this.stopped = true
+    // Espera as gravações de metadados: no logout, nada pode recriar o `axenotes-sync` depois.
+    await Promise.allSettled([...this.metaWrites])
     for (const name of [...this.timers.keys()]) this.clearTimer(name)
     this.doc.off('update', this.onDocUpdate)
     this.env.windowTarget.removeEventListener('focus', this.onFocus)
@@ -415,8 +436,9 @@ export class PageSyncSession implements ContentSyncSession {
         this.sinceSnapshot.bytes += row.byteSize
       }
     }
-    if (fresh.length > 0) {
-      Y.applyUpdate(this.doc, Y.mergeUpdates(fresh.map((row) => row.data)), SERVER_ORIGIN)
+    const skipped = applyRows(this.doc, fresh, SERVER_ORIGIN)
+    if (skipped.length > 0) {
+      this.env.log('Linhas de conteúdo inválidas ignoradas', skipped)
     }
     this.maybeCompact()
     return rows
@@ -566,8 +588,13 @@ export class PageSyncSession implements ContentSyncSession {
   }
 
   private writeMeta(task: () => Promise<void>): void {
-    task().catch((error: unknown) => {
+    if (this.stopped) return
+    const write = task().catch((error: unknown) => {
       this.env.log('Falha ao gravar os metadados da sincronização', error)
+    })
+    this.metaWrites.add(write)
+    void write.finally(() => {
+      this.metaWrites.delete(write)
     })
   }
 

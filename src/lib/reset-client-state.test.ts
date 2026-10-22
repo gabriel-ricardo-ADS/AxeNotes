@@ -1,6 +1,7 @@
 import { QueryClient } from '@tanstack/react-query'
 import type { MockInstance } from 'vitest'
 import { useSearchStore } from '@/features/search/search-store'
+import { indexedDbSyncMeta } from '@/features/sync/sync-meta'
 import { forgetOpenedDatabases, pageDbName, rememberOpenedDatabase } from '@/lib/idb-names'
 import {
   KNOWN_IDB_DATABASES,
@@ -92,6 +93,20 @@ describe('resetClientState', () => {
     await resetClientState(new QueryClient())
 
     expect(deleteDatabase.mock.calls).toEqual(KNOWN_IDB_DATABASES.map((name) => [name]))
+  })
+
+  it('without indexedDB.databases(), also deletes the page databases listed in axenotes-sync', async () => {
+    await indexedDbSyncMeta.setState('antiga', 'clean', 1)
+    await indexedDbSyncMeta.setState('suja', 'dirty', 1)
+    const real = indexedDB
+    const deleteDatabase = vi.fn(() => fakeDeleteRequest())
+    vi.stubGlobal('indexedDB', { open: real.open.bind(real), deleteDatabase })
+
+    await resetClientState(new QueryClient())
+
+    expect(deleteDatabase.mock.calls).toEqual(
+      expect.arrayContaining([['axenotes-sync'], ['axenotes-page-antiga'], ['axenotes-page-suja']]),
+    )
   })
 
   it('without indexedDB.databases(), also deletes the page databases opened in this tab', async () => {

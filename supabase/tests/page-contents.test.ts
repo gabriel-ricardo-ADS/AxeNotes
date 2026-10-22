@@ -363,6 +363,25 @@ describe('retenção', () => {
     expect(pruned?.n).toBe(0)
   })
 
+  it('teto de 64 MiB no histórico: o substituído mais antigo sai antes dos 7 dias', async () => {
+    // 10 updates de 8 MiB substituídos (80 MiB), mais recentes primeiro na contagem.
+    await db.admin.query(
+      `insert into public.page_contents (page_id, kind, data, superseded_at)
+       select $1, 'update', convert_to(repeat('a', 8388608), 'UTF8'), now() - n * interval '1 minute'
+       from generate_series(1, 10) as n`,
+      [PAGES.estudos],
+    )
+    const [pruned] = await db.rows<{ n: number }>('select public.prune_page_contents($1) as n', [
+      PAGES.estudos,
+    ])
+    expect(pruned?.n).toBe(2)
+    const [left] = await db.rows<{ bytes: number }>(
+      'select sum(byte_size)::bigint::int as bytes from public.page_contents where page_id = $1',
+      [PAGES.estudos],
+    )
+    expect(left?.bytes).toBe(8 * 8 * MIB)
+  }, 30_000)
+
   it('authenticated não chama a limpeza direto', async () => {
     await expect(
       db.as(actor(ana), (q) => q.rows('select public.prune_page_contents($1)', [PAGES.estudos])),

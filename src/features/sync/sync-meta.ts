@@ -1,4 +1,4 @@
-import { SYNC_META_DB } from '@/lib/idb-names'
+import { SYNC_META_DB, SYNC_META_STORE } from '@/lib/idb-names'
 
 /**
  * Metadados da sincronização por página, num banco IndexedDB de nome fixo (`axenotes-sync`,
@@ -9,7 +9,7 @@ import { SYNC_META_DB } from '@/lib/idb-names'
  * - `blocked`: o servidor recusou (leitor, sem acesso ou lixeira). Não conta como pendente, não é
  *   reenviada em segundo plano e volta a `dirty` quando a página abre de novo com permissão de escrita.
  */
-const STORE = 'pages'
+const STORE = SYNC_META_STORE
 
 export type SyncMetaState = 'clean' | 'dirty' | 'blocked'
 
