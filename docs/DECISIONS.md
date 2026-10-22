@@ -196,8 +196,8 @@ transferência antes. Até lá, a exclusão de contas só é feita à mão pelo 
   e confirmar que a página inicial atual é outra.
 - **`home_page_id` só o owner grava** (política `workspaces_update`). Editor/viewer de workspace alheio com a
   página inicial vazia vê "sem página inicial". Rever na Fase 11 (convites).
-- **Estado de expansão** da árvore fica em memória (Zustand), sem `localStorage`, até o logout limpar stores
-  persistidas.
+- **Estado de expansão** da árvore fica em memória (Zustand), sem `localStorage`. O logout já devolve as stores ao
+  estado inicial (`src/lib/reset-client-state.ts`); persistir a expansão continua fora do escopo.
 - **`date-fns`** (MIT) para "Editada há…" em pt-BR.
 - **Nota (correção pós-T3b):** arrastar para uma posição entre dois irmãos com a MESMA `sort_key` é recusado
   com aviso (`planMove` → `tie`); antes o app gravava uma chave inócua e a ordem não mudava. Como tratar as

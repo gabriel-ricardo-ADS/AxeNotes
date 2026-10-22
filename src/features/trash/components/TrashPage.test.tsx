@@ -8,6 +8,7 @@ import {
   failNextRpc,
   fakeDb,
   fakeId,
+  holdNext,
   holdNextRpc,
   mockProfile,
   resetFakeSupabase,
@@ -77,16 +78,13 @@ const pagesLoads = () => fakeDb.selects.filter((table) => table === 'pages').len
 
 describe('tela /lixeira', () => {
   it('lists only the roots, newest first, with when, subpages and where they came from', async () => {
-    renderApp('/lixeira')
+    await renderApp('/lixeira')
 
     const list = await trashList()
     const rows = within(list).getAllByRole('listitem')
-    expect(rows.map((row) => within(row).getAllByText(/./, { selector: 'p' })[0]?.textContent)).toEqual([
-      'Projeto',
-      'Tarefa',
-      'Receitas',
-      'Resenha antiga',
-    ])
+    expect(
+      rows.map((row) => within(row).getAllByText(/./, { selector: 'p' })[0]?.textContent),
+    ).toEqual(['Projeto', 'Tarefa', 'Receitas', 'Resenha antiga'])
     expect(screen.getByRole('heading', { level: 1, name: 'Lixeira' })).toBeInTheDocument()
 
     const recipes = await rowOf('Receitas')
@@ -108,15 +106,18 @@ describe('tela /lixeira', () => {
 
   it('shows the empty state', async () => {
     seedPages([{ id: HOME, title: 'Página inicial', sortKey: 'a0' }])
-    renderApp('/lixeira')
+    await renderApp('/lixeira')
 
     expect(await screen.findByText('A lixeira está vazia.')).toBeInTheDocument()
   })
 
   it('shows a loading state before the list arrives', async () => {
-    renderApp('/lixeira')
+    // O render agora espera a tela lazy; segurar o workspace mantém a lista "chegando" até aqui.
+    const workspace = holdNext('select', 'workspace_members')
+    await renderApp('/lixeira')
 
     expect(await screen.findByText('Carregando a lixeira…')).toBeInTheDocument()
+    workspace.release()
     await trashList()
     expect(screen.queryByText('Carregando a lixeira…')).not.toBeInTheDocument()
   })
@@ -124,9 +125,11 @@ describe('tela /lixeira', () => {
   it('shows a retryable error when the trash does not load', async () => {
     const user = userEvent.setup()
     failAlways('select', 'pages')
-    renderApp('/lixeira')
+    await renderApp('/lixeira')
 
-    expect(await within(main()).findByText('Não foi possível carregar a lixeira.')).toBeInTheDocument()
+    expect(
+      await within(main()).findByText('Não foi possível carregar a lixeira.'),
+    ).toBeInTheDocument()
     clearFailures()
     await user.click(within(main()).getByRole('button', { name: 'Tentar de novo' }))
 
@@ -135,7 +138,7 @@ describe('tela /lixeira', () => {
 
   it('is reachable from the sidebar footer, above the account', async () => {
     const user = userEvent.setup()
-    renderApp()
+    await renderApp()
 
     const link = await screen.findByRole('link', { name: 'Lixeira' })
     const account = screen.getByRole('region', { name: 'Conta' })
@@ -147,7 +150,7 @@ describe('tela /lixeira', () => {
   })
 
   it('keeps a direct link to a trashed page on the single "not found" screen', async () => {
-    renderApp(`/p/${RECIPES}`)
+    await renderApp(`/p/${RECIPES}`)
 
     expect(await screen.findByRole('heading', { name: 'Página não encontrada' })).toBeVisible()
   })
@@ -157,7 +160,7 @@ describe('restaurar', () => {
   it('disables the row as "Restaurando…", then reloads pages and trash once each and shows the page again', async () => {
     const user = userEvent.setup()
     seedFavorites([{ pageId: RECIPES, sortKey: 'a0' }])
-    renderApp('/lixeira')
+    await renderApp('/lixeira')
     await trashList()
     expect(screen.queryByRole('treeitem', { name: 'Receitas' })).not.toBeInTheDocument()
     expect(screen.queryByRole('list', { name: 'Páginas favoritas' })).not.toBeInTheDocument()
@@ -168,13 +171,17 @@ describe('restaurar', () => {
     const pagesBefore = pagesLoads()
     const trashBefore = fakeDb.trashLoads
 
-    await user.click(within(await rowOf('Receitas')).getByRole('button', { name: 'Restaurar Receitas' }))
+    await user.click(
+      within(await rowOf('Receitas')).getByRole('button', { name: 'Restaurar Receitas' }),
+    )
 
     const busy = within(await rowOf('Receitas')).getByRole('button', { name: 'Restaurar Receitas' })
     expect(busy).toHaveTextContent('Restaurando…')
     expect(busy).toBeDisabled()
     expect(
-      within(await rowOf('Receitas')).getByRole('button', { name: 'Excluir Receitas definitivamente' }),
+      within(await rowOf('Receitas')).getByRole('button', {
+        name: 'Excluir Receitas definitivamente',
+      }),
     ).toBeDisabled()
 
     hold.release()
@@ -195,11 +202,13 @@ describe('restaurar', () => {
 
   it('explains that the parent page is still in the trash and keeps the row', async () => {
     const user = userEvent.setup()
-    renderApp('/lixeira')
+    await renderApp('/lixeira')
     await trashList()
     const trashBefore = fakeDb.trashLoads
 
-    await user.click(within(await rowOf('Tarefa')).getByRole('button', { name: 'Restaurar Tarefa' }))
+    await user.click(
+      within(await rowOf('Tarefa')).getByRole('button', { name: 'Restaurar Tarefa' }),
+    )
 
     expect(await within(main()).findByRole('alert')).toHaveTextContent(
       'A página pai ainda está na lixeira. Restaure a página pai primeiro.',
@@ -214,10 +223,12 @@ describe('restaurar', () => {
 
   it('lets the child be restored after the parent, which stays in the trash as its own root', async () => {
     const user = userEvent.setup()
-    renderApp('/lixeira')
+    await renderApp('/lixeira')
     await trashList()
 
-    await user.click(within(await rowOf('Projeto')).getByRole('button', { name: 'Restaurar Projeto' }))
+    await user.click(
+      within(await rowOf('Projeto')).getByRole('button', { name: 'Restaurar Projeto' }),
+    )
     await waitFor(() => {
       expect(dbPage(PARENT)?.trashed_at).toBeNull()
     })
@@ -234,17 +245,21 @@ describe('restaurar', () => {
 
   it('has its own message for missing permission and a generic one for the rest', async () => {
     const user = userEvent.setup()
-    renderApp('/lixeira')
+    await renderApp('/lixeira')
     await trashList()
 
     failNextRpc('restore_page', { code: '42501', message: 'forbidden' })
-    await user.click(within(await rowOf('Receitas')).getByRole('button', { name: 'Restaurar Receitas' }))
+    await user.click(
+      within(await rowOf('Receitas')).getByRole('button', { name: 'Restaurar Receitas' }),
+    )
     expect(await within(main()).findByRole('alert')).toHaveTextContent(
       'Você não tem permissão para fazer isso neste workspace.',
     )
 
     failNextRpc('restore_page')
-    await user.click(within(await rowOf('Receitas')).getByRole('button', { name: 'Restaurar Receitas' }))
+    await user.click(
+      within(await rowOf('Receitas')).getByRole('button', { name: 'Restaurar Receitas' }),
+    )
     await waitFor(() => {
       expect(within(main()).getByRole('alert')).toHaveTextContent(
         'Não foi possível restaurar a página. Tente novamente.',
@@ -265,7 +280,7 @@ describe('excluir definitivamente', () => {
 
   it('asks first, with the focus on Cancel and the subpage count, and cancelling deletes nothing', async () => {
     const user = userEvent.setup()
-    renderApp('/lixeira')
+    await renderApp('/lixeira')
     await trashList()
 
     const dialog = await openDialog(user, 'Receitas')
@@ -290,7 +305,7 @@ describe('excluir definitivamente', () => {
 
   it('deletes the page and everything under it after confirming, then reloads the list', async () => {
     const user = userEvent.setup()
-    renderApp('/lixeira')
+    await renderApp('/lixeira')
     await trashList()
     const trashBefore = fakeDb.trashLoads
 
@@ -310,7 +325,7 @@ describe('excluir definitivamente', () => {
 
   it('says part of the subpages already shows up separately and will be deleted too', async () => {
     const user = userEvent.setup()
-    renderApp('/lixeira')
+    await renderApp('/lixeira')
     await trashList()
 
     const dialog = await openDialog(user, 'Projeto')
@@ -337,7 +352,7 @@ describe('excluir definitivamente', () => {
 
   it('treats zero affected rows as an error and reloads the list', async () => {
     const user = userEvent.setup()
-    renderApp('/lixeira')
+    await renderApp('/lixeira')
     await trashList()
     const dialog = await openDialog(user, 'Receitas')
     // Outra aba restaurou a página enquanto o diálogo estava aberto.
@@ -361,7 +376,7 @@ describe('excluir definitivamente', () => {
 describe('leitor (viewer)', () => {
   it('sees the list without restore or delete buttons', async () => {
     seedWorkspace({ role: 'viewer', homePageId: HOME })
-    renderApp('/lixeira')
+    await renderApp('/lixeira')
 
     const recipes = await rowOf('Receitas')
     expect(within(recipes).getByText('Excluída há 3 dias · +2 subpáginas')).toBeInTheDocument()
@@ -376,7 +391,7 @@ describe('home page child', () => {
       { id: HOME, title: 'Página inicial', sortKey: 'a0' },
       { id: ORPHAN, parentId: HOME, title: 'Ideia solta', sortKey: 'a0', trashedAt: daysAgo(1) },
     ])
-    renderApp('/lixeira')
+    await renderApp('/lixeira')
 
     expect(
       within(await rowOf('Ideia solta')).getByText('Origem: nível principal'),
@@ -387,12 +402,14 @@ describe('home page child', () => {
 describe('sem conexão (restaurar e excluir)', () => {
   it('fails right away with a generic message, keeps the row and does not claim the page is gone', async () => {
     const user = userEvent.setup()
-    renderApp('/lixeira')
+    await renderApp('/lixeira')
     await trashList()
     fakeDb.persistentFailures.push({ op: 'delete', table: 'pages' })
 
     await user.click(
-      within(await rowOf('Receitas')).getByRole('button', { name: 'Excluir Receitas definitivamente' }),
+      within(await rowOf('Receitas')).getByRole('button', {
+        name: 'Excluir Receitas definitivamente',
+      }),
     )
     await user.click(
       within(await screen.findByRole('alertdialog')).getByRole('button', {

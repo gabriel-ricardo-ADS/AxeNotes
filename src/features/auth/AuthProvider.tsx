@@ -4,6 +4,7 @@ import { useCallback, useEffect, useMemo, useRef, useState, type ReactNode } fro
 import { signOut as apiSignOut, subscribeToAuthChanges } from '@/features/auth/api/auth'
 import { AuthContext, type AuthContextValue, type AuthStatus } from '@/features/auth/auth-context'
 import { useTreeUiStore } from '@/features/workspace/tree-ui-store'
+import { resetClientState } from '@/lib/reset-client-state'
 
 interface SessionState {
   status: AuthStatus
@@ -13,7 +14,8 @@ interface SessionState {
 /**
  * Mantém a sessão do Supabase em estado React, alimentada só por `onAuthStateChange` (o primeiro
  * evento, `INITIAL_SESSION`, encerra o carregamento). O callback é síncrono: nada de chamar o
- * Supabase de dentro dele. Ao sair (ou trocar de usuário) o cache do TanStack Query é limpo.
+ * Supabase de dentro dele. Ao sair (pelo botão, por sessão expirada ou em outra aba) ou ao trocar de
+ * usuário, `resetClientState` apaga cache, stores, IndexedDB, service worker e Cache Storage.
  */
 export function AuthProvider({ children }: { children: ReactNode }) {
   const queryClient = useQueryClient()
@@ -22,14 +24,21 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const [signedOutByUser, setSignedOutByUser] = useState(false)
   const signOutRequested = useRef(false)
   const currentUserId = useRef<string | null>(null)
+  /** Limpeza do último logout (a do evento), para o "Sair" esperar a mesma em vez de repetir. */
+  const pendingReset = useRef<Promise<void> | null>(null)
 
   useEffect(() => {
     return subscribeToAuthChanges((event, session) => {
       const nextUserId = session?.user.id ?? null
       const changedUser = currentUserId.current !== null && currentUserId.current !== nextUserId
-      if (event === 'SIGNED_OUT' || changedUser) queryClient.clear()
-      // Estado de interface da árvore (em memória): zera ao sair/trocar de conta e já nasce ligado ao
-      // usuário (assim a árvore, que pode montar depois, não perde o que expandiu ao montar).
+      if (event === 'SIGNED_OUT' || changedUser) {
+        // A parte síncrona (cache e stores) roda já, antes do render com o novo estado.
+        pendingReset.current = resetClientState(queryClient)
+      } else if (session) {
+        pendingReset.current = null
+      }
+      // Liga a árvore ao usuário logo de saída (assim a árvore, que pode montar depois, não perde o
+      // que expandiu ao montar).
       useTreeUiStore.getState().bindUser(session?.user.id)
       currentUserId.current = nextUserId
 
@@ -52,7 +61,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       signOutRequested.current = false
       throw error
     }
-  }, [])
+    // O `SIGNED_OUT` já disparou a limpeza; espera a mesma (ou roda, se o evento não veio).
+    await (pendingReset.current ?? resetClientState(queryClient))
+  }, [queryClient])
 
   const value = useMemo<AuthContextValue>(
     () => ({ ...state, recovering, signedOutByUser, setRecovering, signOut }),

@@ -1,4 +1,4 @@
-import { create } from 'zustand'
+import { create } from '@/lib/create-store'
 
 interface SearchState {
   open: boolean

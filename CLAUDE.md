@@ -55,6 +55,9 @@ pnpm e2e            # playwright (desktop + mobile)
 - Componentes pequenos e tipados; sem `any`; validação de dados externos com zod.
 - Acesso ao Supabase só via funções em `src/features/*/api/` + hooks do TanStack Query; nunca direto
   no componente.
+- Stores Zustand só com `create` de `src/lib/create-store.ts` (o ESLint barra o do `zustand`): assim o
+  logout as reseta. Todo estado de cliente novo (IndexedDB, Cache Storage, service worker) entra na
+  limpeza de `src/lib/reset-client-state.ts`.
 - Toda tabela nova: migração em `supabase/migrations/`, RLS ligada e políticas por pertencimento
   ao workspace (`is_workspace_member`) — o app é multiusuário (use a skill `migracao-supabase`). Regenerar `src/lib/database.types.ts` após migrações.
 - O repositório é PÚBLICO (GPL-3.0). Nunca use a service_role key no frontend. Nunca leia nem

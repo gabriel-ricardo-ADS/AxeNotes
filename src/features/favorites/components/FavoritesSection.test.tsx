@@ -50,7 +50,7 @@ describe('seção Favoritos da sidebar', () => {
       { pageId: MOVIES, sortKey: 'a1' },
       { pageId: READINGS, sortKey: 'a0' },
     ])
-    renderApp()
+    await renderApp()
 
     const list = await screen.findByRole('list', { name: 'Páginas favoritas' })
     const links = within(list).getAllByRole('link')
@@ -60,7 +60,7 @@ describe('seção Favoritos da sidebar', () => {
   })
 
   it('hints how to favorite when the list is empty', async () => {
-    renderApp()
+    await renderApp()
 
     expect(
       await screen.findByText('Toque na estrela de uma página para fixá-la aqui.'),
@@ -73,7 +73,7 @@ describe('seção Favoritos da sidebar', () => {
       { pageId: MOVIES, sortKey: 'a1' },
     ])
     trashInDb(MOVIES)
-    renderApp()
+    await renderApp()
 
     const list = await screen.findByRole('list', { name: 'Páginas favoritas' })
     expect(
@@ -87,7 +87,7 @@ describe('seção Favoritos da sidebar', () => {
   it('shows a retryable error when the favorites do not load', async () => {
     const user = userEvent.setup()
     failAlways('select', 'user_favorites')
-    renderApp()
+    await renderApp()
 
     expect(await screen.findByText('Não foi possível carregar os favoritos.')).toBeInTheDocument()
     clearFailures()
@@ -107,7 +107,7 @@ describe('favoritar pela árvore', () => {
   it('adds at the end right away and sends only page_id and sort_key, without reloading the list', async () => {
     const user = userEvent.setup()
     seedFavorites([{ pageId: READINGS, sortKey: 'a0' }])
-    renderApp()
+    await renderApp()
     await screen.findByRole('list', { name: 'Páginas favoritas' })
     const loadsBefore = fakeDb.selects.filter((table) => table === 'user_favorites').length
 
@@ -132,7 +132,7 @@ describe('favoritar pela árvore', () => {
   it('shows "Remover dos favoritos" for a favorite and removes it', async () => {
     const user = userEvent.setup()
     seedFavorites([{ pageId: MOVIES, sortKey: 'a0' }])
-    renderApp()
+    await renderApp()
     await screen.findByRole('list', { name: 'Páginas favoritas' })
 
     await user.click(screen.getByRole('button', { name: 'Mais ações de Filmes' }))
@@ -146,7 +146,7 @@ describe('favoritar pela árvore', () => {
 
   it('rolls back and warns in the sidebar when adding fails', async () => {
     const user = userEvent.setup()
-    renderApp()
+    await renderApp()
     await screen.findByText('Toque na estrela de uma página para fixá-la aqui.')
     failNext('upsert', 'user_favorites')
 
@@ -162,7 +162,7 @@ describe('favoritar pela árvore', () => {
   it('brings a favorite back and warns when removing fails', async () => {
     const user = userEvent.setup()
     seedFavorites([{ pageId: MOVIES, sortKey: 'a0' }])
-    renderApp()
+    await renderApp()
     const list = await screen.findByRole('list', { name: 'Páginas favoritas' })
     failNext('delete', 'user_favorites')
 
@@ -181,7 +181,7 @@ describe('favoritar pela árvore', () => {
 
   it('keeps the order of two quick clicks (add, then remove) and ends without the favorite', async () => {
     const user = userEvent.setup()
-    renderApp()
+    await renderApp()
     await screen.findByText('Toque na estrela de uma página para fixá-la aqui.')
     const gate = holdNext('upsert', 'user_favorites')
 
@@ -206,7 +206,7 @@ describe('estrela da página', () => {
 
   it('toggles the favorite and reflects it in aria-pressed and in the sidebar', async () => {
     const user = userEvent.setup()
-    renderApp(`/p/${READINGS}`)
+    await renderApp(`/p/${READINGS}`)
 
     await user.click(await star('Adicionar aos favoritos'))
 
@@ -228,7 +228,7 @@ describe('estrela da página', () => {
   it('lets a viewer favorite (it is per-user data)', async () => {
     const user = userEvent.setup()
     seedWorkspace({ role: 'viewer', homePageId: HOME })
-    renderApp(`/p/${READINGS}`)
+    await renderApp(`/p/${READINGS}`)
 
     await user.click(await star('Adicionar aos favoritos'))
 
@@ -239,7 +239,7 @@ describe('estrela da página', () => {
 
   it('shows a dismissible error in the page, not in the sidebar, when it fails', async () => {
     const user = userEvent.setup()
-    renderApp(`/p/${READINGS}`)
+    await renderApp(`/p/${READINGS}`)
     const button = await star('Adicionar aos favoritos')
     await waitFor(() => {
       expect(button).toBeEnabled()

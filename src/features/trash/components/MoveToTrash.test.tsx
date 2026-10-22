@@ -70,7 +70,7 @@ function watchForNotFound() {
 describe('mover para a lixeira pela árvore', () => {
   it('sends the page to the trash right away, with its subpages, and leaves the tree', async () => {
     const user = userEvent.setup()
-    renderApp()
+    await renderApp()
     await treeitem('Leituras')
 
     await trashFromRowMenu(user, 'Leituras')
@@ -91,7 +91,7 @@ describe('mover para a lixeira pela árvore', () => {
       { pageId: MOVIES, sortKey: 'a0' },
       { pageId: READINGS, sortKey: 'a1' },
     ])
-    renderApp()
+    await renderApp()
     const favorites = await screen.findByRole('list', { name: 'Páginas favoritas' })
     expect(within(favorites).getAllByRole('link')).toHaveLength(2)
 
@@ -109,7 +109,7 @@ describe('mover para a lixeira pela árvore', () => {
 
   it('goes to the parent page BEFORE touching the cache when the open page is trashed', async () => {
     const user = userEvent.setup()
-    renderApp(`/p/${STUDIES}`)
+    await renderApp(`/p/${STUDIES}`)
     expect(await titleField()).toHaveValue('Estudos')
     await treeitem('Estudos')
     const loadsBefore = fakeDb.singleLoads
@@ -131,21 +131,23 @@ describe('mover para a lixeira pela árvore', () => {
 
   it('goes to the home page when the trashed page contains the open one and is a root', async () => {
     const user = userEvent.setup()
-    renderApp(`/p/${GRAND}`)
+    await renderApp(`/p/${GRAND}`)
     expect(await titleField()).toHaveValue('Resenhas')
     await treeitem('Resenhas')
     const notFound = watchForNotFound()
 
     await trashFromRowMenu(user, 'Leituras')
 
-    expect(await screen.findByRole('heading', { level: 1, name: 'Página inicial' })).toBeInTheDocument()
+    expect(
+      await screen.findByRole('heading', { level: 1, name: 'Página inicial' }),
+    ).toBeInTheDocument()
     expect(trashed(GRAND)).toBe(true)
     expect(notFound.stop()).toBe(false)
   })
 
   it('does not navigate when another page is trashed', async () => {
     const user = userEvent.setup()
-    renderApp(`/p/${MOVIES}`)
+    await renderApp(`/p/${MOVIES}`)
     expect(await titleField()).toHaveValue('Filmes')
 
     await trashFromRowMenu(user, 'Leituras')
@@ -158,7 +160,7 @@ describe('mover para a lixeira pela árvore', () => {
 
   it('puts back only the rows it removed, reloads the list and warns when the server fails', async () => {
     const user = userEvent.setup()
-    renderApp()
+    await renderApp()
     await treeitem('Leituras')
     failNextRpc('trash_page', { message: 'falha simulada' })
     const loadsBefore = fakeDb.selects.filter((table) => table === 'pages').length
@@ -169,13 +171,15 @@ describe('mover para a lixeira pela árvore', () => {
     expect(await treeitem('Leituras')).toBeInTheDocument()
     expect(trashed(READINGS)).toBe(false)
     await waitFor(() => {
-      expect(fakeDb.selects.filter((table) => table === 'pages').length).toBeGreaterThan(loadsBefore)
+      expect(fakeDb.selects.filter((table) => table === 'pages').length).toBeGreaterThan(
+        loadsBefore,
+      )
     })
   })
 
   it('explains missing permission with its own message', async () => {
     const user = userEvent.setup()
-    renderApp()
+    await renderApp()
     await treeitem('Filmes')
     failNextRpc('trash_page', { code: '42501', message: 'forbidden' })
 
@@ -190,7 +194,7 @@ describe('mover para a lixeira pela árvore', () => {
   it('does not offer the action to a viewer', async () => {
     const user = userEvent.setup()
     seedWorkspace({ role: 'viewer', homePageId: HOME })
-    renderApp()
+    await renderApp()
     await treeitem('Filmes')
 
     await user.click(screen.getByRole('button', { name: 'Mais ações de Filmes' }))
@@ -207,7 +211,7 @@ describe('mover para a lixeira pela árvore', () => {
       { id: HOME, parentId: MOVIES, title: 'Página inicial', sortKey: 'a0' },
       { id: READINGS, title: 'Leituras', sortKey: 'a0' },
     ])
-    renderApp()
+    await renderApp()
     await treeitem('Leituras')
 
     await user.click(screen.getByRole('button', { name: 'Mais ações de Filmes' }))
@@ -223,7 +227,7 @@ describe('mover para a lixeira pelo menu da página', () => {
 
   it('waits for the server, disables the item as "Movendo…", then goes to the parent page', async () => {
     const user = userEvent.setup()
-    renderApp(`/p/${STUDIES}`)
+    await renderApp(`/p/${STUDIES}`)
     expect(await titleField()).toHaveValue('Estudos')
     await treeitem('Estudos')
     const hold = holdNextRpc('trash_page')
@@ -252,7 +256,7 @@ describe('mover para a lixeira pelo menu da página', () => {
 
   it('keeps the page on screen and shows the error inside the page when the server fails', async () => {
     const user = userEvent.setup()
-    renderApp(`/p/${STUDIES}`)
+    await renderApp(`/p/${STUDIES}`)
     expect(await titleField()).toHaveValue('Estudos')
     failNextRpc('trash_page')
 
@@ -269,7 +273,7 @@ describe('mover para a lixeira pelo menu da página', () => {
 
   it('saves a title typed just before trashing, in the write queue, with no error on the way out', async () => {
     const user = userEvent.setup()
-    renderApp(`/p/${STUDIES}`)
+    await renderApp(`/p/${STUDIES}`)
     const title = await titleField()
     await treeitem('Estudos')
 
@@ -284,7 +288,9 @@ describe('mover para a lixeira pelo menu da página', () => {
     expect(trashed(STUDIES)).toBe(true)
     // O renomear pendente chegou ao banco antes do RPC (fila pages-write).
     expect(fakeDb.order.indexOf('update:pages')).toBeGreaterThanOrEqual(0)
-    expect(fakeDb.order.indexOf('update:pages')).toBeLessThan(fakeDb.order.indexOf('rpc:trash_page'))
+    expect(fakeDb.order.indexOf('update:pages')).toBeLessThan(
+      fakeDb.order.indexOf('rpc:trash_page'),
+    )
     // Nem a página nova nem a sidebar mostram aviso por causa da saída.
     await waitFor(() => {
       expect(screen.queryByRole('alert')).not.toBeInTheDocument()
@@ -293,7 +299,7 @@ describe('mover para a lixeira pelo menu da página', () => {
   })
 
   it('has no menu on the home page', async () => {
-    renderApp()
+    await renderApp()
 
     expect(await screen.findByRole('heading', { level: 1, name: 'Página inicial' })).toBeVisible()
     expect(screen.queryByRole('button', { name: 'Mais ações da página' })).not.toBeInTheDocument()
@@ -301,7 +307,7 @@ describe('mover para a lixeira pelo menu da página', () => {
 
   it('has no menu for a viewer', async () => {
     seedWorkspace({ role: 'viewer', homePageId: HOME })
-    renderApp(`/p/${STUDIES}`)
+    await renderApp(`/p/${STUDIES}`)
 
     expect(await screen.findByRole('heading', { level: 1, name: 'Estudos' })).toBeVisible()
     expect(screen.queryByRole('button', { name: 'Mais ações da página' })).not.toBeInTheDocument()
@@ -311,7 +317,7 @@ describe('mover para a lixeira pelo menu da página', () => {
 describe('lixeira já aberta', () => {
   it('shows a page trashed from the tree without reloading the screen', async () => {
     const user = userEvent.setup()
-    renderApp('/lixeira')
+    await renderApp('/lixeira')
     expect(await screen.findByText('A lixeira está vazia.')).toBeInTheDocument()
     await treeitem('Filmes')
 
@@ -329,7 +335,7 @@ describe('sem conexão', () => {
 
   it('from the tree, takes the page out right away and sends the request when the connection returns, like the other writes', async () => {
     const user = userEvent.setup()
-    renderApp()
+    await renderApp()
     await treeitem('Filmes')
     onlineManager.setOnline(false)
 
@@ -349,7 +355,7 @@ describe('sem conexão', () => {
 
   it('from the page menu, tries right away instead of leaving "Movendo…" stuck until it reconnects', async () => {
     const user = userEvent.setup()
-    renderApp(`/p/${STUDIES}`)
+    await renderApp(`/p/${STUDIES}`)
     expect(await titleField()).toHaveValue('Estudos')
     onlineManager.setOnline(false)
     failNextRpc('trash_page', { message: 'Failed to fetch' })

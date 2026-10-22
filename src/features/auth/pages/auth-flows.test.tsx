@@ -14,6 +14,7 @@ import {
   resetFakeSupabase,
 } from '@/test/fake-supabase'
 import { installMatchMedia } from '@/test/match-media'
+import { waitForRoutes } from '@/test/render-app'
 
 vi.mock('@/lib/supabase', async () => ({
   supabase: (await import('@/test/fake-supabase')).fakeSupabase,
@@ -26,8 +27,8 @@ function authError(code: string, status = 400) {
   return { data: {}, error: new AuthError('mensagem do servidor', status, code) }
 }
 
-function renderAt(initial: InitialEntry) {
-  render(
+async function renderAt(initial: InitialEntry) {
+  const { container } = render(
     <QueryClientProvider client={new QueryClient()}>
       <MemoryRouter initialEntries={[initial]}>
         <AuthProvider>
@@ -37,6 +38,7 @@ function renderAt(initial: InitialEntry) {
     </QueryClientProvider>,
   )
   emitAuthEvent('INITIAL_SESSION', null)
+  await waitForRoutes(container)
 }
 
 const heading = (name: string) => screen.getByRole('heading', { level: 1, name })
@@ -50,7 +52,7 @@ beforeEach(() => {
 describe('sign in', () => {
   it('validates the fields before calling the server', async () => {
     const user = userEvent.setup()
-    renderAt('/entrar')
+    await renderAt('/entrar')
 
     await user.click(screen.getByRole('button', { name: 'Entrar' }))
 
@@ -65,7 +67,7 @@ describe('sign in', () => {
       emitAuthEvent('SIGNED_IN', fakeSession())
       return Promise.resolve({ data: {}, error: null })
     })
-    renderAt('/entrar')
+    await renderAt('/entrar')
 
     await user.type(screen.getByLabelText('E-mail'), ' ANA@Exemplo.test ')
     await user.type(screen.getByLabelText('Senha'), PASSWORD)
@@ -78,7 +80,7 @@ describe('sign in', () => {
   it('shows a generic message for wrong credentials, without the server text', async () => {
     const user = userEvent.setup()
     fakeAuth.signInWithPassword.mockResolvedValueOnce(authError('invalid_credentials'))
-    renderAt('/entrar')
+    await renderAt('/entrar')
 
     await user.type(screen.getByLabelText('E-mail'), EMAIL)
     await user.type(screen.getByLabelText('Senha'), 'errada-123')
@@ -91,7 +93,7 @@ describe('sign in', () => {
   it('shows a rate-limit message', async () => {
     const user = userEvent.setup()
     fakeAuth.signInWithPassword.mockResolvedValueOnce(authError('over_request_rate_limit', 429))
-    renderAt('/entrar')
+    await renderAt('/entrar')
 
     await user.type(screen.getByLabelText('E-mail'), EMAIL)
     await user.type(screen.getByLabelText('Senha'), PASSWORD)
@@ -103,7 +105,7 @@ describe('sign in', () => {
   it('takes an unconfirmed account to the code screen with resend available', async () => {
     const user = userEvent.setup()
     fakeAuth.signInWithPassword.mockResolvedValueOnce(authError('email_not_confirmed'))
-    renderAt('/entrar')
+    await renderAt('/entrar')
 
     await user.type(screen.getByLabelText('E-mail'), EMAIL)
     await user.type(screen.getByLabelText('Senha'), PASSWORD)
@@ -118,7 +120,7 @@ describe('sign in', () => {
 
   it('lets the user show and hide the password', async () => {
     const user = userEvent.setup()
-    renderAt('/entrar')
+    await renderAt('/entrar')
     const field = screen.getByLabelText('Senha')
 
     expect(field).toHaveAttribute('type', 'password')
@@ -142,7 +144,7 @@ describe('sign up and e-mail code', () => {
 
   it('rejects a short password without calling the server', async () => {
     const user = userEvent.setup()
-    renderAt('/criar-conta')
+    await renderAt('/criar-conta')
 
     await fillSignUp(user, '1234567')
 
@@ -152,7 +154,7 @@ describe('sign up and e-mail code', () => {
 
   it('creates the account with the display name and goes to the code screen', async () => {
     const user = userEvent.setup()
-    renderAt('/criar-conta')
+    await renderAt('/criar-conta')
 
     await fillSignUp(user)
 
@@ -174,7 +176,7 @@ describe('sign up and e-mail code', () => {
       emitAuthEvent('SIGNED_IN', fakeSession())
       return Promise.resolve({ data: {}, error: null })
     })
-    renderAt({ pathname: '/codigo', state: { email: EMAIL, sent: true } })
+    await renderAt({ pathname: '/codigo', state: { email: EMAIL, sent: true } })
 
     await user.type(screen.getByLabelText('Código de 6 dígitos'), '123456')
 
@@ -190,7 +192,7 @@ describe('sign up and e-mail code', () => {
   it('shows an invalid-code message and clears the field to try again', async () => {
     const user = userEvent.setup()
     fakeAuth.verifyOtp.mockResolvedValueOnce(authError('otp_expired', 403))
-    renderAt({ pathname: '/codigo', state: { email: EMAIL, sent: true } })
+    await renderAt({ pathname: '/codigo', state: { email: EMAIL, sent: true } })
     const field = screen.getByLabelText('Código de 6 dígitos')
 
     await user.type(field, '000000')
@@ -204,7 +206,7 @@ describe('sign up and e-mail code', () => {
 
   it('asks for the e-mail when the screen is reopened without navigation state', async () => {
     const user = userEvent.setup()
-    renderAt('/codigo')
+    await renderAt('/codigo')
 
     expect(heading('Confirme seu e-mail')).toBeVisible()
     await user.type(screen.getByLabelText('Código de 6 dígitos'), '123456')
@@ -223,7 +225,7 @@ describe('sign up and e-mail code', () => {
 
   it('resends the code and then waits before allowing another', async () => {
     const user = userEvent.setup()
-    renderAt({ pathname: '/codigo', state: { email: EMAIL } })
+    await renderAt({ pathname: '/codigo', state: { email: EMAIL } })
 
     await user.click(screen.getByRole('button', { name: 'Reenviar código' }))
 
@@ -235,7 +237,7 @@ describe('sign up and e-mail code', () => {
   it('handles the e-mail rate limit on resend', async () => {
     const user = userEvent.setup()
     fakeAuth.resend.mockResolvedValueOnce(authError('over_email_send_rate_limit', 429))
-    renderAt({ pathname: '/codigo', state: { email: EMAIL } })
+    await renderAt({ pathname: '/codigo', state: { email: EMAIL } })
 
     await user.click(screen.getByRole('button', { name: 'Reenviar código' }))
 
@@ -261,7 +263,7 @@ describe('password recovery', () => {
       emitAuthEvent('PASSWORD_RECOVERY', fakeSession())
       return Promise.resolve({ data: {}, error: null })
     })
-    renderAt('/recuperar-senha')
+    await renderAt('/recuperar-senha')
 
     await reachCodeStep(user)
     expect(fakeAuth.resetPasswordForEmail).toHaveBeenCalledWith(EMAIL)
@@ -287,7 +289,7 @@ describe('password recovery', () => {
 
   it('shows the same screen whether or not the account exists', async () => {
     const user = userEvent.setup()
-    renderAt('/recuperar-senha')
+    await renderAt('/recuperar-senha')
 
     await reachCodeStep(user)
 
@@ -297,7 +299,7 @@ describe('password recovery', () => {
   it('keeps the user on the code step after a wrong code', async () => {
     const user = userEvent.setup()
     fakeAuth.verifyOtp.mockResolvedValueOnce(authError('otp_expired', 403))
-    renderAt('/recuperar-senha')
+    await renderAt('/recuperar-senha')
     await reachCodeStep(user)
 
     await user.type(codeField(), '111111')
@@ -313,7 +315,7 @@ describe('password recovery', () => {
       return Promise.resolve({ data: {}, error: null })
     })
     fakeAuth.updateUser.mockResolvedValueOnce(authError('same_password', 422))
-    renderAt('/recuperar-senha')
+    await renderAt('/recuperar-senha')
     await reachCodeStep(user)
     await user.type(codeField(), '654321')
     await screen.findByRole('heading', { level: 1, name: 'Nova senha' })

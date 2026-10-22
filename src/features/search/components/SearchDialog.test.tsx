@@ -69,7 +69,7 @@ async function openByShortcut(user: ReturnType<typeof userEvent.setup>) {
 
 /** Renderiza o app e espera a sidebar (e a lista de páginas) carregar. */
 async function renderReady() {
-  renderApp()
+  await renderApp()
   await screen.findAllByRole('link', { name: 'Leituras' })
 }
 
@@ -163,7 +163,7 @@ describe('abrir a busca', () => {
 
   it('opens from a text field (the page title) and Ctrl+K again only reselects the field', async () => {
     const user = userEvent.setup()
-    renderApp(`/p/${MOVIES}`)
+    await renderApp(`/p/${MOVIES}`)
     const title = await screen.findByRole('textbox', { name: 'Título da página' })
     await user.click(title)
 
@@ -354,11 +354,12 @@ describe('sem texto: recentes', () => {
 })
 
 describe('sem workspace', () => {
-  const workspaceLoads = () => fakeDb.selects.filter((table) => table === 'workspace_members').length
+  const workspaceLoads = () =>
+    fakeDb.selects.filter((table) => table === 'workspace_members').length
 
   /** Renderiza o app (a sidebar não carrega páginas sem workspace) e espera o botão "Buscar" do layout. */
   async function renderLayout() {
-    renderApp()
+    await renderApp()
     await sidebarSearchButton()
   }
 
@@ -409,7 +410,9 @@ describe('sem workspace', () => {
     await user.type(field, 'filmes')
 
     const search = await inDialog()
-    expect(await search.findByText('Nenhuma página encontrada.', { selector: 'p' })).toBeInTheDocument()
+    expect(
+      await search.findByText('Nenhuma página encontrada.', { selector: 'p' }),
+    ).toBeInTheDocument()
     expect(search.queryByText('Buscando…')).not.toBeInTheDocument()
     expect(field).toHaveAttribute('aria-expanded', 'false')
     expect(searchCalls()).toHaveLength(0)
@@ -475,9 +478,7 @@ describe('sem workspace', () => {
     await openByShortcut(user)
 
     const search = await inDialog()
-    expect(
-      await search.findByText('As páginas que você abrir aparecem aqui.'),
-    ).toBeInTheDocument()
+    expect(await search.findByText('As páginas que você abrir aparecem aqui.')).toBeInTheDocument()
     expect(search.queryByRole('alert')).not.toBeInTheDocument()
   })
 })
@@ -558,7 +559,7 @@ describe('teclado', () => {
 
   it('opens the home page at "/" and does not record it', async () => {
     const user = userEvent.setup()
-    renderApp(`/p/${MOVIES}`)
+    await renderApp(`/p/${MOVIES}`)
     await screen.findByRole('textbox', { name: 'Título da página' })
     const field = await openByShortcut(user)
     await user.type(field, 'inicial')
@@ -634,7 +635,7 @@ describe('mobile: a busca abre por cima da gaveta', () => {
   it('keeps the drawer under, returns the focus to its button on Esc and closes both on pick', async () => {
     const user = userEvent.setup()
     installMatchMedia(false)
-    renderApp()
+    await renderApp()
     await user.click(await screen.findByRole('button', { name: 'Abrir menu' }))
     const drawer = await screen.findByRole('dialog', { name: 'Menu de navegação' })
     const button = within(drawer).getByRole('button', { name: /^Buscar/ })

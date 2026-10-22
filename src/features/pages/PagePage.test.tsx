@@ -52,7 +52,7 @@ const pageSelects = () => fakeDb.selects.filter((table) => table === 'pages').le
 
 describe('tela da página', () => {
   it('shows icon, title as the page heading, breadcrumb with icons and "Editada há…"', async () => {
-    renderApp(`/p/${CHILD}`)
+    await renderApp(`/p/${CHILD}`)
 
     expect(await titleField()).toHaveValue('Cantinho 2026')
     expect(screen.getByRole('heading', { level: 1, name: 'Cantinho 2026' })).toBeInTheDocument()
@@ -81,7 +81,7 @@ describe('tela da página', () => {
         sortKey: 'a0',
       })),
     ])
-    const { unmount } = renderApp(`/p/${fakeId(6)}`)
+    const { unmount } = await renderApp(`/p/${fakeId(6)}`)
 
     const crumbs = await screen.findByRole('navigation', { name: 'Caminho da página' })
     expect(within(crumbs).getByRole('link', { name: 'Nível 1' })).toBeInTheDocument()
@@ -93,7 +93,7 @@ describe('tela da página', () => {
     unmount()
 
     installMatchMedia(false)
-    renderApp(`/p/${fakeId(6)}`)
+    await renderApp(`/p/${fakeId(6)}`)
     const compact = await screen.findByRole('navigation', { name: 'Caminho da página' })
     expect(within(compact).queryByRole('link', { name: 'Nível 1' })).not.toBeInTheDocument()
     expect(within(compact).getByRole('link', { name: 'Nível 5' })).toBeInTheDocument()
@@ -106,18 +106,18 @@ describe('tela da página', () => {
   })
 
   it('shows the very same screen for an invalid id, a missing page and a page you cannot see', async () => {
-    const { unmount } = renderApp('/p/isso-nao-e-um-id')
+    const { unmount } = await renderApp('/p/isso-nao-e-um-id')
     const invalid = await screen.findByRole('heading', { name: 'Página não encontrada' })
     const invalidScreen = invalid.parentElement?.innerHTML
     unmount()
 
-    const missing = renderApp(`/p/${fakeId(999)}`)
+    const missing = await renderApp(`/p/${fakeId(999)}`)
     const missingHeading = await screen.findByRole('heading', { name: 'Página não encontrada' })
     expect(missingHeading.parentElement?.innerHTML).toBe(invalidScreen)
     missing.unmount()
 
     // Página que existe só em outro workspace: a RLS faz a lista e a consulta voltarem sem ela.
-    renderApp(`/p/${fakeId(998)}`)
+    await renderApp(`/p/${fakeId(998)}`)
     const hidden = await screen.findByRole('heading', { name: 'Página não encontrada' })
     expect(hidden.parentElement?.innerHTML).toBe(invalidScreen)
   })
@@ -126,7 +126,7 @@ describe('tela da página', () => {
     const trashed = fakeDb.tables.pages.find((row) => row.id === GRAND)
     if (trashed) trashed.trashed_at = '2026-10-01T00:00:00Z'
 
-    renderApp(`/p/${GRAND}`)
+    await renderApp(`/p/${GRAND}`)
 
     expect(
       await screen.findByRole('heading', { name: 'Página não encontrada' }),
@@ -136,7 +136,7 @@ describe('tela da página', () => {
   it('tells a load failure apart from "not found" and lets you retry', async () => {
     const user = userEvent.setup()
     failAlways('select', 'pages')
-    renderApp(`/p/${CHILD}`)
+    await renderApp(`/p/${CHILD}`)
 
     expect(await screen.findByText('Não foi possível carregar a página.')).toBeInTheDocument()
     clearFailures()
@@ -153,7 +153,7 @@ describe('título da página', () => {
     vi.useFakeTimers({ shouldAdvanceTime: true })
     try {
       const user = userEvent.setup({ advanceTimers: vi.advanceTimersByTime })
-      renderApp(`/p/${CHILD}`)
+      await renderApp(`/p/${CHILD}`)
       const field = await titleField()
       await screen.findByRole('treeitem', { name: 'Leituras' })
       const selectsBefore = pageSelects()
@@ -182,7 +182,7 @@ describe('título da página', () => {
 
   it('saves right away when you leave the field, then checks the list once', async () => {
     const user = userEvent.setup()
-    renderApp(`/p/${CHILD}`)
+    await renderApp(`/p/${CHILD}`)
     const field = await titleField()
     await screen.findByRole('treeitem', { name: 'Leituras' })
     const selectsBefore = pageSelects()
@@ -201,7 +201,7 @@ describe('título da página', () => {
 
   it('saves what is pending when you leave the page', async () => {
     const user = userEvent.setup()
-    renderApp(`/p/${CHILD}`)
+    await renderApp(`/p/${CHILD}`)
     const field = await titleField()
     await user.type(field, '?')
 
@@ -218,7 +218,7 @@ describe('título da página', () => {
 
   it('keeps what you typed and warns when saving fails, then saves on the next try', async () => {
     const user = userEvent.setup()
-    renderApp(`/p/${CHILD}`)
+    await renderApp(`/p/${CHILD}`)
     const field = await titleField()
     failNext('update', 'pages')
 
@@ -240,7 +240,7 @@ describe('título da página', () => {
 
   it('does not accept line breaks: Enter just leaves the field', async () => {
     const user = userEvent.setup()
-    renderApp(`/p/${CHILD}`)
+    await renderApp(`/p/${CHILD}`)
     const field = await titleField()
 
     await user.type(field, '!{Enter}')
@@ -251,7 +251,7 @@ describe('título da página', () => {
 
   it('changes the icon and can remove it', async () => {
     const user = userEvent.setup()
-    renderApp(`/p/${PARENT}`)
+    await renderApp(`/p/${PARENT}`)
     await titleField()
 
     await user.click(screen.getByRole('button', { name: 'Alterar ícone da página' }))
@@ -272,7 +272,7 @@ describe('título da página', () => {
 
   it('is read-only for viewers: plain heading, no icon button', async () => {
     seedWorkspace({ role: 'viewer', homePageId: HOME })
-    renderApp(`/p/${PARENT}`)
+    await renderApp(`/p/${PARENT}`)
 
     expect(await screen.findByRole('heading', { level: 1, name: 'Leituras' })).toBeInTheDocument()
     expect(screen.queryByRole('textbox', { name: 'Título da página' })).not.toBeInTheDocument()
@@ -286,7 +286,7 @@ describe('foco do título em página nova', () => {
   it('keeps taking the focus back for a moment, until the user does something', async () => {
     vi.useFakeTimers({ shouldAdvanceTime: true })
     try {
-      openNewPage()
+      await openNewPage()
       const field = await titleField()
       await act(async () => {
         await vi.advanceTimersByTimeAsync(10)
@@ -358,7 +358,7 @@ describe('título da página ao sair', () => {
     vi.useFakeTimers({ shouldAdvanceTime: true })
     try {
       const user = userEvent.setup({ advanceTimers: vi.advanceTimersByTime })
-      renderApp(`/p/${CHILD}`)
+      await renderApp(`/p/${CHILD}`)
       const field = await titleField()
       await user.type(field, '!')
 
@@ -389,7 +389,7 @@ describe('título da página ao sair', () => {
 
   it('saves right away on pagehide alone', async () => {
     const user = userEvent.setup()
-    renderApp(`/p/${CHILD}`)
+    await renderApp(`/p/${CHILD}`)
     await user.type(await titleField(), '?')
 
     window.dispatchEvent(new Event('pagehide'))
@@ -400,7 +400,7 @@ describe('título da página ao sair', () => {
   })
 
   it('does nothing when the page is hidden with nothing pending', async () => {
-    renderApp(`/p/${CHILD}`)
+    await renderApp(`/p/${CHILD}`)
     await titleField()
 
     hidePage()
@@ -413,7 +413,7 @@ describe('título da página ao sair', () => {
 
   it('asks the browser to confirm leaving only while there is something to save', async () => {
     const user = userEvent.setup()
-    renderApp(`/p/${CHILD}`)
+    await renderApp(`/p/${CHILD}`)
     const field = await titleField()
     expect(triesToLeave()).toBe(false)
 
@@ -430,7 +430,7 @@ describe('título da página ao sair', () => {
   it('keeps the text pending and the warning on when saving fails, until a save works', async () => {
     const user = userEvent.setup()
     fetchMock.mockImplementation(() => Promise.reject(new TypeError('Failed to fetch')))
-    renderApp(`/p/${CHILD}`)
+    await renderApp(`/p/${CHILD}`)
     const field = await titleField()
     await user.type(field, '!')
 
@@ -452,7 +452,7 @@ describe('título da página ao sair', () => {
 
   it('removes the warning when the title goes back to what was saved', async () => {
     const user = userEvent.setup()
-    renderApp(`/p/${CHILD}`)
+    await renderApp(`/p/${CHILD}`)
     const field = await titleField()
 
     await user.type(field, '!')
@@ -471,7 +471,7 @@ describe('página inicial', () => {
     seedWorkspace({ homePageId: null })
     seedPages([])
 
-    renderApp('/')
+    await renderApp('/')
 
     expect(await titleField()).toHaveValue('Página inicial')
     const created = fakeDb.writes.filter((write) => write.op === 'insert')
@@ -481,7 +481,7 @@ describe('página inicial', () => {
   })
 
   it('does not create a second one when it already exists', async () => {
-    renderApp('/')
+    await renderApp('/')
 
     expect(await titleField()).toHaveValue('Página inicial')
     expect(fakeDb.writes.filter((write) => write.op === 'insert')).toHaveLength(0)
@@ -491,7 +491,7 @@ describe('página inicial', () => {
     seedWorkspace({ role: 'editor', homePageId: null })
     seedPages([])
 
-    renderApp('/')
+    await renderApp('/')
 
     expect(
       await screen.findByText('Este workspace ainda não tem uma página inicial.'),
@@ -505,7 +505,7 @@ describe('página inicial', () => {
     seedPages([])
     failNext('insert', 'pages')
 
-    renderApp('/')
+    await renderApp('/')
 
     expect(await screen.findByText('Não foi possível carregar a página.')).toBeInTheDocument()
     await user.click(

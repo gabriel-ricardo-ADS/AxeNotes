@@ -49,7 +49,7 @@ async function treeitem(name: string) {
 
 describe('árvore de páginas na sidebar', () => {
   it('shows the root pages (without the home page) as a tree, children hidden', async () => {
-    renderApp()
+    await renderApp()
 
     expect(await treeitem('Leituras')).toHaveAttribute('aria-level', '1')
     expect(await treeitem('Filmes')).toBeInTheDocument()
@@ -60,7 +60,7 @@ describe('árvore de páginas na sidebar', () => {
 
   it('expands and collapses with aria-expanded, and does not touch localStorage', async () => {
     const user = userEvent.setup()
-    renderApp()
+    await renderApp()
     const readings = await treeitem('Leituras')
     expect(readings).toHaveAttribute('aria-expanded', 'false')
     expect(await treeitem('Filmes')).not.toHaveAttribute('aria-expanded')
@@ -77,7 +77,7 @@ describe('árvore de páginas na sidebar', () => {
 
   it('creates a root page with only the allowed columns and opens it with the title focused', async () => {
     const user = userEvent.setup()
-    renderApp()
+    await renderApp()
     await treeitem('Leituras')
 
     await user.click(screen.getByRole('button', { name: 'Nova página' }))
@@ -105,7 +105,7 @@ describe('árvore de páginas na sidebar', () => {
 
   it('creates a subpage at the end of its parent and expands the parent', async () => {
     const user = userEvent.setup()
-    renderApp()
+    await renderApp()
     await treeitem('Leituras')
 
     await user.click(screen.getByRole('button', { name: 'Nova subpágina em Leituras' }))
@@ -121,7 +121,7 @@ describe('árvore de páginas na sidebar', () => {
 
   it('renames from the row menu with Enter, and cancels with Esc', async () => {
     const user = userEvent.setup()
-    renderApp()
+    await renderApp()
     await treeitem('Filmes')
 
     await user.click(screen.getByRole('button', { name: 'Mais ações de Filmes' }))
@@ -149,7 +149,7 @@ describe('árvore de páginas na sidebar', () => {
 
   it('changes the icon from the row menu', async () => {
     const user = userEvent.setup()
-    renderApp()
+    await renderApp()
     await treeitem('Filmes')
 
     await user.click(screen.getByRole('button', { name: 'Mais ações de Filmes' }))
@@ -165,7 +165,7 @@ describe('árvore de páginas na sidebar', () => {
 
   it('moves a page with "Mover para…", greying out itself and its descendants', async () => {
     const user = userEvent.setup()
-    renderApp()
+    await renderApp()
     await user.click(await screen.findByRole('button', { name: 'Expandir Leituras' }))
 
     // "Leituras" não pode ir para dentro dela mesma nem de "Estudos".
@@ -196,7 +196,7 @@ describe('árvore de páginas na sidebar', () => {
 
   it('moves a page to the root from the dialog', async () => {
     const user = userEvent.setup()
-    renderApp()
+    await renderApp()
     await user.click(await screen.findByRole('button', { name: 'Expandir Leituras' }))
 
     await user.click(screen.getByRole('button', { name: 'Mais ações de Estudos' }))
@@ -217,7 +217,7 @@ describe('árvore de páginas na sidebar', () => {
 describe('árvore com falhas', () => {
   it('takes the optimistic page back and warns when creating fails', async () => {
     const user = userEvent.setup()
-    renderApp()
+    await renderApp()
     await treeitem('Leituras')
     failNext('insert', 'pages')
 
@@ -235,7 +235,7 @@ describe('árvore com falhas', () => {
 
   it('puts the old name back and warns when renaming fails', async () => {
     const user = userEvent.setup()
-    renderApp()
+    await renderApp()
     await treeitem('Filmes')
     failNext('update', 'pages')
 
@@ -254,7 +254,7 @@ describe('árvore com falhas', () => {
 
   it('treats an update that reaches no row (blocked by RLS or deleted elsewhere) as a failure', async () => {
     const user = userEvent.setup()
-    renderApp()
+    await renderApp()
     await treeitem('Filmes')
     // Outra aba apagou a página: o UPDATE do banco não dá erro, só não atinge linha nenhuma.
     fakeDb.tables.pages = fakeDb.tables.pages.filter((row) => row.id !== MOVIES)
@@ -276,7 +276,7 @@ describe('árvore com falhas', () => {
 
   it('puts the page back where it was when moving fails', async () => {
     const user = userEvent.setup()
-    renderApp()
+    await renderApp()
     await treeitem('Filmes')
     failNext('update', 'pages')
 
@@ -294,7 +294,7 @@ describe('árvore com falhas', () => {
   it('shows an error with retry when the list does not load', async () => {
     const user = userEvent.setup()
     failAlways('select', 'pages')
-    renderApp()
+    await renderApp()
 
     expect(await screen.findByText('Não foi possível carregar as páginas.')).toBeInTheDocument()
     clearFailures()
@@ -308,7 +308,7 @@ describe('árvore com falhas', () => {
 describe('árvore: teclado', () => {
   it('moves with arrows, expands with → / Space, opens with Enter and renames with F2', async () => {
     const user = userEvent.setup()
-    renderApp()
+    await renderApp()
     const readings = await treeitem('Leituras')
     const movies = await treeitem('Filmes')
 
@@ -343,7 +343,7 @@ describe('árvore: teclado', () => {
   })
 
   it('has a single tab stop (roving tabindex) and marks the open page as selected', async () => {
-    renderApp(`/p/${MOVIES}`)
+    await renderApp(`/p/${MOVIES}`)
     const movies = await treeitem('Filmes')
 
     expect(movies).toHaveAttribute('aria-selected', 'true')
@@ -352,7 +352,7 @@ describe('árvore: teclado', () => {
   })
 
   it('opens a page nested under a collapsed ancestor and reveals it in the tree', async () => {
-    renderApp(`/p/${STUDIES}`)
+    await renderApp(`/p/${STUDIES}`)
 
     const studies = await treeitem('Estudos')
     expect(studies).toHaveAttribute('aria-selected', 'true')
@@ -364,7 +364,7 @@ describe('árvore na gaveta (mobile)', () => {
   it('reveals the open page when the drawer is opened after loading', async () => {
     installMatchMedia(false)
     const user = userEvent.setup()
-    renderApp(`/p/${STUDIES}`)
+    await renderApp(`/p/${STUDIES}`)
     await screen.findByRole('textbox', { name: 'Título da página' })
 
     await user.click(screen.getByRole('button', { name: 'Abrir menu' }))
@@ -380,7 +380,7 @@ describe('árvore para quem só lê (viewer)', () => {
   })
 
   it('shows the tree but none of the create, rename, move or icon actions', async () => {
-    renderApp()
+    await renderApp()
 
     expect(await treeitem('Leituras')).toBeInTheDocument()
     expect(screen.queryByRole('button', { name: 'Nova página' })).not.toBeInTheDocument()
@@ -392,7 +392,7 @@ describe('árvore para quem só lê (viewer)', () => {
 
   it('keeps the row menu, but with only the favorite action', async () => {
     const user = userEvent.setup()
-    renderApp()
+    await renderApp()
     await treeitem('Leituras')
 
     await user.click(screen.getByRole('button', { name: 'Mais ações de Leituras' }))
@@ -407,7 +407,7 @@ describe('árvore para quem só lê (viewer)', () => {
 
   it('does not rename with F2', async () => {
     const user = userEvent.setup()
-    renderApp()
+    await renderApp()
     ;(await treeitem('Filmes')).focus()
 
     await user.keyboard('{F2}')
@@ -419,7 +419,7 @@ describe('árvore para quem só lê (viewer)', () => {
 describe('árvore vazia', () => {
   it('explains how to create the first page', async () => {
     seedPages([{ id: HOME, title: 'Página inicial', sortKey: 'a0' }])
-    renderApp()
+    await renderApp()
 
     expect(
       await screen.findByText('Nenhuma página ainda. Use o botão + para criar a primeira.'),

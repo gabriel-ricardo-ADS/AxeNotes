@@ -9,6 +9,12 @@ export const ptBR = {
     cancel: 'Cancelar',
     retry: 'Tentar de novo',
     dismiss: 'Dispensar aviso',
+    loading: 'Carregando…',
+  },
+  routeError: {
+    title: 'Não foi possível carregar esta tela',
+    description: 'Verifique a conexão e recarregue a página.',
+    reload: 'Recarregar',
   },
   layout: {
     skipToContent: 'Ir para o conteúdo',
@@ -27,7 +33,6 @@ export const ptBR = {
     },
   },
   auth: {
-    loading: 'Carregando…',
     fields: {
       name: 'Nome',
       email: 'E-mail',
