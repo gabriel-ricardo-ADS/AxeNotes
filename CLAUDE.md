@@ -53,6 +53,8 @@ pnpm e2e            # playwright (desktop + mobile)
   centralizado em `src/i18n/pt-BR.ts` (nada de string solta em componente).
 - Organização por feature em `src/features/<feature>/` (components, hooks, api, types, tests).
 - Componentes pequenos e tipados; sem `any`; validação de dados externos com zod.
+- Formatação: um hook PostToolUse (`.claude/settings.json` → `scripts/format-edited-file.mjs`) roda o
+  Prettier no arquivo que o Edit/Write acabou de mexer; `pnpm format:check` e `pnpm knip` rodam no CI.
 - Acesso ao Supabase só via funções em `src/features/*/api/` + hooks do TanStack Query; nunca direto
   no componente.
 - Stores Zustand só com `create` de `src/lib/create-store.ts` (o ESLint barra o do `zustand`): assim o
