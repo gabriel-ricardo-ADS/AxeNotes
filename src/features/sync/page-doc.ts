@@ -44,16 +44,24 @@ export function openPageDoc(pageId: string, sync: ContentSync = localOnlySync): 
   const fragment = doc.getXmlFragment(PAGE_FRAGMENT)
   let persistence: IndexeddbPersistence | null = null
   let destroyed = false
+  /** Caiu para memória (ou foi fechado): um banco que abra atrasado não pode mais se ligar ao doc. */
+  let gaveUp = false
   let session: ContentSyncSession | null = null
 
   const ready = withTimeout(
-    loadFromDevice(pageId, doc, (started) => {
-      persistence = started
-    }),
+    loadFromDevice(
+      pageId,
+      doc,
+      () => gaveUp || destroyed,
+      (started) => {
+        persistence = started
+      },
+    ),
     LOCAL_LOAD_TIMEOUT_MS,
   )
     .then((): PageDocStorage => 'local')
     .catch((): PageDocStorage => {
+      gaveUp = true
       const failed = persistence
       persistence = null
       void failed?.destroy().catch(() => undefined)
@@ -98,13 +106,14 @@ export function openPageDocCount(): number {
 async function loadFromDevice(
   pageId: string,
   doc: Y.Doc,
+  stopped: () => boolean,
   onStarted: (persistence: IndexeddbPersistence) => void,
 ): Promise<void> {
   if (typeof indexedDB === 'undefined') throw new Error('no_indexeddb')
   const name = pageDbName(pageId)
   await prepareDatabase(name)
   rememberOpenedDatabase(name)
-  if (doc.isDestroyed) return
+  if (stopped()) return
   const persistence = new IndexeddbPersistence(name, doc)
   onStarted(persistence)
   await persistence.whenSynced

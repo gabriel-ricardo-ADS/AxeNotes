@@ -1,7 +1,12 @@
 import { QueryClient } from '@tanstack/react-query'
 import * as Y from 'yjs'
 import type { ContentSync } from '@/features/sync/content-sync'
-import { openPageDoc, openPageDocCount, type PageDoc } from '@/features/sync/page-doc'
+import {
+  LOCAL_LOAD_TIMEOUT_MS,
+  openPageDoc,
+  openPageDocCount,
+  type PageDoc,
+} from '@/features/sync/page-doc'
 import { pageDbName } from '@/lib/idb-names'
 import { resetClientState } from '@/lib/reset-client-state'
 
@@ -94,6 +99,54 @@ describe('openPageDoc', () => {
     expect(await pageDoc.ready).toBe('memory')
     write(pageDoc, 'ainda editável')
     expect(read(pageDoc)).toContain('ainda editável')
+  })
+
+  it('falls back to memory when IndexedDB takes too long, and a late open does not attach', async () => {
+    vi.useFakeTimers()
+    const realOpen = indexedDB.open.bind(indexedDB)
+    let release: (() => void) | undefined
+    let calls = 0
+    vi.spyOn(indexedDB, 'open').mockImplementation((name: string) => {
+      const request = realOpen(name)
+      // Só a primeira abertura (a de preparo) atrasa; as seguintes seguem normais.
+      calls += 1
+      if (calls > 1) return request
+      // Segura o "success" até depois do tempo limite.
+      const late: Partial<IDBOpenDBRequest> = {}
+      request.onsuccess = () => {
+        release = () => {
+          late.onsuccess?.call(request, new Event('success'))
+        }
+      }
+      request.onupgradeneeded = (event) => {
+        late.onupgradeneeded?.call(request, event)
+      }
+      return new Proxy(request, {
+        set: (_target, key, value) => {
+          Reflect.set(late, key, value)
+          return true
+        },
+      })
+    })
+
+    const pageDoc = open(PAGE_A)
+    await vi.advanceTimersByTimeAsync(LOCAL_LOAD_TIMEOUT_MS + 10)
+    expect(await pageDoc.ready).toBe('memory')
+    vi.useRealTimers()
+
+    await vi.waitFor(() => {
+      expect(release).toBeDefined()
+    })
+    release?.()
+    await new Promise((resolve) => setTimeout(resolve, 200))
+    write(pageDoc, 'só em memória')
+    await pageDoc.destroy()
+    vi.restoreAllMocks()
+
+    // O banco atrasado nunca recebeu o conteúdo.
+    const again = open(PAGE_A)
+    expect(await again.ready).toBe('local')
+    expect(read(again)).not.toContain('só em memória')
   })
 
   it('falls back to memory when the browser has no IndexedDB at all', async () => {
