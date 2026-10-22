@@ -76,7 +76,9 @@ DECISÃO-012) + Supabase Free (Auth, Postgres, Storage, Edge Functions). Domíni
 Supabase Free pausa após 1 semana sem uso (o uso diário evita).
 
 ### DECISÃO-012 — Sincronização de conteúdo (Yjs)
-**PADRÃO (confirmar com ADR na Fase 2)** — conteúdo de cada página é um documento Yjs
+**DECIDIDA (2026-10-22, Fase 2a)** — confirmada pelo ADR `docs/adr/0001-conteudo-yjs.md` (formato de
+`page_contents`, compactação com retenção, limites, corrida entre aparelhos, snapshot de busca, riscos do
+armazenamento local e o que muda na colaboração). Conteúdo de cada página é um documento Yjs
 (BlockNote suporta nativamente):
 - Fase 2: Y.Doc local + `y-indexeddb` (offline) + gravação no Supabase como **log de updates Yjs
   com compactação periódica, numa tabela separada (`page_contents`)**, e não numa coluna
@@ -131,6 +133,10 @@ por e-mail. **Sem link mágico**, por causa do problema que ele causa no PWA no 
 **DECIDIDA (ADR na Fase 2)** — o conteúdo vive numa tabela separada `page_contents`: um log de
 updates Yjs por página, compactado periodicamente em um estado único. A tabela `pages` não guarda
 mais o `ydoc`. Atualiza a DECISÃO-012; o ADR da Fase 2 detalha o formato e a compactação.
+- **ADR:** `docs/adr/0001-conteudo-yjs.md` (2026-10-22). Resumo: `bytea` trafegado em base64 só por RPC;
+  compactação feita pelo cliente com lock por página (o mesmo do append) e **sem apagar na hora** (linhas
+  substituídas ficam 7 dias ou nos 3 últimos snapshots); limites por chamada e por linha; texto para busca/prévias
+  em `page_texts` (1:1), fora de `pages`. A migration é do 2b.
 
 ### DECISÃO-017 — CI desde a Fase 0
 **DECIDIDA** — GitHub Actions em `.github/workflows/ci.yml` com typecheck, lint, test, build e
