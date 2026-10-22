@@ -49,3 +49,7 @@ jobs:
       - run: pnpm install --frozen-lockfile
 
       - run: pnpm run ${{ matrix.script }}
+
+      # Orçamento de tamanho (gzip) dos chunks principais, sobre o dist que o build acabou de gerar.
+      - if: matrix.name == 'build'
+        run: pnpm run size:check

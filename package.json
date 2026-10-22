@@ -23,7 +23,8 @@
     "e2e": "playwright test",
     "screenshots": "node e2e/screenshot.ts",
     "license:check": "node scripts/check-licenses.mjs",
-    "knip": "knip"
+    "knip": "knip",
+    "size:check": "node scripts/check-bundle-size.mjs"
   },
   "dependencies": {
     "@blocknote/core": "0.56.0",
