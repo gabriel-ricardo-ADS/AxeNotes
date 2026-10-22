@@ -4,13 +4,11 @@ import { createTestPage, sortKeySequence } from './support/pages-api'
 import { test } from './support/run-fixture'
 import { openNavigation, SIGNED_OUT_STATE, signInThroughUi } from './support/ui'
 
-// O conteúdo das páginas fica só no aparelho (Fase 2a: Y.Doc + y-indexeddb, sem Supabase). Estes
-// testes só criam/apagam a LINHA da página de teste do usuário 1 (prefixo e2e-, run-fixture.ts); o
-// texto digitado nunca vai ao servidor.
+// Editor de blocos (Fase 2a) sobre o Y.Doc da página. Desde o 2b o conteúdo também vai ao Supabase
+// (page_contents, ver sync.spec.ts); estes testes usam só páginas de teste do usuário 1 (prefixo e2e-,
+// run-fixture.ts), e o conteúdo some junto com a página na limpeza.
 
 test.skip(!hasE2ECredentials, SKIP_NO_CREDENTIALS)
-
-const PREVIEW_NOTICE = 'Prévia: o conteúdo fica salvo só neste aparelho.'
 
 const content = (page: Page) => page.getByRole('region', { name: 'Conteúdo da página' })
 const surface = (page: Page) => content(page).locator('.bn-editor')
@@ -21,7 +19,8 @@ const blocks = (page: Page, type: string) =>
 async function openPage(page: Page, id: string) {
   await page.goto(`/p/${id}`)
   await expect(surface(page)).toBeVisible()
-  await expect(page.getByText(PREVIEW_NOTICE)).toBeVisible()
+  // O aviso de prévia do 2a saiu no 2b.
+  await expect(page.getByText(/Prévia: o conteúdo fica salvo só neste aparelho/)).toHaveCount(0)
 }
 
 /** Põe o cursor no fim do último bloco. */
@@ -198,6 +197,12 @@ test.describe('logout', () => {
 
     await openNavigation(page)
     await page.getByRole('button', { name: 'Sair' }).click()
+    // Sem a migration do 2b aplicada o conteúdo não sincroniza e o "Sair" pergunta antes.
+    const confirm = page.getByRole('button', { name: 'Sair mesmo assim' })
+    await expect(confirm.or(page.getByRole('heading', { name: 'Entrar' }))).toBeVisible({
+      timeout: 15_000,
+    })
+    if (await confirm.isVisible()) await confirm.click()
     await page.waitForURL(/\/entrar/)
 
     await expect.poll(pageDatabases).toEqual([])

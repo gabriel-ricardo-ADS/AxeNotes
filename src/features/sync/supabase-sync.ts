@@ -31,7 +31,7 @@ export const SYNC_TIMING = {
 
 /** Limites do servidor (docs/adr/0001-conteudo-yjs.md). */
 export const APPEND_MAX_BYTES = 1024 * 1024
-export const SNAPSHOT_MAX_BYTES = 8 * 1024 * 1024
+const SNAPSHOT_MAX_BYTES = 8 * 1024 * 1024
 /** Compacta quando, desde o último snapshot, há mais que isto de updates vivos. */
 export const COMPACT_MAX_UPDATES = 100
 export const COMPACT_MAX_BYTES = 256 * 1024

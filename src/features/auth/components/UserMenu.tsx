@@ -18,7 +18,7 @@ import { t } from '@/i18n'
 import { flushPendingContent } from '@/lib/pending-content'
 
 /** Quanto o "Sair" espera o envio do conteúdo pendente antes de perguntar. */
-export const SIGN_OUT_FLUSH_MS = 5000
+const SIGN_OUT_FLUSH_MS = 5000
 
 type Phase = 'idle' | 'syncing' | 'confirm' | 'signingOut'
 

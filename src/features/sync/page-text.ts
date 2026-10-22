@@ -1,7 +1,7 @@
 import type { Json } from '@/lib/database.types'
 
 /** Limites de `page_texts` no servidor (texto 1 MiB, JSON 256 KiB). */
-export const PAGE_TEXT_MAX_BYTES = 1024 * 1024
+const PAGE_TEXT_MAX_BYTES = 1024 * 1024
 export const PAGE_JSON_MAX_BYTES = 256 * 1024
 /** Quantos blocos do topo vão para as prévias. */
 export const PREVIEW_BLOCKS = 20

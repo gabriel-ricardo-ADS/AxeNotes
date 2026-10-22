@@ -563,6 +563,9 @@ function searchPages(args: Record<string, unknown>): QueryResult {
   const term = fold(typeof args.p_query === 'string' ? args.p_query : '').replace(/^ +| +$/g, '')
   const limit = Math.min(Math.max(typeof args.p_limit === 'number' ? args.p_limit : 20, 1), 50)
   const starts = (row: Row) => fold(String(row.title)).startsWith(term)
+  const inTitle = (row: Row) => fold(String(row.title)).includes(term)
+  // Corpo (page_texts, 2b): o trecho aqui é o texto inteiro; o banco corta em volta do termo.
+  const body = (row: Row) => fakeDb.texts[String(row.id)] ?? ''
 
   const found =
     isMember && term !== ''
@@ -570,11 +573,12 @@ function searchPages(args: Record<string, unknown>): QueryResult {
           (row) =>
             row.workspace_id === args.p_workspace_id &&
             row.trashed_at == null &&
-            fold(String(row.title)).includes(term),
+            (inTitle(row) || fold(body(row)).includes(term)),
         )
       : []
   found.sort((a, b) => {
     if (starts(a) !== starts(b)) return starts(a) ? -1 : 1
+    if (inTitle(a) !== inTitle(b)) return inTitle(a) ? -1 : 1
     const edited = String(b.last_edited_at).localeCompare(String(a.last_edited_at))
     return edited !== 0 ? edited : String(a.id) < String(b.id) ? -1 : 1
   })
@@ -585,6 +589,7 @@ function searchPages(args: Record<string, unknown>): QueryResult {
     title: row.title,
     icon: row.icon,
     last_edited_at: row.last_edited_at,
+    snippet: inTitle(row) ? null : body(row),
   }))
   return { data, error: null }
 }

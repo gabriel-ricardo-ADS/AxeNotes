@@ -4,9 +4,11 @@ import userEvent from '@testing-library/user-event'
 import { MemoryRouter } from 'react-router'
 import { AppRoutes } from '@/app/App'
 import { AuthProvider } from '@/features/auth/AuthProvider'
+import { loadPageEditor } from '@/features/editor/load-page-editor'
 import { useSearchStore } from '@/features/search/search-store'
 import { useTreeUiStore } from '@/features/workspace/tree-ui-store'
 import { resetAllStores } from '@/lib/create-store'
+import { registerPendingContentFlusher } from '@/lib/pending-content'
 import { createQueryClient } from '@/lib/query-client'
 import {
   emitAuthEvent,
@@ -183,6 +185,49 @@ describe('auth in the app shell', () => {
     await waitFor(() => {
       expect(screen.getByRole('heading', { level: 1, name: 'Entrar' })).toBeInTheDocument()
     })
+  })
+
+  it('with content not yet synced, asks before signing out (Cancel keeps the session)', async () => {
+    const user = userEvent.setup()
+    await renderApp()
+    // O chunk do editor registra o envio real ao carregar; o fake registrado depois prevalece.
+    await loadPageEditor()
+    const flush = vi.fn(() => Promise.resolve(1))
+    const unregister = registerPendingContentFlusher(flush)
+    try {
+      await user.click(screen.getByRole('button', { name: 'Sair' }))
+      const title = 'Há alterações não sincronizadas. Sair mesmo assim?'
+      let dialog = await screen.findByRole('alertdialog', { name: title })
+      expect(flush).toHaveBeenCalledWith(5000)
+      await user.click(within(dialog).getByRole('button', { name: 'Cancelar' }))
+      expect(screen.queryByRole('alertdialog')).not.toBeInTheDocument()
+      expect(fakeAuth.signOut).not.toHaveBeenCalled()
+
+      await user.click(screen.getByRole('button', { name: 'Sair' }))
+      dialog = await screen.findByRole('alertdialog', { name: title })
+      await user.click(within(dialog).getByRole('button', { name: 'Sair mesmo assim' }))
+      await waitFor(() => {
+        expect(fakeAuth.signOut).toHaveBeenCalledWith({ scope: 'local' })
+      })
+    } finally {
+      unregister()
+    }
+  })
+
+  it('without pending content, signs out without asking', async () => {
+    const user = userEvent.setup()
+    await renderApp()
+    await loadPageEditor()
+    const unregister = registerPendingContentFlusher(() => Promise.resolve(0))
+    try {
+      await user.click(screen.getByRole('button', { name: 'Sair' }))
+      await waitFor(() => {
+        expect(fakeAuth.signOut).toHaveBeenCalled()
+      })
+      expect(screen.queryByRole('alertdialog')).not.toBeInTheDocument()
+    } finally {
+      unregister()
+    }
   })
 })
 

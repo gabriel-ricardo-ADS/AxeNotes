@@ -7,7 +7,7 @@ import { registerPendingContentFlusher } from '@/lib/pending-content'
 /** Banco de página sem abrir há mais que isto (e sem nada pendente) é apagado do aparelho. */
 export const EVICT_AFTER_MS = 30 * 24 * 60 * 60 * 1000
 /** Quantas páginas fechadas uma rodada em segundo plano reenvia (uma por vez). */
-export const RESYNC_BATCH = 10
+const RESYNC_BATCH = 10
 
 export interface BackgroundDeps {
   meta: SyncMeta
@@ -89,10 +89,7 @@ export async function countPendingPages(deps: BackgroundDeps): Promise<number> {
 }
 
 /** Logout: envia o pendente das páginas abertas e das fechadas, até `timeoutMs`; devolve o que sobrou. */
-export async function flushAllPendingContent(
-  deps: BackgroundDeps,
-  timeoutMs: number,
-): Promise<number> {
+async function flushAllPendingContent(deps: BackgroundDeps, timeoutMs: number): Promise<number> {
   const work = (async () => {
     await Promise.all(
       openSyncSessions().map((session) =>

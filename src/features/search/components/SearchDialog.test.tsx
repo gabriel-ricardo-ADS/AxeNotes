@@ -200,6 +200,19 @@ describe('buscar', () => {
     })
   })
 
+  it('finds a word from the page body and shows the excerpt with the term highlighted', async () => {
+    const user = userEvent.setup()
+    fakeDb.texts[MOVIES] = 'Rever o Teorema de Pitágoras no fim de semana'
+    await renderReady()
+    const field = await openByShortcut(user)
+
+    await user.type(field, 'pitagoras')
+
+    const option = await screen.findByRole('option', { name: /Filmes/ })
+    expect(option).toHaveTextContent('Rever o Teorema de Pitágoras no fim de semana')
+    expect(within(option).getByText('Pitágoras').tagName).toBe('MARK')
+  })
+
   it('shows the short path of the page and the count to screen readers', async () => {
     const user = userEvent.setup()
     await renderReady()
