@@ -8,6 +8,9 @@ import {
 } from '@/features/sync/background'
 import { stateOnOpen, type SyncMeta, type SyncMetaRecord } from '@/features/sync/sync-meta'
 
+// O cliente real do Supabase exige as variáveis de ambiente (ausentes no CI); aqui nada chega à rede.
+vi.mock('@/lib/supabase', () => ({ supabase: {} }))
+
 const NOW = Date.parse('2026-10-22T12:00:00Z')
 const DAY = 24 * 60 * 60 * 1000
 

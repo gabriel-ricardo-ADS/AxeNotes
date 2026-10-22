@@ -20,6 +20,9 @@ import {
 } from '@/features/sync/supabase-sync'
 import { stateOnOpen, type SyncMeta, type SyncMetaRecord } from '@/features/sync/sync-meta'
 
+// O cliente real do Supabase exige as variáveis de ambiente (ausentes no CI); aqui nada chega à rede.
+vi.mock('@/lib/supabase', () => ({ supabase: {} }))
+
 const PAGE = '00000000-0000-4000-8000-0000000000aa'
 
 type Method = 'fetch' | 'append' | 'compact' | 'setText'

@@ -10,6 +10,9 @@ import {
 import { pageDbName } from '@/lib/idb-names'
 import { resetClientState } from '@/lib/reset-client-state'
 
+// O cliente real do Supabase exige as variáveis de ambiente (ausentes no CI); aqui nada chega à rede.
+vi.mock('@/lib/supabase', () => ({ supabase: {} }))
+
 const PAGE_A = '00000000-0000-4000-8000-00000000000a'
 const PAGE_B = '00000000-0000-4000-8000-00000000000b'
 
