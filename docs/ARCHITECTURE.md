@@ -49,12 +49,12 @@ src/
     favorites/    # favoritos do usuário: estrela, seção da sidebar, ordem (favorites.ts), mutations otimistas
     recents/      # recentes do usuário: registro da visita ao abrir a página, seção da sidebar (recents.ts)
     trash/        # lixeira em /lixeira: restaurar, excluir definitivamente (T4b)
-    search/       # busca Ctrl/Cmd+K por título: diálogo (combobox + listbox), atalho, RPC search_pages (T4c)
+    search/       # busca Ctrl/Cmd+K por título e corpo: diálogo (combobox + listbox), atalho, RPC search_pages
     pages/        # tela da página /p/:pageId: título, ícone, breadcrumb, "Editada há…", editor (lazy); página
                   # na lixeira abre só para leitura
     editor/       # PageEditor (chunk próprio), schema (blocos), dicionário pt-BR, menu "/", editor.css
-    sync/         # Y.Doc por página + y-indexeddb (page-doc.ts), ponto de extensão do 2b (content-sync.ts);
-                  # depois: persistência no Supabase, outbox, status online/offline
+    sync/         # Y.Doc por página + y-indexeddb (page-doc.ts) e sincronização com o Supabase (2b:
+                  # supabase-sync.ts, api/, sync-meta.ts, background.ts, indicador); depois: outbox (Fase 10)
     databases/    # propriedades e vistas (table, gallery, board, calendar, list)
     agenda/       # agenda própria + Google Agenda (iCal, depois OAuth)
     reminders/    # lembretes, central, push
@@ -89,7 +89,10 @@ scripts/          # check-licenses.mjs; cloudflare-headers.ts (lê o _headers pa
 `workspace_members`, `pages` (só `id`, `workspace_id`, `parent_id`, `title`, `icon`, `sort_key`,
 `created_by`, `last_edited_by/at`, `trashed_at`), `user_favorites`, `user_recents`, as funções
 `is_workspace_member`, `can_access_page`, `trash_page`, `restore_page`, `search_pages` e o trigger de
-cadastro. O restante do rascunho abaixo entra nas fases indicadas. Detalhes do que existe:
+cadastro. **Fase 2b** (`20261022120001_page_contents.sql`): `page_contents`, `page_texts`, as RPCs
+`append_page_updates`, `get_page_content`, `compact_page_content`, `set_page_text`, a limpeza interna
+`prune_page_contents` e a `search_pages` no título e no corpo. O restante do rascunho abaixo entra nas fases
+indicadas. Detalhes do que existe:
 
 - **Privilégios mínimos:** `anon` não tem acesso a nada; `authenticated` recebe grants por coluna
   (ex.: não escreve `pages.workspace_id` nem `trashed_at`). Clientes não criam `workspaces` nem
@@ -99,7 +102,21 @@ cadastro. O restante do rascunho abaixo entra nas fases indicadas. Detalhes do q
 - **Lixeira em cascata:** `trash_page(id)` marca a subárvore inteira com o MESMO `trashed_at`;
   `restore_page(id)` restaura só quem tem esse carimbo (subpágina enviada antes continua na lixeira) e
   recusa se o pai ainda estiver na lixeira. Exclusão definitiva = `delete` só em página já na lixeira.
-- **Busca:** `search_pages(ws, texto, limite)` com `immutable_unaccent` + índice trigram, só por título. O servidor
+- **Conteúdo (2b, ADR `docs/adr/0001-conteudo-yjs.md`):** `page_contents` (log de updates Yjs + snapshots, `bytea`
+  trafegado em base64 só pelas RPCs) e `page_texts` (texto puro + primeiros blocos, 1:1). RLS ligada; `authenticated`
+  só lê, por `can_access_page(page_id, 'viewer')`; toda escrita é por RPC `security definer` que confere editor e
+  página fora da lixeira (`42501` igual para "não existe", "sem papel" e "lixeira"). Limites recusados com `22023`:
+  100 updates e 2 MiB por chamada, 1 MiB por update, 32 MiB vivos por página (`page_content_live_too_large`, o
+  cliente compacta), snapshot 8 MiB, texto 1 MiB, JSON 256 KiB. Append e compactação pegam o mesmo
+  `pg_advisory_xact_lock` por página. A compactação só marca `superseded_at`; `prune_page_contents` apaga o que foi
+  substituído há mais de 7 dias (ou o que passar de 64 MiB substituídos por página, os mais antigos primeiro), menos os
+  3 snapshots substituídos mais recentes. `append_page_updates` atualiza
+  `pages.last_edited_at/by` no máximo a cada 60 s (DECISÃO-029).
+- **Busca:** `search_pages(ws, texto, limite)` com `immutable_unaccent` + índice trigram no título e no corpo
+  (`page_texts.text`, mesma expressão dos índices; o ramo do corpo faz `join` com `pages` do workspace). Sob RLS
+  (`authenticated`) o Postgres não usa o índice trigram, porque o `like` não é *leakproof*; o plano percorre as páginas
+  do workspace (`pages_tree_idx` + `page_texts_pkey`), e o índice só serve a consultas sem RLS. Ordem: título que começa com o termo,
+  título que contém, só o corpo. Devolve `snippet` (~160 caracteres em volta do termo) quando só o corpo casou. O servidor
   trata acento, caixa, espaços nas pontas, `%`, `_` e `\`, a lixeira e o limite (1 a 50); é `security invoker`,
   então a RLS de `pages` vale (leitor busca, quem é de fora recebe vazio). O cliente manda o termo cru, sem escapar.
 - **Busca no cliente (T4c):** `src/features/search/`. Um `SearchDialog` montado uma vez no `AppLayout` (Radix Dialog),
@@ -183,16 +200,11 @@ pages (
   public_share_token text null -- link somente leitura (fase 11)
 )
 
--- Fase 2 (DECISÃO-016): conteúdo Yjs fora de `pages`, como log de updates + estado compactado.
--- Formato definitivo (colunas, RPCs, limites, retenção) no docs/adr/0001-conteudo-yjs.md; migration no 2b.
-page_contents (
-  id bigint generated always as identity pk,
-  page_id uuid not null references pages on delete cascade,
-  kind text check (kind in ('update','snapshot')),  -- 'snapshot' = estado compactado
-  data bytea not null,
-  created_at timestamptz default now()
-)
--- RLS: can_access_page(page_id). Compactação periódica: junta os 'update' em um 'snapshot'.
+-- Fase 2b (DECISÃO-016, ADR 0001): conteúdo Yjs fora de `pages`. Implementado; ver o início desta seção.
+page_contents (id bigint identity pk, page_id → pages on delete cascade, kind 'update'|'snapshot',
+               data bytea, byte_size (gerada), covers_up_to bigint, superseded_at timestamptz,
+               created_by uuid → auth.users on delete set null, created_at)
+page_texts (page_id pk → pages on delete cascade, text text, json jsonb, updated_at)
 
 page_permissions (page_id, user_id, role)   -- compartilhamento de página fora do workspace (fase 11)
 user_favorites (user_id, page_id, sort_key)
@@ -228,8 +240,8 @@ Decisões de modelagem:
 
 ```
 Editor (BlockNote) ── Y.Doc ──┬─ y-indexeddb (aparelho, offline)
-                              ├─ Fase 2: updates debounced → Supabase (page_contents: log de
-                              │          updates + compactação) + snapshot de texto/JSON
+                              ├─ Fase 2b: updates em lote → RPCs → page_contents (log de
+                              │           updates + compactação) + page_texts (busca/prévias)
                               └─ Fase 11: provedor tempo real → Durable Object por página
                                            (y-partyserver) → persiste no Supabase
 Árvore/bases ── TanStack Query + cache IndexedDB ── Fase 10: outbox de mutações → Supabase
@@ -246,11 +258,11 @@ Editor (BlockNote) ── Y.Doc ──┬─ y-indexeddb (aparelho, offline)
   `document-store`, `withCollaboration` do BlockNote sem provedor de rede). Trocar de página desmonta o editor e
   destrói o Y.Doc e a conexão do banco (`PageView` tem `key` por página). O título continua em `pages.title`.
   - **Falha do IndexedDB** (inexistente, erro ao abrir, cota, mais de 8 s): o Y.Doc segue só em memória, com aviso
-    "não será salvo"; nunca tela de erro. O banco é aberto e preparado antes de entregar ao y-indexeddb (que não
-    trata a falha ao abrir).
-  - **Aviso de prévia** fixo acima do editor ("o conteúdo fica salvo só neste aparelho"); o 2b remove.
-  - **Ponto de extensão do 2b:** `ContentSync` (`src/features/sync/content-sync.ts`): `start(pageId, doc)` roda depois
-    de carregar o doc local e `stop()` antes de fechar. No 2a só existe `localOnlySync` (não faz nada).
+    de que nada fica no aparelho (o conteúdo ainda vai ao servidor enquanto houver rede); nunca tela de erro. O banco
+    é aberto e preparado antes de entregar ao y-indexeddb (que não trata a falha ao abrir).
+  - **`ContentSync`** (`src/features/sync/content-sync.ts`): `start(pageId, doc, { canWrite })` roda depois de carregar
+    o doc local e `stop()` antes de fechar. A implementação é `supabaseSync` (2b, abaixo); `localOnlySync` fica para
+    os testes do doc local. O aviso de prévia do 2a saiu.
   - **Só leitura:** leitor (viewer) e página na lixeira → `editable=false` (página na lixeira abre pela rota e pela
     lista da `/lixeira`, com aviso e link para a lixeira; não grava visita nem oferece favoritar).
   - **Blocos:** lista explícita em `schema.ts` (texto, títulos, listas, checklist, toggle, citação, código, divisor,
@@ -265,11 +277,57 @@ Editor (BlockNote) ── Y.Doc ──┬─ y-indexeddb (aparelho, offline)
   um banco IndexedDB (y-indexeddb na Fase 2), um service worker ou um cache (Fase 6) não precisa de código novo
   para a limpeza quando o navegador tem `indexedDB.databases()`; para os demais, registra o nome em
   `KNOWN_IDB_DATABASES`. Com `indexedDB.databases()` (Chrome, Edge, Safari 14+, Firefox 126+) o logout apaga **todos**
-  os bancos da origem, os `axenotes-page-*` inclusos; sem ela, apaga `KNOWN_IDB_DATABASES` e os bancos de página
-  abertos **nesta aba** (`rememberOpenedDatabase`) — bancos de sessões anteriores ficam (limitação conhecida). Antes de
+  os bancos da origem, os `axenotes-page-*` inclusos; sem ela, apaga `KNOWN_IDB_DATABASES`, os bancos de página
+  abertos **nesta aba** (`rememberOpenedDatabase`) e os de toda página registrada no `axenotes-sync` (2b). Antes de
   apagar, roda os ganchos de `onBeforeStorageClear` (o `page-doc` fecha os docs abertos, senão o delete fica
-  bloqueado pela própria aba). Antes de apagar o IndexedDB, a Fase 2b precisa esperar os updates Yjs pendentes ou avisar
-  que há alterações não salvas (critério em `docs/ROADMAP.md`).
+  bloqueado pela própria aba). O envio do conteúdo pendente acontece antes, no "Sair" (abaixo). O banco
+  `axenotes-sync` está em `KNOWN_IDB_DATABASES`.
+- **Sincronização do conteúdo (Fase 2b, `src/features/sync/supabase-sync.ts`):** uma `PageSyncSession` por página
+  aberta. O servidor é a fonte de verdade; o IndexedDB é cache e fila.
+  - **Abrir:** `get_page_content` completo → aplica no Y.Doc com a origem `SERVER_ORIGIN` → monta o estado do servidor
+    e envia o que o aparelho tem a mais (`encodeStateAsUpdate(doc, svDoServidor)`, só se `snapshotContainsUpdate` disser
+    que falta algo, exclusões inclusas). Cobre o conteúdo criado no 2a e o que ficou offline em sessões anteriores.
+  - **Fila:** cada `doc.on('update')` local (origem diferente de `SERVER_ORIGIN` e do y-indexeddb) entra numa fila em
+    memória; envio com debounce de 1 s ocioso e no máximo 5 s, lote juntado com `Y.mergeUpdates`, e na hora ao ocultar
+    a aba (`visibilitychange`/`pagehide`). Lote acima de 1 MiB, página acima de 32 MiB vivos ou lote recusado por
+    tamanho vão como estado inteiro pela compactação; acima de 8 MiB o status vira "grande demais" e o conteúdo fica
+    no aparelho. Retry exponencial (1 s… 60 s, 8 tentativas seguidas; depois espera rede, foco ou nova edição).
+    **Não há fila persistida separada:** o y-indexeddb já guarda cada update e a próxima abertura reenvia a diferença
+    pelo state vector.
+  - **Receber (sem Realtime, ADR):** `get_page_content(p_after = maior id lido)` ao abrir, no foco, ao ficar visível,
+    ao reconectar e por polling de 20 s enquanto a aba está visível **e** online. Gatilhos simultâneos entram na mesma
+    busca. Os ids gravados pela própria sessão são pulados.
+  - **Compactação:** depois de receber ou enviar, se desde o último snapshot há mais de 100 updates ou 256 kB, e o papel
+    é editor: em tempo ocioso, `encodeStateAsUpdate(doc)` com autoverificação (o snapshot aplicado num doc novo dá o
+    mesmo state vector) e `compact_page_content(p_up_to = maior id lido)`; `false` = outro aparelho já compactou, busca
+    de novo e tenta com o id novo (até 3 vezes). `p_up_to = 0` só vale para página ainda sem linhas.
+  - **Texto de busca/prévias:** `set_page_text` com debounce de 5 s ocioso e ao ocultar a aba, só se mudou, a partir de
+    `editor.document` (`page-text.ts`: texto puro e primeiros 20 blocos).
+  - **Leitor e lixeira:** `canWrite=false` só recebe; recusa `42501` vira `blocked` (não tenta de novo).
+  - **Indicador** (`components/SyncIndicator.tsx`), desenhado pelo editor num slot ao lado do "Editada há…" (barra no
+    desktop, abaixo do título no mobile), para o código de sync ficar no chunk do editor: Salvo / Salvando… (só depois
+    de 400 ms) / Offline — será sincronizado / Erro ao salvar (tentando de novo) / grande demais / sem permissão;
+    `role="status"`, `aria-live="polite"`. Cada envio confirmado atualiza o "Editada há…" no cache da lista de páginas
+    (`markPageEditedLocally`, no máximo a cada 60 s, sem nova busca).
+  - **Metadados (`axenotes-sync`, `sync-meta.ts`):** por página `{ lastOpenedAt, state }` com `clean` / `dirty` /
+    `blocked`, compartilhado entre as abas. Página sem registro entra `dirty` se já tem conteúdo local. `blocked` não
+    conta como pendente, não é reenviada em loop e volta a `dirty` ao abrir de novo com permissão de escrita.
+  - **Segundo plano (`background.ts`, uma vez por aba, em ocioso, e no `online`):** registra bancos `axenotes-page-*`
+    sem metadados (do 2a) como `dirty`, reabre sem editor até 10 páginas `dirty` fechadas para enviar o que falta e
+    **despeja** os bancos de páginas não abertas há mais de 30 dias que não estão `dirty` nem abertas (voltam do
+    servidor ao abrir). `navigator.storage.persist()` fica para a Fase 6 (ADR).
+  - **"Sair":** o `UserMenu` carrega o chunk do editor (que registra o envio em `src/lib/pending-content.ts`), tenta
+    enviar o pendente das páginas abertas e das `dirty` fechadas por até 5 s **antes** do `signOut` (depois dele a sessão
+    já não vale) e, se sobrar algo, pergunta "Há alterações não sincronizadas. Sair mesmo assim?". Se o chunk não
+    carregar (offline sem cache), conta as páginas `dirty` lendo o `axenotes-sync` direto (`src/lib/sync-meta-read.ts`).
+    O gancho `onBeforeStorageClear` continua só fechando os docs; o `stop()` espera as gravações de metadados.
+  - **Linha inválida no servidor** (bug ou update corrompido): as linhas são aplicadas uma a uma; a inválida é pulada e
+    registrada só pelo id, sem travar a página.
+  - **Sessão encerrada sem o botão** (refresh token recusado, logout em outra aba): o `SIGNED_OUT` limpa tudo na hora,
+    como antes (privacidade primeiro num aparelho compartilhado). Só se perde algo se, online, a sessão acabar com um
+    update ainda não enviado; online o envio acontece em até ~5 s, então a janela é mínima. Offline o refresh falha por
+    rede e o supabase-js não desloga. O "Sair" de outra aba lê as flags `dirty` do `axenotes-sync` (inclusive das
+    páginas abertas aqui) e avisa.
 
 ## 6. Lembretes, notificações e agenda
 

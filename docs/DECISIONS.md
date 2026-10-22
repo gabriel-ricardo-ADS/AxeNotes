@@ -137,6 +137,9 @@ mais o `ydoc`. Atualiza a DECISÃO-012; o ADR da Fase 2 detalha o formato e a co
   compactação feita pelo cliente com lock por página (o mesmo do append) e **sem apagar na hora** (linhas
   substituídas ficam 7 dias ou nos 3 últimos snapshots); limites por chamada e por linha; texto para busca/prévias
   em `page_texts` (1:1), fora de `pages`. A migration é do 2b.
+- **Implementada na Fase 2b** (`20261022120001_page_contents.sql`), com as correções registradas no ADR (teto de 32 MiB
+  vivos por página, envio do pendente antes do `signOut`, `p_up_to = 0` para página sem linhas, metadados
+  `axenotes-sync`).
 
 ### DECISÃO-017 — CI desde a Fase 0
 **DECIDIDA** — GitHub Actions em `.github/workflows/ci.yml` com typecheck, lint, test, build e
@@ -372,3 +375,11 @@ aqui.** Não é aconselhamento jurídico; confirmar com advogado antes de mudar.
   licença comercial ou troca (a verificar os termos atuais do projeto); há atrito conhecido entre GPL e App Store (Fase 15).
 - Sem recomendação.
 
+
+### DECISÃO-029 — "Editada há…" conta as edições do corpo
+**DECIDIDA (2026-10-22, Fase 2b)** — editar o conteúdo da página atualiza `pages.last_edited_at` e `last_edited_by`,
+como título e ícone já faziam.
+- No servidor, `append_page_updates` regrava esses campos só quando o valor guardado tem mais de 60 s (não reescreve
+  `pages` a cada lote de 1–5 s; hoje não há Realtime em `pages`, então não há barulho na árvore).
+- No cliente, cada envio confirmado atualiza `lastEditedAt` no cache da lista de páginas (`setQueryData`), também no
+  máximo a cada 60 s e sem buscar a página de novo (`src/features/workspace/last-edited.ts`).

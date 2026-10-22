@@ -85,14 +85,19 @@ code-splitting por rota (dois chunks lazy + vendors `react`, `supabase` e `vendo
   aparelho."; blocos nativos (texto, títulos, listas, checklist, toggle, citação, código, divisor, tabela), sem mídia;
   leitor e página na lixeira em só leitura (a página na lixeira passa a abrir, com aviso); logout fecha os docs e apaga
   os bancos `axenotes-page-*`; ponto de extensão `ContentSync` para o 2b; CSP conferida sem mudança.
-- **2b — sincronização (próximo):** migration `page_contents` + `page_texts` + RPCs do ADR (com testes de RLS em PGlite;
-  o Gabriel aplica), envio dos updates com debounce via `ContentSync`, compactação com retenção, snapshot de texto/JSON,
-  busca no conteúdo, indicador "Salvo / Salvando / Offline — será sincronizado", **remover o aviso de prévia**, logout
-  esperando os updates pendentes (ou avisando) antes de apagar o IndexedDB, despejo dos bancos `axenotes-page-*` antigos.
+- **2b — sincronização (feita; migration a aplicar pelo Gabriel antes do merge):** migration
+  `20261022120001_page_contents.sql` (`page_contents`, `page_texts`, RPCs do ADR, teto de 32 MiB vivos por página,
+  `search_pages` no corpo com trecho; testes de RLS, limites, compactação concorrente, retenção e índice em PGlite).
+  `supabaseSync` no lugar do `localOnlySync`: diff por state vector ao abrir, fila com debounce (1 s / máx. 5 s) e
+  retry, recebimento sem Realtime (foco, visibilidade, rede e polling de 20 s), compactação pelo cliente, `page_texts`,
+  indicador "Salvo / Salvando… / Offline — será sincronizado / Erro ao salvar", "Editada há…" contando o corpo
+  (DECISÃO-029), aviso de prévia removido, "Sair" que envia o pendente antes e pergunta se sobrar, metadados
+  `axenotes-sync` (clean/dirty/blocked), reenvio em segundo plano e despejo dos bancos sem abrir há 30 dias.
+  `navigator.storage.persist()` continua na Fase 6. Detalhes em `docs/ARCHITECTURE.md` §5.
   **Pronto quando:** editar no navegador A (inclusive offline), voltar online e ver o conteúdo no navegador B; dois
   aparelhos editando a mesma página convergem; compactação provada em PGlite sem perder update concorrente; busca
   acha uma palavra do corpo; logout com update pendente não perde nada; aviso de prévia removido.
-- **2c — blocos e mobile (depois do 2b):** `callout` e `pageLink`/`subpage`, menu do bloco (Transformar em, Cor,
+- **2c — blocos e mobile (próximo):** `callout` e `pageLink`/`subpage`, menu do bloco (Transformar em, Cor,
   Duplicar, Excluir, Link do bloco), alça ao tocar, barra acima do teclado (`visualViewport`; avaliar a meta viewport
   `interactive-widget=resizes-content` que o BlockNote pede) e menus em bottom sheet.
   **Pronto quando:** recriar a Home (`01-home.jpg`) sem colunas; no iPhone e no iPad, inserir e transformar blocos só
