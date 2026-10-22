@@ -1,5 +1,6 @@
 import { indexedDbSyncMeta } from '@/features/sync/sync-meta'
 import { SYNC_META_DB } from '@/lib/idb-names'
+import { claimLocalData } from '@/lib/local-data-owner'
 import { flushPendingContent, registerPendingContentFlusher } from '@/lib/pending-content'
 import { readSyncMetaEntries } from '@/lib/sync-meta-read'
 
@@ -11,7 +12,7 @@ describe('flushPendingContent', () => {
     const flush = vi.fn(() => Promise.resolve(2))
     const unregister = registerPendingContentFlusher(flush)
     try {
-      expect(await flushPendingContent(5000)).toEqual({ pending: 2 })
+      expect(await flushPendingContent(5000, 'user-a')).toEqual({ pending: 2 })
       expect(flush).toHaveBeenCalledWith(5000)
     } finally {
       unregister()
@@ -19,15 +20,23 @@ describe('flushPendingContent', () => {
   })
 
   it('sem o sync carregado (ex.: offline sem o chunk do editor), conta as páginas dirty', async () => {
+    claimLocalData('user-a')
     await indexedDbSyncMeta.setState('a', 'dirty', 1)
     await indexedDbSyncMeta.setState('b', 'blocked', 1)
     await indexedDbSyncMeta.setState('c', 'clean', 1)
     await indexedDbSyncMeta.setState('d', 'dirty', 1)
-    expect(await flushPendingContent(5000)).toEqual({ pending: 2 })
+    expect(await flushPendingContent(5000, 'user-a')).toEqual({ pending: 2 })
+  })
+
+  it('sem o sync carregado, não conta as dirty de dados locais de outra conta', async () => {
+    claimLocalData('user-b')
+    await indexedDbSyncMeta.setState('a', 'dirty', 1)
+    expect(await flushPendingContent(5000, 'user-a')).toEqual({ pending: 0 })
   })
 
   it('sem metadados: nada pendente, e o banco não é criado só por ler', async () => {
-    expect(await flushPendingContent(5000)).toEqual({ pending: 0 })
+    claimLocalData('user-a')
+    expect(await flushPendingContent(5000, 'user-a')).toEqual({ pending: 0 })
     expect(await readSyncMetaEntries()).toEqual([])
     expect(await databaseNames()).not.toContain(SYNC_META_DB)
   })

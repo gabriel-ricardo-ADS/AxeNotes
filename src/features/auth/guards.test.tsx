@@ -246,6 +246,7 @@ describe('password recovery', () => {
     emitAuthEvent('SIGNED_OUT', null)
     emitAuthEvent('SIGNED_IN', fakeSession())
 
-    expect(screen.getByText('app')).toBeInTheDocument()
+    // A sessão nova espera a limpeza do logout terminar.
+    expect(await screen.findByText('app')).toBeInTheDocument()
   })
 })

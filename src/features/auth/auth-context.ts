@@ -13,6 +13,11 @@ export interface AuthContextValue {
   recovering: boolean
   /** A sessão acabou porque a pessoa clicou em "Sair": não guardar a rota de origem. */
   signedOutByUser: boolean
+  /**
+   * A última entrada foi desfeita porque não deu para apagar deste aparelho os dados locais de outra
+   * conta (src/lib/local-data-owner.ts). A tela de entrar avisa; some na próxima entrada que der certo.
+   */
+  localDataError: boolean
   setRecovering: (value: boolean) => void
   signOut: () => Promise<void>
 }

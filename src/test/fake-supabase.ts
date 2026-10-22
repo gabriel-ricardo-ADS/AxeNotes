@@ -7,9 +7,12 @@ import { act } from '@testing-library/react'
 type Listener = (event: AuthChangeEvent, session: Session | null) => void
 
 const listeners = new Set<Listener>()
+/** Sessão do último evento emitido (o que `getSession` devolve). */
+let currentSession: Session | null = null
 
 /** Entrega um evento de autenticação aos ouvintes, como o supabase-js faria. */
 export function emitAuthEvent(event: AuthChangeEvent, session: Session | null) {
+  currentSession = session
   act(() => {
     for (const listener of [...listeners]) listener(event, session)
   })
@@ -48,6 +51,7 @@ export const fakeAuth = {
       },
     }
   }),
+  getSession: vi.fn(() => Promise.resolve({ data: { session: currentSession }, error: null })),
   signInWithPassword: resolvesOk(),
   signUp: resolvesOk(),
   verifyOtp: resolvesOk(),
@@ -718,6 +722,7 @@ export const fakeSupabase = {
 /** Zera chamadas, ouvintes e dados entre testes. */
 export function resetFakeSupabase() {
   listeners.clear()
+  currentSession = null
   for (const fn of Object.values(fakeAuth)) fn.mockReset()
   fakeSupabase.from.mockReset()
   fakeSupabase.rpc.mockReset()
