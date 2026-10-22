@@ -15,7 +15,7 @@ export function emitAuthEvent(event: AuthChangeEvent, session: Session | null) {
   })
 }
 
-export const USER_ID = 'user-1'
+const USER_ID = 'user-1'
 
 export function fakeSession(userId = USER_ID): Session {
   return {

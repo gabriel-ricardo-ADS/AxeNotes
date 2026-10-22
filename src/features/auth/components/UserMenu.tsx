@@ -28,10 +28,7 @@ export function UserMenu() {
   }
 
   return (
-    <section
-      aria-label={t('auth.user.menuLabel')}
-      className="flex flex-col gap-1 border-t pt-2"
-    >
+    <section aria-label={t('auth.user.menuLabel')} className="flex flex-col gap-1 border-t pt-2">
       {profile.isPending ? (
         <span aria-hidden="true" className="mx-2 my-2 h-4 w-28 rounded-tag bg-hover" />
       ) : (

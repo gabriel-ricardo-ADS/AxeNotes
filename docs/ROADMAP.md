@@ -123,12 +123,13 @@ voltar online e ver salvo em outro navegador.
 - Blocos: imagem (legenda, redimensionar), PDF/arquivo, **embeds** por link (YouTube, Google
   Drive, Vimeo; outros viram bookmark com prévia via Edge Function). Sem upload de vídeo.
 - Capa da página (enviar/trocar/reposicionar, GIF permitido).
-**Pronto quando:** recriar `10-…` e `11-…` das referências usando links do YouTube e do Drive.
+**Pronto quando:** recriar a matéria com imagens e links (`10-materia-imagens-links.jpg`) e o título
+com toggle e imagem (`11-modulo-toggle-imagem.jpg`) usando links do YouTube e do Drive.
 
 ## Fase 4 — Colunas e layout
 - `@blocknote/xl-multi-column`: 2–4 colunas, arrastar bloco para o lado, redimensionar.
 - Página com opção "largura total". Mobile: colunas empilham abaixo de 768 px.
-**Pronto quando:** layout de 3 colunas do print (`00-…`) montável.
+**Pronto quando:** layout de 3 colunas do painel de leituras (`00-painel-de-leituras.jpg`) montável.
 
 ## Fase 5 — Bases de dados: núcleo + Tabela + Galeria
 - Migrações `databases`, `database_properties`, `database_views`; linhas como páginas.
@@ -139,7 +140,7 @@ voltar online e ver salvo em outro navegador.
   Galeria (capa, propriedades visíveis), filtros, ordenação, **agrupamento por status/seleção**,
   busca, abas, botão "Nova".
 - Bloco `databaseView` (inline e vista vinculada com filtro próprio).
-**Pronto quando:** a página do print inteira é montável com dados fictícios; tabela com
+**Pronto quando:** o painel de leituras do print inteiro é montável com dados fictícios; tabela com
 1.000 linhas fluida.
 
 ## Fase 6 — PWA, offline básico e deploy (fecha o MVP)
@@ -171,6 +172,9 @@ funcionalidade nova entra no app por causa dela sem decisão registrada em `docs
 - h) Teste em iPhone e iPad reais depois do deploy. **Feito no deploy de teste de 2026-10-20 (desktop, iPhone e iPad);
   repetir antes do lançamento público.**
 - i) PRD.md e UI-REFERENCE.md sem dados identificáveis da cliente (persona genérica), com o ok dela.
+  **Parte do repositório feita** (PR `chore/higiene-repo`): persona genérica, exemplos e nomes de referência
+  descritivos nos docs, e dados fictícios no seed e nos testes. O histórico do git ainda tem os textos antigos
+  (reescrever exigiria force-push). **Falta o ok da cliente.**
 
 ## Fase 7 — Mais vistas
 - Quadro (kanban), Calendário, Lista; exportar/importar CSV. (O agrupamento por status/seleção já

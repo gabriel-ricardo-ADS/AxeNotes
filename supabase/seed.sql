@@ -56,7 +56,7 @@ begin
     (v_inicio, v_ws_ana, null, 'Início', '{"type":"emoji","value":"🏠"}', 'a0', v_ana),
     (v_estudos, v_ws_ana, null, 'Estudos', '{"type":"emoji","value":"📚"}', 'a1', v_ana),
     (v_materia, v_ws_ana, v_estudos, 'Matemática', '{"type":"emoji","value":"📐"}', 'a0', v_ana),
-    (v_leituras, v_ws_ana, null, 'Cantinho de leitura', '{"type":"emoji","value":"📖"}', 'a2', v_ana),
+    (v_leituras, v_ws_ana, null, 'Leituras', '{"type":"emoji","value":"📖"}', 'a2', v_ana),
     (v_agenda, v_ws_ana, null, 'Agenda', '{"type":"emoji","value":"🗓️"}', 'a3', v_ana),
     (v_diario, v_ws_bruno, null, 'Diário', '{"type":"emoji","value":"📓"}', 'a0', v_bruno);
 

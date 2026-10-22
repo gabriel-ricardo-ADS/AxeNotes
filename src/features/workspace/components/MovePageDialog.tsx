@@ -1,5 +1,11 @@
 import { useMemo } from 'react'
-import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from '@/components/ui/dialog'
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogHeader,
+  DialogTitle,
+} from '@/components/ui/dialog'
 import { PageIconView } from '@/features/workspace/components/PageIconView'
 import { buildPageTree, flattenVisible, validateMove } from '@/features/workspace/tree'
 import type { PageRow } from '@/features/workspace/types'
@@ -71,7 +77,9 @@ export function MovePageDialog({ page, rows, homeId, onClose, onMove }: MovePage
                   }}
                 >
                   <PageIconView icon={item.page.icon} />
-                  <span className="truncate">{item.page.title || t('workspace.tree.untitled')}</span>
+                  <span className="truncate">
+                    {item.page.title || t('workspace.tree.untitled')}
+                  </span>
                 </button>
               </li>
             ))}

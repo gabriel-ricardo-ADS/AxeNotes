@@ -9,7 +9,7 @@ import { pageDbName, rememberOpenedDatabase } from '@/lib/idb-names'
 import { onBeforeStorageClear } from '@/lib/reset-client-state'
 
 /** Fragmento do Y.Doc onde o BlockNote grava os blocos (o mesmo nome da documentação do BlockNote). */
-export const PAGE_FRAGMENT = 'document-store'
+const PAGE_FRAGMENT = 'document-store'
 
 /** Abrir e carregar o banco da página não pode prender a tela: depois disso, só memória. */
 export const LOCAL_LOAD_TIMEOUT_MS = 8000

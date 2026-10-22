@@ -3,6 +3,7 @@ import { Suspense, useEffect, useMemo, useState } from 'react'
 import { Link, useLocation, useNavigate } from 'react-router'
 import { DESKTOP_QUERY } from '@/app/layout/AppLayout'
 import { TopBarPortal } from '@/app/layout/top-bar-slot'
+import { loadPageEditor } from '@/features/editor/load-page-editor'
 import { FavoriteButton } from '@/features/favorites/components/FavoriteButton'
 import { useRecordVisit } from '@/features/recents/hooks/use-record-visit'
 import { Breadcrumb } from '@/features/pages/components/Breadcrumb'
@@ -22,8 +23,9 @@ import { t } from '@/i18n'
 import { lazyWithReload } from '@/lib/lazy-with-reload'
 import { formatEditedAgo } from '@/lib/relative-time'
 
-// BlockNote e Yjs só descem quando uma página abre (chunk próprio; a entrada e o app logado não crescem).
-const PageEditor = lazyWithReload(() => import('@/features/editor/PageEditor'))
+// BlockNote e Yjs ficam num chunk próprio (a entrada e o app logado não crescem). O AppLayout já o
+// adianta em tempo ocioso; se a página abrir antes disso, o download começa aqui.
+const PageEditor = lazyWithReload(loadPageEditor)
 
 interface PageViewProps {
   page: PageRow

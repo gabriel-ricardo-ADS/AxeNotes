@@ -1,11 +1,13 @@
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import { Outlet } from 'react-router'
 import { MobileNav } from '@/app/layout/MobileNav'
 import { Sidebar } from '@/app/layout/Sidebar'
 import { TopBarSlotContext } from '@/app/layout/top-bar-context'
+import { loadPageEditor } from '@/features/editor/load-page-editor'
 import { SearchDialog } from '@/features/search/components/SearchDialog'
 import { useMediaQuery } from '@/hooks/use-media-query'
 import { t } from '@/i18n'
+import { prefetchOnIdle } from '@/lib/prefetch-on-idle'
 
 /** A partir daqui a sidebar fica fixa; abaixo disso vira gaveta (igual ao `md` do Tailwind). */
 export const DESKTOP_QUERY = '(min-width: 768px)'
@@ -14,6 +16,11 @@ export const DESKTOP_QUERY = '(min-width: 768px)'
 export function AppLayout() {
   const isDesktop = useMediaQuery(DESKTOP_QUERY)
   const [topBarSlot, setTopBarSlot] = useState<HTMLElement | null>(null)
+
+  // O editor é o maior chunk: com o app aberto, desce em tempo ocioso e a página abre sem esperar.
+  useEffect(() => {
+    prefetchOnIdle(loadPageEditor)
+  }, [])
 
   return (
     <TopBarSlotContext.Provider value={topBarSlot}>

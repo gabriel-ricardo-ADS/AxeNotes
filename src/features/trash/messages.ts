@@ -7,7 +7,8 @@ export type TrashAction = 'trash' | 'restore' | 'delete'
 export function trashErrorMessage(action: TrashAction, error: unknown): string {
   const kind = mapTrashError(error)
   if (kind === 'forbidden') return t('trash.errors.forbidden')
-  if (kind === 'parent_trashed' && action === 'restore') return t('trash.errors.restoreParentTrashed')
+  if (kind === 'parent_trashed' && action === 'restore')
+    return t('trash.errors.restoreParentTrashed')
   if (kind === 'gone' && action === 'delete') return t('trash.errors.deleteGone')
   return t(`trash.errors.${action}`)
 }

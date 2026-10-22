@@ -2,7 +2,7 @@
  * Nomes dos bancos IndexedDB do app. O conteúdo de cada página fica num banco próprio do y-indexeddb,
  * `axenotes-page-<id>` (docs/adr/0001-conteudo-yjs.md).
  */
-export const PAGE_DB_PREFIX = 'axenotes-page-'
+const PAGE_DB_PREFIX = 'axenotes-page-'
 
 export const pageDbName = (pageId: string): string => `${PAGE_DB_PREFIX}${pageId}`
 
