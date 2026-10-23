@@ -69,7 +69,12 @@ async function signInThroughUi(page: Page): Promise<void> {
   await page.getByLabel('E-mail').fill(email)
   await page.getByLabel('Senha', { exact: true }).fill(password)
   await page.getByRole('button', { name: 'Entrar', exact: true }).click()
-  await page.waitForURL((url) => url.pathname !== '/entrar')
+  // Mesma espera de e2e/support/ui.ts: o app logado assentado em "/" antes do próximo goto.
+  await page.waitForURL((url) => url.pathname === '/')
+  await page
+    .getByRole('button', { name: 'Abrir menu' })
+    .or(page.getByRole('navigation', { name: 'Navegação principal' }))
+    .waitFor()
 }
 
 /** Abre a gaveta no mobile/tablet estreito e tira o print dela. */
