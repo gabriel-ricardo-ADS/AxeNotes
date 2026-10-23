@@ -1,10 +1,11 @@
 import { IndexeddbPersistence } from 'y-indexeddb'
 import * as Y from 'yjs'
-import {
-  localOnlySync,
-  type ContentSync,
-  type ContentSyncSession,
+import type {
+  ContentSync,
+  ContentSyncOptions,
+  ContentSyncSession,
 } from '@/features/sync/content-sync'
+import { supabaseSync } from '@/features/sync/supabase-sync'
 import { pageDbName, rememberOpenedDatabase } from '@/lib/idb-names'
 import { onBeforeStorageClear } from '@/lib/reset-client-state'
 
@@ -14,7 +15,7 @@ const PAGE_FRAGMENT = 'document-store'
 /** Abrir e carregar o banco da página não pode prender a tela: depois disso, só memória. */
 export const LOCAL_LOAD_TIMEOUT_MS = 8000
 
-/** `local` = salvo no IndexedDB do aparelho; `memory` = o IndexedDB falhou e nada é guardado. */
+/** `local` = salvo no IndexedDB do aparelho; `memory` = o IndexedDB falhou e nada fica no aparelho (o servidor ainda recebe). */
 export type PageDocStorage = 'local' | 'memory'
 
 export interface PageDoc {
@@ -23,6 +24,8 @@ export interface PageDoc {
   fragment: Y.XmlFragment
   /** Resolve depois de carregar o conteúdo do aparelho, ou ao cair para memória. Nunca rejeita. */
   ready: Promise<PageDocStorage>
+  /** Sincronização com o servidor; existe a partir de `ready` (null depois de fechado). */
+  readonly session: ContentSyncSession | null
   /** Fecha o banco e destrói o Y.Doc. Pode ser chamado mais de uma vez. */
   destroy: () => Promise<void>
 }
@@ -35,11 +38,16 @@ onBeforeStorageClear(async () => {
 })
 
 /**
- * Y.Doc de uma página, persistido num banco IndexedDB só dela (`axenotes-page-<id>`). Se o IndexedDB
- * não existir, falhar (modo privado, cota, erro do navegador) ou não responder a tempo, o doc segue só
- * em memória: o editor avisa, mas nunca vira tela de erro.
+ * Y.Doc de uma página, persistido num banco IndexedDB só dela (`axenotes-page-<id>`) e sincronizado
+ * com o servidor por `sync` depois de carregar o que está no aparelho. Se o IndexedDB não existir,
+ * falhar (modo privado, cota, erro do navegador) ou não responder a tempo, o doc segue só em memória
+ * (e ainda sincroniza): o editor avisa, mas nunca vira tela de erro.
  */
-export function openPageDoc(pageId: string, sync: ContentSync = localOnlySync): PageDoc {
+export function openPageDoc(
+  pageId: string,
+  sync: ContentSync = supabaseSync,
+  options: ContentSyncOptions = { canWrite: false },
+): PageDoc {
   const doc = new Y.Doc()
   const fragment = doc.getXmlFragment(PAGE_FRAGMENT)
   let persistence: IndexeddbPersistence | null = null
@@ -68,7 +76,7 @@ export function openPageDoc(pageId: string, sync: ContentSync = localOnlySync): 
       return 'memory'
     })
     .then((storage) => {
-      if (!destroyed) session = sync.start(pageId, doc)
+      if (!destroyed) session = sync.start(pageId, doc, options)
       return storage
     })
 
@@ -77,15 +85,20 @@ export function openPageDoc(pageId: string, sync: ContentSync = localOnlySync): 
     doc,
     fragment,
     ready,
+    get session() {
+      return destroyed ? null : session
+    },
     destroy: async () => {
       if (destroyed) return
       destroyed = true
       openDocs.delete(pageDoc)
-      await session?.stop()
-      const current = persistence
+      const current = session
+      session = null
+      await current?.stop()
+      const local = persistence
       persistence = null
       // `db.close()` espera as gravações em andamento terminarem.
-      await current?.destroy().catch(() => undefined)
+      await local?.destroy().catch(() => undefined)
       doc.destroy()
     },
   }

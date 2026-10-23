@@ -1,6 +1,7 @@
 import { QueryClient } from '@tanstack/react-query'
 import type { MockInstance } from 'vitest'
 import { useSearchStore } from '@/features/search/search-store'
+import { indexedDbSyncMeta } from '@/features/sync/sync-meta'
 import { forgetOpenedDatabases, pageDbName, rememberOpenedDatabase } from '@/lib/idb-names'
 import {
   KNOWN_IDB_DATABASES,
@@ -94,6 +95,20 @@ describe('resetClientState', () => {
     expect(deleteDatabase.mock.calls).toEqual(KNOWN_IDB_DATABASES.map((name) => [name]))
   })
 
+  it('without indexedDB.databases(), also deletes the page databases listed in axenotes-sync', async () => {
+    await indexedDbSyncMeta.setState('antiga', 'clean', 1)
+    await indexedDbSyncMeta.setState('suja', 'dirty', 1)
+    const real = indexedDB
+    const deleteDatabase = vi.fn(() => fakeDeleteRequest())
+    vi.stubGlobal('indexedDB', { open: real.open.bind(real), deleteDatabase })
+
+    await resetClientState(new QueryClient())
+
+    expect(deleteDatabase.mock.calls).toEqual(
+      expect.arrayContaining([['axenotes-sync'], ['axenotes-page-antiga'], ['axenotes-page-suja']]),
+    )
+  })
+
   it('without indexedDB.databases(), also deletes the page databases opened in this tab', async () => {
     const deleteDatabase = vi.fn(() => fakeDeleteRequest())
     vi.stubGlobal('indexedDB', { deleteDatabase })
@@ -105,10 +120,10 @@ describe('resetClientState', () => {
     expect(deleteDatabase.mock.calls).toEqual(
       expect.arrayContaining([['axenotes-page-p1'], ['axenotes-page-p2']]),
     )
-    // Os nomes saem do registro junto com os bancos.
+    // Os nomes saem do registro junto com os bancos (os de nome fixo continuam na lista).
     deleteDatabase.mockClear()
     await resetClientState(new QueryClient())
-    expect(deleteDatabase).not.toHaveBeenCalled()
+    expect(deleteDatabase.mock.calls).toEqual(KNOWN_IDB_DATABASES.map((name) => [name]))
   })
 
   it('runs the before-clear tasks before deleting, and a failing task does not stop the logout', async () => {

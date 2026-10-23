@@ -1,6 +1,8 @@
 # ADR 0001 — Conteúdo das páginas em Yjs: log de updates com compactação em `page_contents`
 
-- **Status:** aceito (Fase 2a, 2026-10-22). Confirma a DECISÃO-012 e a DECISÃO-016 (`docs/DECISIONS.md`).
+- **Status:** aceito (Fase 2a, 2026-10-22); **implementado na Fase 2b** (migration
+  `20261022120001_page_contents.sql`), com as correções da seção "Correções no 2b" no fim. Confirma a DECISÃO-012 e a
+  DECISÃO-016 (`docs/DECISIONS.md`).
 - **Quem implementa:** 2a = editor local (Y.Doc + y-indexeddb, sem servidor); 2b = tudo que está marcado
   "(2b)" abaixo; colaboração em tempo real = Fase 11.
 - **Nenhuma migration nasce deste documento.** O 2b escreve a migration seguindo a skill `migracao-supabase`,
@@ -34,10 +36,10 @@ create table public.page_contents (
   byte_size     integer generated always as (octet_length(data)) stored,
   covers_up_to  bigint null,          -- só snapshot: maior id de linha que ele já contém
   superseded_at timestamptz null,     -- marcada pela compactação; null = linha viva
-  created_by    uuid not null default auth.uid() references auth.users (id),
+  created_by    uuid default auth.uid() references auth.users (id) on delete set null,
   created_at    timestamptz not null default now(),
   constraint page_contents_snapshot_covers check ((kind = 'snapshot') = (covers_up_to is not null)),
-  constraint page_contents_row_size check (octet_length(data) <= 8388608)   -- 8 MiB, rede de segurança
+  constraint page_contents_row_size check (octet_length(data) between 1 and 8388608)   -- 8 MiB, rede de segurança
 );
 create index page_contents_live on public.page_contents (page_id, id) where superseded_at is null;
 create index page_contents_superseded on public.page_contents (page_id, superseded_at)
@@ -58,21 +60,24 @@ create index page_contents_superseded on public.page_contents (page_id, supersed
 - **No fio, base64**, convertido no SQL com `decode(x, 'base64')` / `encode(data, 'base64')`. Motivo: o PostgREST
   serializa `bytea` como texto hex `\x…` (2× o tamanho); base64 custa 1,33×. Por isso o cliente nunca lê nem
   escreve a tabela direto: só por RPC.
-- O cliente junta os updates pendentes com `Y.mergeUpdates` antes de enviar (debounce proposto: 1,5 s ocioso,
-  no máximo 10 s, e na hora em `visibilitychange: hidden`/`pagehide`, como o título).
+- O cliente junta os updates pendentes com `Y.mergeUpdates` antes de enviar (debounce de 1 s ocioso, no máximo
+  5 s, e na hora em `visibilitychange: hidden`/`pagehide`; o 2b encurtou os 1,5 s / 10 s propostos).
 
 ## RPCs (2b)
 
 | RPC | Faz | Quem |
 | --- | --- | --- |
 | `append_page_updates(p_page_id uuid, p_updates text[])` | insere cada update (base64) como `kind = 'update'`; devolve os ids | editor, página fora da lixeira |
-| `get_page_content(p_page_id uuid, p_after bigint default null)` | linhas vivas (`superseded_at is null`) em ordem de id, em base64; com `p_after`, só as de id maior (para recarregar incremental) | viewer |
-| `compact_page_content(p_page_id uuid, p_snapshot text, p_up_to bigint)` | grava um snapshot que cobre as linhas vivas `id <= p_up_to` e marca essas linhas como substituídas | editor, página fora da lixeira |
+| `get_page_content(p_page_id uuid, p_after bigint default null)` | **todas** as linhas vivas (`superseded_at is null`) em ordem de id, em base64 (`id, kind, data, covers_up_to, byte_size`); com `p_after`, só as de id maior (para recarregar incremental). Pode haver update vivo com id menor que o do snapshot vivo (gravado entre a leitura e a compactação de outro aparelho), por isso não é "snapshot + o que vem depois" | viewer (security invoker, RLS) |
+| `compact_page_content(p_page_id uuid, p_snapshot text, p_up_to bigint)` | grava um snapshot que cobre as linhas vivas `id <= p_up_to` e marca essas linhas como substituídas; devolve `false` se já coberto. `p_up_to` precisa ser o id de uma linha da página, ou `0` em página ainda sem linhas | editor, página fora da lixeira |
+| `set_page_text(p_page_id uuid, p_text text, p_json jsonb)` | upsert em `page_texts` | editor, página fora da lixeira |
 
 **Limites (o servidor recusa, não corta):**
 
 - `append_page_updates`: no máximo **100 updates** por chamada e **2 MiB** somados (depois do `decode`); cada
   update no máximo **1 MiB**.
+- `append_page_updates` também recusa (`page_content_live_too_large`) se as linhas vivas da página passarem de
+  **32 MiB** somadas; o cliente reage compactando (2b).
 - `compact_page_content`: snapshot de no máximo **8 MiB** (mesmo valor do `check` da tabela).
 - Recusa com `raise exception 'page_content_too_large' using errcode = '22023'` (o PostgREST devolve HTTP 400 e o
   cliente reconhece a mensagem). Lote grande demais é `page_content_batch_too_large` (mesmo errcode). Página na
@@ -174,6 +179,35 @@ envia o estado inteiro como primeiro update (o merge do Yjs resolve se outro apa
 - **Supabase Realtime (broadcast) como transporte de updates:** sem persistência nem garantia de entrega; a
   colaboração usa Durable Objects (DECISÃO-012).
 - **`@y/y` 14:** o BlockNote 0.56 aceita, mas ainda é release candidate; ficamos no `yjs` 13 estável.
+
+## Correções no 2b
+
+Ajustes feitos ao implementar (o texto acima já os reflete onde cabia):
+
+1. **Logout:** o `signOut()` revoga a sessão antes de `resetClientState` rodar os ganchos de `onBeforeStorageClear`;
+   depois disso o RPC iria sem JWT. O envio do pendente acontece **antes** do `signOut`: o "Sair" tenta por até 5 s e,
+   se sobrar algo, pergunta. O gancho continua só fechando os docs.
+2. **Debounce:** 1 s ocioso / máx. 5 s (em vez de 1,5 s / 10 s).
+3. **Snapshot da compactação:** é o `encodeStateAsUpdate` do doc vivo, que contém todas as linhas `id <= p_up_to` e
+   talvez edições locais ainda não enviadas (inofensivo: o merge é idempotente). A autoverificação compara o state
+   vector do snapshot aplicado num doc novo com o do doc vivo no momento da codificação.
+4. **`get_page_content`:** devolve todas as linhas vivas (ver a tabela de RPCs); no modo incremental, um snapshot
+   gravado por outro aparelho chega junto e aplicá-lo de novo é inofensivo.
+5. **Busca:** `search_pages` ganhou a coluna `snippet` (recriada com `drop` + `create`, mesmos argumentos, grants
+   refeitos); o cliente antigo ignora a coluna nova.
+6. **Metadados** `axenotes-sync` (nome fixo em `KNOWN_IDB_DATABASES`): `{ lastOpenedAt, state }` por página, com
+   `clean` / `dirty` / `blocked`. Base do despejo de 30 dias, do aviso no logout e do reenvio de páginas fechadas.
+7. `navigator.storage.persist()` continua na Fase 6.
+8. **Teto de 32 MiB vivos por página** no append (o cliente compacta) e `p_up_to = 0` para o primeiro envio grande
+   demais para o append numa página sem linhas.
+9. `page_contents.created_by` é **nulo ao apagar o usuário** (`on delete set null`), para não travar a exclusão de conta
+   (DECISÃO-023); continua sendo só auditoria.
+10. **"Editada há…"** passa a contar as edições do corpo (DECISÃO-029).
+11. **Teto de 64 MiB de histórico por página:** além dos 3 snapshots substituídos mais recentes, `prune_page_contents`
+    apaga antes dos 7 dias o substituído que passar de 64 MiB (os mais antigos primeiro), para ciclos de append +
+    compactação não fazerem o banco crescer sem limite (revisão de segurança do 2b).
+12. **Busca no corpo e RLS:** o ramo do corpo faz `join` com as páginas do workspace; sob RLS o índice trigram não é
+    usado (`like` não é *leakproof*), então o custo cresce com o número de páginas do workspace, não do banco.
 
 ## Consequências
 

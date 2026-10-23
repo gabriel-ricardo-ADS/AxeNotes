@@ -116,6 +116,20 @@ export const fakeDb: {
   singleLoads: number
   /** Ordem em que as escritas chegaram ao "banco": `update:pages`, `rpc:trash_page`… */
   order: string[]
+  /**
+   * Conteúdo das páginas (`page_contents`/`page_texts`, Fase 2b). As RPCs de conteúdo ficam FORA de
+   * `rpcCalls`/`order` (o editor as chama sozinho ao abrir uma página) e vão para `contentCalls`.
+   */
+  content: {
+    id: number
+    page_id: string
+    kind: string
+    data: string
+    covers_up_to: number | null
+    live: boolean
+  }[]
+  texts: Record<string, string>
+  contentCalls: { name: string; args: Record<string, unknown> }[]
 } = {
   tables: EMPTY_TABLES(),
   failures: [],
@@ -129,6 +143,9 @@ export const fakeDb: {
   trashLoads: 0,
   singleLoads: 0,
   order: [],
+  content: [],
+  texts: {},
+  contentCalls: [],
 }
 
 /** Faz a PRÓXIMA operação `op` na tabela falhar (uma vez). */
@@ -546,6 +563,9 @@ function searchPages(args: Record<string, unknown>): QueryResult {
   const term = fold(typeof args.p_query === 'string' ? args.p_query : '').replace(/^ +| +$/g, '')
   const limit = Math.min(Math.max(typeof args.p_limit === 'number' ? args.p_limit : 20, 1), 50)
   const starts = (row: Row) => fold(String(row.title)).startsWith(term)
+  const inTitle = (row: Row) => fold(String(row.title)).includes(term)
+  // Corpo (page_texts, 2b): o trecho aqui é o texto inteiro; o banco corta em volta do termo.
+  const body = (row: Row) => fakeDb.texts[String(row.id)] ?? ''
 
   const found =
     isMember && term !== ''
@@ -553,11 +573,12 @@ function searchPages(args: Record<string, unknown>): QueryResult {
           (row) =>
             row.workspace_id === args.p_workspace_id &&
             row.trashed_at == null &&
-            fold(String(row.title)).includes(term),
+            (inTitle(row) || fold(body(row)).includes(term)),
         )
       : []
   found.sort((a, b) => {
     if (starts(a) !== starts(b)) return starts(a) ? -1 : 1
+    if (inTitle(a) !== inTitle(b)) return inTitle(a) ? -1 : 1
     const edited = String(b.last_edited_at).localeCompare(String(a.last_edited_at))
     return edited !== 0 ? edited : String(a.id) < String(b.id) ? -1 : 1
   })
@@ -568,8 +589,74 @@ function searchPages(args: Record<string, unknown>): QueryResult {
     title: row.title,
     icon: row.icon,
     last_edited_at: row.last_edited_at,
+    snippet: inTitle(row) ? null : body(row),
   }))
   return { data, error: null }
+}
+
+const CONTENT_RPCS = new Set([
+  'get_page_content',
+  'append_page_updates',
+  'compact_page_content',
+  'set_page_text',
+])
+
+let contentSeq = 0
+
+/** RPCs do conteúdo (…20261022120001), simplificadas: editor e página fora da lixeira para escrever. */
+function contentRpc(name: string, args: Record<string, unknown>): QueryResult {
+  const pageId = String(args.p_page_id)
+  const page = dbPage(pageId)
+  const forbidden = { data: null, error: { code: '42501', message: 'forbidden' } }
+  const writable = page !== undefined && page.trashed_at == null && memberCanEdit()
+  if (name === 'get_page_content') {
+    const after = typeof args.p_after === 'number' ? args.p_after : null
+    const data = fakeDb.content
+      .filter((row) => row.page_id === pageId && row.live && (after === null || row.id > after))
+      .map((row) => ({
+        id: row.id,
+        kind: row.kind,
+        data: row.data,
+        covers_up_to: row.covers_up_to,
+        byte_size: Math.floor((row.data.length * 3) / 4),
+      }))
+    return { data, error: null }
+  }
+  if (!writable) return forbidden
+  if (name === 'append_page_updates') {
+    const updates = Array.isArray(args.p_updates) ? args.p_updates.map(String) : []
+    const ids = updates.map((data) => {
+      contentSeq += 1
+      fakeDb.content.push({
+        id: contentSeq,
+        page_id: pageId,
+        kind: 'update',
+        data,
+        covers_up_to: null,
+        live: true,
+      })
+      return contentSeq
+    })
+    return { data: ids, error: null }
+  }
+  if (name === 'compact_page_content') {
+    const upTo = Number(args.p_up_to)
+    for (const row of fakeDb.content) {
+      if (row.page_id === pageId && row.live && row.id <= upTo) row.live = false
+    }
+    contentSeq += 1
+    fakeDb.content.push({
+      id: contentSeq,
+      page_id: pageId,
+      kind: 'snapshot',
+      data: String(args.p_snapshot),
+      covers_up_to: upTo,
+      live: true,
+    })
+    return { data: true, error: null }
+  }
+  fakeDb.texts[pageId] = String(args.p_text)
+  return { data: null, error: null }
 }
 
 /** `trash_page`, `restore_page` e `search_pages`, com a mesma semântica das funções do banco (…0005 e …0006). */
@@ -578,6 +665,10 @@ async function rpc(
   args: Record<string, unknown>,
   signal?: AbortSignal,
 ): Promise<QueryResult> {
+  if (CONTENT_RPCS.has(name)) {
+    fakeDb.contentCalls.push({ name, args })
+    return contentRpc(name, args)
+  }
   fakeDb.rpcCalls.push({ name, args })
   const gate = fakeDb.rpcGates.findIndex((g) => g.name === name)
   if (gate >= 0) {
@@ -642,6 +733,9 @@ export function resetFakeSupabase() {
   fakeDb.trashLoads = 0
   fakeDb.singleLoads = 0
   fakeDb.order = []
+  fakeDb.content = []
+  fakeDb.texts = {}
+  fakeDb.contentCalls = []
   // Todo teste começa com o workspace pessoal e a página inicial já criados.
   seedWorkspace({ homePageId: fakeId(1000) })
   seedPages([{ id: fakeId(1000), title: 'Página inicial', sortKey: 'a0' }])

@@ -1,6 +1,6 @@
 import { QueryClient } from '@tanstack/react-query'
 import * as Y from 'yjs'
-import type { ContentSync } from '@/features/sync/content-sync'
+import { localOnlySync, type ContentSync } from '@/features/sync/content-sync'
 import {
   LOCAL_LOAD_TIMEOUT_MS,
   openPageDoc,
@@ -9,6 +9,9 @@ import {
 } from '@/features/sync/page-doc'
 import { pageDbName } from '@/lib/idb-names'
 import { resetClientState } from '@/lib/reset-client-state'
+
+// O cliente real do Supabase exige as variáveis de ambiente (ausentes no CI); aqui nada chega à rede.
+vi.mock('@/lib/supabase', () => ({ supabase: {} }))
 
 const PAGE_A = '00000000-0000-4000-8000-00000000000a'
 const PAGE_B = '00000000-0000-4000-8000-00000000000b'
@@ -28,8 +31,8 @@ async function databaseNames(): Promise<string[]> {
 
 let opened: PageDoc[] = []
 
-function open(pageId: string, sync?: ContentSync): PageDoc {
-  const pageDoc = openPageDoc(pageId, sync)
+function open(pageId: string, sync: ContentSync = localOnlySync): PageDoc {
+  const pageDoc = openPageDoc(pageId, sync, { canWrite: true })
   opened.push(pageDoc)
   return pageDoc
 }
@@ -158,11 +161,13 @@ describe('openPageDoc', () => {
 
   it('starts the content sync after loading and stops it on destroy', async () => {
     const stop = vi.fn(() => Promise.resolve())
-    const start = vi.fn(() => ({ stop }))
+    const session = { ...localOnlySync.start(PAGE_A, new Y.Doc(), { canWrite: true }), stop }
+    const start = vi.fn(() => session)
     const pageDoc = open(PAGE_A, { start })
 
     await pageDoc.ready
-    expect(start).toHaveBeenCalledWith(PAGE_A, pageDoc.doc)
+    expect(start).toHaveBeenCalledWith(PAGE_A, pageDoc.doc, { canWrite: true })
+    expect(pageDoc.session).toBe(session)
 
     await pageDoc.destroy()
     expect(stop).toHaveBeenCalledTimes(1)

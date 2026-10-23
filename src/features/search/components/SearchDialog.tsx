@@ -249,6 +249,7 @@ function SearchBody() {
                 id={optionId(item)}
                 item={item}
                 path={pathOf(item)}
+                term={mode === 'results' ? debounced : ''}
                 active={item.id === activeItem?.id}
                 onPick={() => {
                   pick(item)

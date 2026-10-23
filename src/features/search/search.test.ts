@@ -1,6 +1,7 @@
 import {
   detectMac,
   hasForeignModal,
+  highlightParts,
   isSearchShortcut,
   moveActive,
   normalizeTerm,
@@ -231,5 +232,26 @@ describe('resultsAnnouncement', () => {
     expect(resultsAnnouncement(0)).toBe('Nenhuma página encontrada.')
     expect(resultsAnnouncement(1)).toBe('1 resultado.')
     expect(resultsAnnouncement(7)).toBe('7 resultados.')
+  })
+})
+
+describe('highlightParts', () => {
+  it('marca o termo ignorando acento e caixa, preservando o texto original', () => {
+    expect(highlightParts('O Teorema de Pitágoras', 'pitagoras')).toEqual([
+      { text: 'O Teorema de ', match: false },
+      { text: 'Pitágoras', match: true },
+    ])
+    expect(highlightParts('AÇÃO e ação', 'acao')).toEqual([
+      { text: 'AÇÃO', match: true },
+      { text: ' e ', match: false },
+      { text: 'ação', match: true },
+    ])
+  })
+
+  it('aceita acento decomposto (NFD) no texto e termo vazio', () => {
+    const decomposed = 'cálculo'
+    expect(highlightParts(decomposed, 'calculo')).toEqual([{ text: decomposed, match: true }])
+    expect(highlightParts('texto', '  ')).toEqual([{ text: 'texto', match: false }])
+    expect(highlightParts('texto', 'zzz')).toEqual([{ text: 'texto', match: false }])
   })
 })

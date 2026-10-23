@@ -1,13 +1,14 @@
 import type { QueryClient } from '@tanstack/react-query'
 import { resetAllStores } from '@/lib/create-store'
-import { forgetOpenedDatabases, openedDatabases } from '@/lib/idb-names'
+import { forgetOpenedDatabases, openedDatabases, pageDbName, SYNC_META_DB } from '@/lib/idb-names'
+import { readSyncMetaEntries } from '@/lib/sync-meta-read'
 
 /**
  * Bancos IndexedDB de nome fixo, para navegadores sem `indexedDB.databases()`. Os bancos por página
  * (`axenotes-page-<id>`, src/lib/idb-names.ts) não cabem numa lista fixa: sem `databases()` só saem os
  * abertos nesta aba (limitação documentada em docs/ARCHITECTURE.md).
  */
-export const KNOWN_IDB_DATABASES: readonly string[] = []
+export const KNOWN_IDB_DATABASES: readonly string[] = [SYNC_META_DB]
 
 type BeforeStorageClear = () => Promise<void> | void
 
@@ -62,11 +63,18 @@ async function clearBrowserStorage(): Promise<void> {
 async function deleteDatabases(): Promise<void> {
   await runBeforeStorageClear()
   if (typeof indexedDB === 'undefined') return
-  // Com `databases()`: todos os bancos da origem (os `axenotes-page-*` inclusos).
+  // Com `databases()`: todos os bancos da origem (os `axenotes-page-*` inclusos). Sem ela: os de nome
+  // fixo, os abertos nesta aba e os de toda página registrada nos metadados da sincronização.
   const names =
     typeof indexedDB.databases === 'function'
       ? (await indexedDB.databases()).flatMap((info) => (info.name ? [info.name] : []))
-      : [...new Set([...KNOWN_IDB_DATABASES, ...openedDatabases()])]
+      : [
+          ...new Set([
+            ...KNOWN_IDB_DATABASES,
+            ...openedDatabases(),
+            ...(await readSyncMetaEntries()).map((entry) => pageDbName(entry.pageId)),
+          ]),
+        ]
   await Promise.all(names.map(deleteDatabase))
   forgetOpenedDatabases()
 }

@@ -274,3 +274,24 @@ export async function pageState(
   if (data === null) return 'missing'
   return data.trashed_at === null ? 'live' : 'trashed'
 }
+
+/**
+ * A migration do 2b (`page_contents`, RPCs do conteúdo) está aplicada no projeto? Sem ela o RPC não
+ * existe (PostgREST PGRST202) e os e2e de sincronização são pulados com o motivo.
+ */
+export async function contentSyncAvailable(session: ApiSession): Promise<boolean> {
+  const { error } = await session.client.rpc('get_page_content', {
+    p_page_id: crypto.randomUUID(),
+  })
+  return error === null
+}
+
+/** Texto de busca gravado em `page_texts` (null se ainda não há), para esperar o snapshot do corpo. */
+export async function savedBodyText(session: ApiSession, pageId: string): Promise<string | null> {
+  const { data } = await session.client
+    .from('page_texts')
+    .select('text')
+    .eq('page_id', pageId)
+    .maybeSingle()
+  return data?.text ?? null
+}
