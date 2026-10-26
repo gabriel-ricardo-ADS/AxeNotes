@@ -110,7 +110,8 @@ export function BlockMenuPanel({
     setPath((current) => [...current, entry])
     setQuery('')
     setActiveId(null)
-    inputRef.current?.focus({ preventScroll: true })
+    // No toque o campo não ganha o foco: o teclado subiria sem ninguém pedir.
+    if (focusOnOpen) inputRef.current?.focus({ preventScroll: true })
   }
   const back = () => {
     setPath((current) => current.slice(0, -1))

@@ -194,3 +194,21 @@ describe('BlockMenuPanel', () => {
     expect(onCommand).not.toHaveBeenCalled()
   })
 })
+
+describe('BlockMenuPanel on touch', () => {
+  it('never moves the focus to the search field (no keyboard pops up), even entering a submenu', async () => {
+    render(
+      <BlockMenuPanel
+        title="Parágrafo"
+        entries={ENTRIES}
+        onCommand={vi.fn()}
+        apple
+        touch
+        focusOnOpen={false}
+      />,
+    )
+    await userEvent.click(screen.getByRole('option', { name: 'Cor' }))
+    expect(screen.getByRole('option', { name: 'Fundo Verde' })).toBeInTheDocument()
+    expect(screen.getByRole('combobox', { name: 'Pesquisar ações do bloco' })).not.toHaveFocus()
+  })
+})
