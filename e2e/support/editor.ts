@@ -1,11 +1,11 @@
-import { expect, type Page } from '@playwright/test'
+import { expect, type Locator, type Page } from '@playwright/test'
 import { createTestPage, sortKeySequence } from './pages-api'
 import type { Run } from './run-fixture'
 
 // Atalhos dos e2e do editor de blocos (editor.spec.ts, blocos.spec.ts).
 
 /** A região do corpo da página (editor). */
-export const content = (page: Page) => page.getByRole('region', { name: 'Conteúdo da página' })
+const content = (page: Page) => page.getByRole('region', { name: 'Conteúdo da página' })
 
 /** A superfície editável do BlockNote. */
 export const surface = (page: Page) => content(page).locator('.bn-editor')
@@ -47,4 +47,22 @@ export async function newPage(run: Run, name: string, parentId: string | null = 
     sortKey: sortKeySequence()(),
     ...(parentId === null ? {} : { parentId }),
   })
+}
+
+/** O menu do bloco aberto (popover no desktop, bottom sheet no toque). */
+export const blockMenu = (page: Page) =>
+  page.getByRole('combobox', { name: 'Pesquisar ações do bloco' })
+
+/** Abre o menu do bloco pela alça ⋮⋮, passando o mouse sobre o bloco. */
+export async function openBlockMenu(page: Page, block: Locator) {
+  await block.hover()
+  await page.getByRole('button', { name: /abrir as ações do bloco/ }).click()
+  await expect(blockMenu(page)).toBeVisible()
+}
+
+/** Escolhe um item do menu do bloco (opções do listbox, pelo nome acessível). */
+export async function chooseInBlockMenu(page: Page, ...names: string[]) {
+  for (const name of names) {
+    await page.getByRole('option', { name, exact: true }).click()
+  }
 }
