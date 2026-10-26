@@ -263,3 +263,102 @@ a.axn-page-link:focus-visible {
     min-height: 44px;
   }
 }
+
+/* Alça ⋮⋮ no toque (iPad): 44 px e sem o "+" (que não cabe na margem; o "/" insere blocos). */
+@media (pointer: coarse) {
+  .bn-side-menu .bn-button.axn-drag-handle {
+    min-width: 44px;
+    min-height: 44px;
+  }
+
+  .bn-side-menu .bn-button:not(.axn-drag-handle) {
+    display: none;
+  }
+}
+
+/* Amostras "A" do submenu Cor (texto colorido ou fundo colorido), como na referência. */
+.axn-swatch {
+  display: inline-flex;
+  width: 18px;
+  height: 18px;
+  flex-shrink: 0;
+  align-items: center;
+  justify-content: center;
+  border: 1px solid var(--border);
+  border-radius: var(--r-tag);
+  font-size: 12px;
+  font-weight: 600;
+  line-height: 1;
+}
+
+.axn-swatch[data-prop='textColor'][data-color='gray'] {
+  color: var(--c-gray-text);
+}
+
+.axn-swatch[data-prop='backgroundColor'][data-color='gray'] {
+  background-color: var(--c-gray-block);
+}
+
+.axn-swatch[data-prop='textColor'][data-color='brown'] {
+  color: var(--c-brown-text);
+}
+
+.axn-swatch[data-prop='backgroundColor'][data-color='brown'] {
+  background-color: var(--c-brown-block);
+}
+
+.axn-swatch[data-prop='textColor'][data-color='orange'] {
+  color: var(--c-orange-text);
+}
+
+.axn-swatch[data-prop='backgroundColor'][data-color='orange'] {
+  background-color: var(--c-orange-block);
+}
+
+.axn-swatch[data-prop='textColor'][data-color='yellow'] {
+  color: var(--c-yellow-text);
+}
+
+.axn-swatch[data-prop='backgroundColor'][data-color='yellow'] {
+  background-color: var(--c-yellow-block);
+}
+
+.axn-swatch[data-prop='textColor'][data-color='green'] {
+  color: var(--c-green-text);
+}
+
+.axn-swatch[data-prop='backgroundColor'][data-color='green'] {
+  background-color: var(--c-green-block);
+}
+
+.axn-swatch[data-prop='textColor'][data-color='blue'] {
+  color: var(--c-blue-text);
+}
+
+.axn-swatch[data-prop='backgroundColor'][data-color='blue'] {
+  background-color: var(--c-blue-block);
+}
+
+.axn-swatch[data-prop='textColor'][data-color='purple'] {
+  color: var(--c-purple-text);
+}
+
+.axn-swatch[data-prop='backgroundColor'][data-color='purple'] {
+  background-color: var(--c-purple-block);
+}
+
+.axn-swatch[data-prop='textColor'][data-color='pink'] {
+  color: var(--c-pink-text);
+}
+
+.axn-swatch[data-prop='backgroundColor'][data-color='pink'] {
+  background-color: var(--c-pink-block);
+}
+
+.axn-swatch[data-prop='textColor'][data-color='red'] {
+  color: var(--c-red-text);
+}
+
+.axn-swatch[data-prop='backgroundColor'][data-color='red'] {
+  background-color: var(--c-red-block);
+}

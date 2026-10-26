@@ -1,6 +1,8 @@
+import { SideMenuExtension } from '@blocknote/core/extensions'
 import { withCollaboration } from '@blocknote/core/yjs'
 import {
   FormattingToolbarController,
+  SideMenuController,
   SuggestionMenuController,
   useCreateBlockNote,
 } from '@blocknote/react'
@@ -8,14 +10,21 @@ import { BlockNoteView } from '@blocknote/shadcn'
 import { TriangleAlertIcon } from 'lucide-react'
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { createPortal } from 'react-dom'
-import { useNavigate } from 'react-router'
+import { useLocation, useNavigate } from 'react-router'
+import { runBlockCommand } from '@/features/editor/block-menu/block-actions'
+import type { BlockCommand } from '@/features/editor/block-menu/block-menu'
+import { isApplePlatform, listenBlockShortcuts } from '@/features/editor/block-menu/block-shortcuts'
+import { AxnSideMenu } from '@/features/editor/block-menu/AxnSideMenu'
+import { BlockMenu, type BlockMenuTarget } from '@/features/editor/block-menu/BlockMenu'
+import { OpenBlockMenuContext } from '@/features/editor/block-menu/open-block-menu-context'
 import { handleCalloutIconClicks } from '@/features/editor/blocks/callout/callout'
 import { insertPageLink, insertSubpage } from '@/features/editor/blocks/page-link/insert-page-link'
+import { isPageId } from '@/features/editor/blocks/page-link/page-link-id'
 import { EditorNotice, type EditorNoticeValue } from '@/features/editor/components/EditorNotice'
-import { editorDictionary } from '@/features/editor/dictionary'
+import { EDITOR_OPTIONS } from '@/features/editor/editor-options'
 import { AxnFormattingToolbar } from '@/features/editor/formatting-toolbar'
-import { editorSchema } from '@/features/editor/schema'
 import { slashMenuItems, type SlashMenuActions } from '@/features/editor/slash-menu'
+import { useRevealBlock } from '@/features/editor/use-reveal-block'
 import { FOCUS_TITLE_STATE, pagePath } from '@/features/pages/routes'
 import { PagePickerDialog } from '@/features/search/components/PagePickerDialog'
 import { SyncIndicator } from '@/features/sync/components/SyncIndicator'
@@ -23,6 +32,8 @@ import type { PageDoc } from '@/features/sync/page-doc'
 import { usePageDoc, useSyncStatus } from '@/features/sync/use-page-doc'
 import { IconPickerDialog } from '@/features/workspace/components/IconPickerDialog'
 import { usePageMutations } from '@/features/workspace/hooks/use-page-mutations'
+import { useWorkspace } from '@/features/workspace/hooks/use-workspace'
+import { useMediaQuery } from '@/hooks/use-media-query'
 import { t } from '@/i18n'
 import '@/features/editor/editor.css'
 
@@ -107,8 +118,7 @@ function LoadedEditor({
 }) {
   const editor = useCreateBlockNote(
     withCollaboration({
-      schema: editorSchema,
-      dictionary: editorDictionary,
+      ...EDITOR_OPTIONS,
       collaboration: { fragment: pageDoc.fragment, user: LOCAL_USER },
     }),
     [pageDoc],
@@ -147,6 +157,54 @@ function LoadedEditor({
     [editor, pageId, createPage, navigate],
   )
 
+  // Menu do bloco (⋮⋮ ou Ctrl/⌘+/): popover no desktop, bottom sheet no toque.
+  const touch = useMediaQuery('(pointer: coarse)')
+  const apple = useMemo(() => isApplePlatform(), [])
+  const [menuTarget, setMenuTarget] = useState<BlockMenuTarget | null>(null)
+  const openBlockMenu = useCallback((blockId: string, anchor: HTMLElement) => {
+    setMenuTarget({ blockId, anchor })
+  }, [])
+  const closeBlockMenu = useCallback(() => {
+    setMenuTarget(null)
+    editor.getExtension(SideMenuExtension)?.unfreezeMenu()
+  }, [editor])
+  const runCommand = useCallback(
+    (blockId: string, command: BlockCommand) => {
+      void runBlockCommand(editor, blockId, command, { pageId, notify: setNotice })
+    },
+    [editor, pageId],
+  )
+
+  // Atalhos do bloco (só com o foco dentro do editor) e o link para o bloco no endereço.
+  const homeId = useWorkspace().data?.homePageId ?? null
+  const sectionRef = useRef<HTMLElement>(null)
+  useEffect(() => {
+    const root = sectionRef.current
+    if (!root) return
+    return listenBlockShortcuts(root, {
+      isEditable: () => editor.isEditable,
+      editorElement: () => editor.domElement,
+      run: (shortcut) => {
+        const block = editor.getTextCursorPosition().block
+        if (shortcut === 'openMenu') {
+          const anchor = editor.domElement?.querySelector<HTMLElement>(
+            `.bn-block-outer[data-id="${CSS.escape(block.id)}"]`,
+          )
+          if (anchor) openBlockMenu(block.id, anchor)
+        } else {
+          runCommand(block.id, { kind: shortcut })
+        }
+      },
+      openPageLink: () => {
+        const block = editor.getTextCursorPosition().block
+        if (block.type !== 'pageLink' || !isPageId(block.props.pageId)) return false
+        void navigate(block.props.pageId === homeId ? '/' : pagePath(block.props.pageId))
+        return true
+      },
+    })
+  }, [editor, homeId, navigate, openBlockMenu, runCommand])
+  useRevealBlock(editor, useLocation().hash)
+
   // Texto de busca e prévias saem dos blocos do editor (page_texts).
   useEffect(() => {
     const session = pageDoc.session
@@ -157,22 +215,34 @@ function LoadedEditor({
   }, [pageDoc, editor])
 
   return (
-    <section aria-label={t('editor.label')} className="mt-4">
-      <BlockNoteView
+    <section ref={sectionRef} aria-label={t('editor.label')} className="mt-4">
+      <OpenBlockMenuContext.Provider value={openBlockMenu}>
+        <BlockNoteView
+          editor={editor}
+          editable={editable}
+          theme="dark"
+          emojiPicker={false}
+          slashMenu={false}
+          formattingToolbar={false}
+          sideMenu={false}
+          className="axn-editor"
+        >
+          <SideMenuController sideMenu={AxnSideMenu} />
+          <FormattingToolbarController formattingToolbar={AxnFormattingToolbar} />
+          <SuggestionMenuController
+            triggerCharacter="/"
+            getItems={(query) => Promise.resolve(slashMenuItems(editor, query, slashActions))}
+          />
+        </BlockNoteView>
+      </OpenBlockMenuContext.Provider>
+      <BlockMenu
         editor={editor}
-        editable={editable}
-        theme="dark"
-        emojiPicker={false}
-        slashMenu={false}
-        formattingToolbar={false}
-        className="axn-editor"
-      >
-        <FormattingToolbarController formattingToolbar={AxnFormattingToolbar} />
-        <SuggestionMenuController
-          triggerCharacter="/"
-          getItems={(query) => Promise.resolve(slashMenuItems(editor, query, slashActions))}
-        />
-      </BlockNoteView>
+        target={menuTarget}
+        onClose={closeBlockMenu}
+        onCommand={runCommand}
+        touch={touch}
+        apple={apple}
+      />
       <IconPickerDialog
         open={calloutIconFor !== null}
         onOpenChange={(open) => {

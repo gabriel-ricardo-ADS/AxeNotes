@@ -1,0 +1,107 @@
+import { blocksToYXmlFragment, yXmlFragmentToBlocks } from '@blocknote/core/yjs'
+import * as Y from 'yjs'
+import { isSafeLink } from '@/features/editor/safe-links'
+import { createTestEditor } from '@/features/editor/test-editor'
+
+const DANGEROUS = [
+  'javascript:alert(1)',
+  'JaVaScRiPt:alert(1)',
+  ' javascript:alert(1)',
+  'java\nscript:alert(1)',
+  'java\tscript:alert(1)',
+  'data:text/html,<script>alert(1)</script>',
+  'vbscript:msgbox(1)',
+  'file:///etc/passwd',
+  'tel:+5511999999999',
+  'ftp://exemplo.com/arquivo',
+]
+
+/** Todos os href de links num HTML (o que o editor desenha). */
+function hrefsIn(html: string): string[] {
+  const doc = new DOMParser().parseFromString(html, 'text/html')
+  return [...doc.querySelectorAll('a')].map((anchor) => anchor.getAttribute('href') ?? '')
+}
+
+describe('isSafeLink', () => {
+  it('accepts http, https and mailto (and relative links inside the app)', () => {
+    for (const href of [
+      'https://exemplo.com',
+      'http://exemplo.com/a?b=c#d',
+      'mailto:ana@exemplo.com',
+      '/p/00000000-0000-4000-8000-000000000001#bloco-1',
+    ]) {
+      expect(isSafeLink(href)).toBe(true)
+    }
+  })
+
+  it('refuses every other protocol, hidden or not', () => {
+    for (const href of [...DANGEROUS, '', null, undefined]) {
+      expect(isSafeLink(href)).toBe(false)
+    }
+  })
+})
+
+describe('links in the editor', () => {
+  it('drops dangerous links when HTML is pasted (the text stays, the link does not)', () => {
+    const editor = createTestEditor()
+    for (const href of DANGEROUS) {
+      const blocks = editor.tryParseHTMLToBlocks(`<p><a href="${href}">clique</a></p>`)
+      const content = JSON.stringify(blocks)
+      expect(content).toContain('clique')
+      expect(content).not.toContain('"type":"link"')
+    }
+    const safe = JSON.stringify(
+      editor.tryParseHTMLToBlocks('<p><a href="https://exemplo.com">ok</a></p>'),
+    )
+    expect(safe).toContain('"href":"https://exemplo.com"')
+  })
+
+  it('never renders a dangerous href, even from a Y.Doc built by hand', () => {
+    // Os blocos entram direto (sem passar por colar/validar), como chegariam de outro aparelho.
+    const source = createTestEditor()
+    source.replaceBlocks(source.document, [
+      {
+        type: 'paragraph',
+        content: DANGEROUS.map((href) => ({
+          type: 'link' as const,
+          href,
+          content: [{ type: 'text' as const, text: 'x', styles: {} }],
+        })),
+      },
+      {
+        type: 'paragraph',
+        content: [{ type: 'link', href: 'https://exemplo.com', content: 'ok' }],
+      },
+    ])
+    expect(JSON.stringify(source.document)).toContain('javascript:alert(1)')
+
+    const editor = createTestEditor()
+    const doc = new Y.Doc()
+    const fragment = doc.getXmlFragment('document-store')
+    blocksToYXmlFragment(editor, source.document, fragment)
+
+    const loaded = yXmlFragmentToBlocks(editor, fragment)
+    const html = editor.blocksToFullHTML(loaded)
+    const hrefs = hrefsIn(html)
+
+    expect(hrefs).toContain('https://exemplo.com')
+    for (const href of hrefs) {
+      expect(href === '' || isSafeLink(href)).toBe(true)
+    }
+    expect(html).not.toMatch(/javascript:|data:text|vbscript:/i)
+  })
+
+  it('opens external links in a new tab without opener or referrer', () => {
+    const editor = createTestEditor()
+    const html = editor.blocksToFullHTML([
+      {
+        type: 'paragraph',
+        content: [{ type: 'link', href: 'https://exemplo.com', content: 'ok' }],
+      },
+    ])
+    const anchor = new DOMParser().parseFromString(html, 'text/html').querySelector('a')
+    expect(anchor?.getAttribute('target')).toBe('_blank')
+    expect(anchor?.getAttribute('rel')).toMatch(/noopener/)
+    expect(anchor?.getAttribute('rel')).toMatch(/noreferrer/)
+  })
+})

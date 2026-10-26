@@ -84,6 +84,8 @@
   --animate-sheet-out-left: sheet-out-left 150ms ease-in;
   --animate-sheet-in-right: sheet-in-right 180ms ease-out;
   --animate-sheet-out-right: sheet-out-right 150ms ease-in;
+  --animate-sheet-in-bottom: sheet-in-bottom 180ms ease-out;
+  --animate-sheet-out-bottom: sheet-out-bottom 150ms ease-in;
 
   @keyframes overlay-in {
     from {
@@ -113,6 +115,16 @@
   @keyframes sheet-out-right {
     to {
       transform: translateX(100%);
+    }
+  }
+  @keyframes sheet-in-bottom {
+    from {
+      transform: translateY(100%);
+    }
+  }
+  @keyframes sheet-out-bottom {
+    to {
+      transform: translateY(100%);
     }
   }
 }
