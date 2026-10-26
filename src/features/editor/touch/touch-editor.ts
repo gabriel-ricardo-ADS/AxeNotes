@@ -93,3 +93,22 @@ export function slashPanelRect(
     maxHeight,
   }
 }
+
+/** Tamanho da alça ⋮⋮ do iPad (alvo de toque). */
+export const TOUCH_HANDLE_SIZE = 44
+
+/**
+ * Onde fica a alça ⋮⋮ do iPad, relativa à seção do editor (que rola junto com o conteúdo): na margem
+ * esquerda do bloco, centrada na 1ª linha (até 48 px de altura; blocos de várias linhas ficam com a alça no
+ * topo) e nunca para fora da tela à esquerda.
+ */
+export function marginHandlePosition(
+  block: { top: number; left: number; height: number },
+  container: { top: number; left: number },
+): { top: number; left: number } {
+  const firstLine = Math.min(block.height, 48)
+  return {
+    top: block.top - container.top + (firstLine - TOUCH_HANDLE_SIZE) / 2,
+    left: Math.max(block.left - container.left - TOUCH_HANDLE_SIZE - 4, -container.left),
+  }
+}

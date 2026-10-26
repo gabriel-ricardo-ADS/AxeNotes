@@ -18,7 +18,10 @@ import type { BlockCommand } from '@/features/editor/block-menu/block-menu'
 import { isApplePlatform, listenBlockShortcuts } from '@/features/editor/block-menu/block-shortcuts'
 import { AxnSideMenu } from '@/features/editor/block-menu/AxnSideMenu'
 import { BlockMenu, type BlockMenuTarget } from '@/features/editor/block-menu/BlockMenu'
-import { OpenBlockMenuContext } from '@/features/editor/block-menu/open-block-menu-context'
+import {
+  OpenBlockMenuContext,
+  type BlockMenuOpenOptions,
+} from '@/features/editor/block-menu/open-block-menu-context'
 import { handleCalloutIconClicks } from '@/features/editor/blocks/callout/callout'
 import { insertPageLink, insertSubpage } from '@/features/editor/blocks/page-link/insert-page-link'
 import { isPageId } from '@/features/editor/blocks/page-link/page-link-id'
@@ -28,6 +31,7 @@ import { AxnFormattingToolbar } from '@/features/editor/formatting-toolbar'
 import { AxnLinkToolbar } from '@/features/editor/link-toolbar'
 import { slashMenuItems, type SlashMenuActions } from '@/features/editor/slash-menu'
 import { shouldShowTouchBar } from '@/features/editor/touch/touch-editor'
+import { TouchBlockHandle } from '@/features/editor/touch/TouchBlockHandle'
 import { SlashMenuController } from '@/features/editor/touch/touch-slash'
 import { TouchToolbarController } from '@/features/editor/touch/TouchToolbar'
 import { useZoomed } from '@/features/editor/touch/use-visual-viewport-box'
@@ -125,6 +129,8 @@ function LoadedEditor({
   editable: boolean
 }) {
   const touch = useMediaQuery('(pointer: coarse)')
+  // iPad (toque largo): alça ⋮⋮ na margem, além da barra.
+  const touchWide = useMediaQuery('(pointer: coarse) and (min-width: 768px)')
   const editor = useCreateBlockNote(
     withCollaboration({
       ...EDITOR_OPTIONS,
@@ -176,9 +182,19 @@ function LoadedEditor({
   // Menu do bloco (⋮⋮ ou Ctrl/⌘+/): popover no desktop, bottom sheet no toque.
   const apple = useMemo(() => isApplePlatform(), [])
   const [menuTarget, setMenuTarget] = useState<BlockMenuTarget | null>(null)
-  const openBlockMenu = useCallback((blockId: string, anchor: HTMLElement) => {
-    setMenuTarget({ blockId, anchor })
-  }, [])
+  const openBlockMenu = useCallback(
+    (blockId: string, anchor: HTMLElement, options?: BlockMenuOpenOptions) => {
+      // Do toque: o teclado fecha antes (o bottom sheet ficaria atrás dele no iPhone).
+      if (options?.fromTouch) editor.blur()
+      setMenuTarget({
+        blockId,
+        anchor,
+        view: options?.view,
+        returnFocus: options?.fromTouch !== true,
+      })
+    },
+    [editor],
+  )
   const closeBlockMenu = useCallback(() => {
     setMenuTarget(null)
     editor.getExtension(SideMenuExtension)?.unfreezeMenu()
@@ -193,6 +209,7 @@ function LoadedEditor({
   // Atalhos do bloco (só com o foco dentro do editor) e o link para o bloco no endereço.
   const homeId = useWorkspace().data?.homePageId ?? null
   const sectionRef = useRef<HTMLElement>(null)
+  const [section, setSection] = useState<HTMLElement | null>(null)
   useEffect(() => {
     const root = sectionRef.current
     if (!root) return
@@ -246,7 +263,14 @@ function LoadedEditor({
   }, [pageDoc, editor])
 
   return (
-    <section ref={sectionRef} aria-label={t('editor.label')} className="mt-4">
+    <section
+      ref={(element) => {
+        sectionRef.current = element
+        setSection(element)
+      }}
+      aria-label={t('editor.label')}
+      className="relative mt-4"
+    >
       <OpenBlockMenuContext.Provider value={openBlockMenu}>
         <BlockNoteView
           editor={editor}
@@ -259,7 +283,9 @@ function LoadedEditor({
           linkToolbar={false}
           className="axn-editor"
         >
-          <SideMenuController sideMenu={AxnSideMenu} />
+          {/* No toque o side menu (que nasce do hover) não existe: a alça é a da barra e, no iPad, a
+              da margem (TouchBlockHandle). Nunca duas alças. */}
+          {touch ? null : <SideMenuController sideMenu={AxnSideMenu} />}
           {touchBarShown ? (
             <TouchToolbarController onHeightChange={setDockHeight} />
           ) : (
@@ -272,6 +298,9 @@ function LoadedEditor({
             dockHeight={dockHeight}
           />
         </BlockNoteView>
+        {touchWide && editable && focused && !modalOpen ? (
+          <TouchBlockHandle editor={editor} container={section} />
+        ) : null}
       </OpenBlockMenuContext.Provider>
       <BlockMenu
         editor={editor}

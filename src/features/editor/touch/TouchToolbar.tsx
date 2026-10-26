@@ -8,16 +8,23 @@ import {
 } from '@blocknote/react'
 import {
   CaseSensitiveIcon,
+  GripVerticalIcon,
   KeyboardOffIcon,
   ListTodoIcon,
   Redo2Icon,
+  Repeat2Icon,
   SlashIcon,
   Undo2Icon,
 } from 'lucide-react'
-import { useLayoutEffect, useRef, useState } from 'react'
+import { useContext, useLayoutEffect, useRef, useState } from 'react'
 import { toggleChecklist } from '@/features/editor/block-menu/block-actions'
+import {
+  OpenBlockMenuContext,
+  type BlockMenuOpenOptions,
+} from '@/features/editor/block-menu/open-block-menu-context'
 import type { editorSchema } from '@/features/editor/schema'
 import { BarButton } from '@/features/editor/touch/BarButton'
+import { blockContentElement } from '@/features/editor/touch/TouchBlockHandle'
 import { checklistToggleTarget } from '@/features/editor/touch/touch-editor'
 import { TouchFormatPanel } from '@/features/editor/touch/TouchFormatPanel'
 import { t } from '@/i18n'
@@ -45,12 +52,18 @@ function TouchToolbar({
       const block = editor.getTextCursorPosition().block
       return {
         id: block.id,
+        inline: editor.schema.blockSchema[block.type].content === 'inline',
         checklist: block.type === 'checkListItem',
         canToggle:
           checklistToggleTarget(block.type, editor.schema.blockSchema[block.type].content) !== null,
       }
     },
   })
+  const openBlockMenu = useContext(OpenBlockMenuContext)
+  const openMenu = (options: BlockMenuOpenOptions) => {
+    const anchor = blockContentElement(editor, cursor.id)
+    if (anchor) openBlockMenu?.(cursor.id, anchor, options)
+  }
   const slashOpen = useExtensionState(SuggestionMenu, {
     editor,
     selector: (state) => state?.show === true && state.triggerCharacter === '/',
@@ -58,6 +71,13 @@ function TouchToolbar({
 
   return (
     <div role="toolbar" aria-label={t('editor.touch.toolbar')} className="axn-touch-bar">
+      <BarButton
+        label={t('editor.touch.blockOptions')}
+        icon={GripVerticalIcon}
+        onClick={() => {
+          openMenu({ fromTouch: true })
+        }}
+      />
       <BarButton
         label={t('editor.touch.insert')}
         icon={SlashIcon}
@@ -85,6 +105,14 @@ function TouchToolbar({
         disabled={!cursor.canToggle}
         onClick={() => {
           toggleChecklist(editor, cursor.id)
+        }}
+      />
+      <BarButton
+        label={t('editor.touch.transform')}
+        icon={Repeat2Icon}
+        disabled={!cursor.inline}
+        onClick={() => {
+          openMenu({ fromTouch: true, view: 'transform' })
         }}
       />
       <BarButton

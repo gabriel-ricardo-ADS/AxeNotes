@@ -45,6 +45,8 @@ interface BlockMenuPanelProps {
   touch: boolean
   /** Foca o campo ao abrir (no toque não: o teclado subiria sem ninguém pedir). */
   focusOnOpen: boolean
+  /** Abre já dentro deste submenu (id de um item com filhos, ex.: "transform"); sem ele, no topo. */
+  initialSubmenu?: string | undefined
 }
 
 function EntryIcon({ entry }: { entry: MenuEntry }) {
@@ -77,11 +79,15 @@ export function BlockMenuPanel({
   apple,
   touch,
   focusOnOpen,
+  initialSubmenu,
 }: BlockMenuPanelProps) {
   const listId = useId()
   const inputRef = useRef<HTMLInputElement>(null)
   const [query, setQuery] = useState('')
-  const [path, setPath] = useState<readonly MenuEntry[]>([])
+  const [path, setPath] = useState<readonly MenuEntry[]>(() => {
+    const start = entries.find((entry) => entry.id === initialSubmenu && entry.children)
+    return start ? [start] : []
+  })
   const [activeId, setActiveId] = useState<string | null>(null)
 
   const submenu = path.at(-1)
