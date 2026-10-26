@@ -343,6 +343,72 @@ a.axn-page-link:focus-visible {
   outline-offset: -2px;
 }
 
+/* Painel Aa: não modal, em cima da barra; cada fileira rola na horizontal. */
+.axn-touch-panel {
+  display: flex;
+  flex-direction: column;
+  border-bottom: 1px solid var(--border);
+  padding-block: 2px;
+}
+
+.axn-touch-row {
+  display: flex;
+  flex-wrap: nowrap;
+  align-items: center;
+  gap: 2px;
+  overflow-x: auto;
+  padding-inline: 4px;
+  scrollbar-width: none;
+  touch-action: pan-x;
+}
+
+.axn-touch-row::-webkit-scrollbar {
+  display: none;
+}
+
+.axn-touch-row-label {
+  flex-shrink: 0;
+  padding-inline: 8px 4px;
+  color: var(--text-muted);
+  font-size: var(--text-meta);
+}
+
+/* O botão de link do BlockNote dentro do painel também com alvo de 44 px. */
+.axn-touch-row .bn-button {
+  min-width: 44px;
+  min-height: 44px;
+}
+
+/*
+ * Menu "/" no toque: painel inferior na largura da tela, colado em cima da barra (posição e altura
+ * máxima vêm de slashPanelRect). O menu de dentro herda a altura máxima e rola.
+ */
+.axn-touch-slash .bn-suggestion-menu {
+  width: 100%;
+  max-width: none;
+  max-height: inherit;
+  border-radius: var(--r-card) var(--r-card) 0 0;
+  overscroll-behavior: contain;
+}
+
+/* Só a linha do item: o shadcn repete a classe `bn-suggestion-menu-item` no título e no subtítulo. */
+.axn-touch-slash [role='option'] {
+  min-height: 44px;
+}
+
+/*
+ * No toque, todo campo de texto do editor (link da barra, busca do menu do bloco) tem ≥ 16 px: com
+ * menos, o Safari do iOS dá zoom ao focar, e o zoom esconde a barra no meio da edição. `!important`
+ * porque os utilitários do @blocknote/shadcn (`.bn-root .text-sm`) são mais específicos.
+ */
+@media (pointer: coarse) {
+  .bn-root input,
+  .bn-root textarea,
+  [data-block-menu] input {
+    font-size: max(16px, 1em) !important;
+  }
+}
+
 /* Amostras "A" do submenu Cor (texto colorido ou fundo colorido), como na referência. */
 .axn-swatch {
   display: inline-flex;

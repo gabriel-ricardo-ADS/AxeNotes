@@ -60,3 +60,36 @@ export const KEEP_EDITOR_FOCUS = {
     event.preventDefault()
   },
 }
+
+/** A área visível na referência do viewport do layout (`position: fixed`), como o `visualViewport`. */
+export interface VisibleArea {
+  offsetTop: number
+  offsetLeft: number
+  width: number
+  height: number
+}
+
+/** Fração do espaço acima da barra que o painel "/" pode ocupar: o resto fica para o cursor. */
+const SLASH_MAX_SHARE = 0.6
+
+/**
+ * Onde fica o painel "/" no toque: na largura da área visível, colado em cima da barra (`dockHeight`), com
+ * altura máxima de 60% do que sobra acima dela (os outros 40% guardam a linha do cursor, que o
+ * `useKeepCursorVisible` põe em cima do painel). Mesma referência da barra do BlockNote (`--bn-vv-top` +
+ * `--bn-vv-height`): no iOS o `position: fixed` segue o viewport do layout, então o `offsetTop` entra no
+ * `y`. `menuHeight` é a altura que o menu quer; o painel nunca passa do máximo.
+ */
+export function slashPanelRect(
+  area: VisibleArea,
+  dockHeight: number,
+  menuHeight: number,
+): { x: number; y: number; width: number; maxHeight: number } {
+  const maxHeight = Math.max(0, Math.floor((area.height - dockHeight) * SLASH_MAX_SHARE))
+  const height = Math.min(menuHeight, maxHeight)
+  return {
+    x: area.offsetLeft,
+    y: area.offsetTop + area.height - dockHeight - height,
+    width: area.width,
+    maxHeight,
+  }
+}

@@ -4,7 +4,6 @@ import {
   DesktopFormattingToolbarController,
   LinkToolbarController,
   SideMenuController,
-  SuggestionMenuController,
   useCreateBlockNote,
   useEditorFocus,
   useVirtualKeyboard,
@@ -29,6 +28,7 @@ import { AxnFormattingToolbar } from '@/features/editor/formatting-toolbar'
 import { AxnLinkToolbar } from '@/features/editor/link-toolbar'
 import { slashMenuItems, type SlashMenuActions } from '@/features/editor/slash-menu'
 import { shouldShowTouchBar } from '@/features/editor/touch/touch-editor'
+import { SlashMenuController } from '@/features/editor/touch/touch-slash'
 import { TouchToolbarController } from '@/features/editor/touch/TouchToolbar'
 import { useZoomed } from '@/features/editor/touch/use-visual-viewport-box'
 import { useRevealBlock } from '@/features/editor/use-reveal-block'
@@ -234,7 +234,7 @@ function LoadedEditor({
     modalOpen,
     zoomed,
   })
-  const [, setDockHeight] = useState(0)
+  const [dockHeight, setDockHeight] = useState(0)
 
   // Texto de busca e prévias saem dos blocos do editor (page_texts).
   useEffect(() => {
@@ -266,9 +266,10 @@ function LoadedEditor({
             <DesktopFormattingToolbarController formattingToolbar={AxnFormattingToolbar} />
           )}
           <LinkToolbarController linkToolbar={AxnLinkToolbar} />
-          <SuggestionMenuController
-            triggerCharacter="/"
+          <SlashMenuController
             getItems={(query) => Promise.resolve(slashMenuItems(editor, query, slashActions))}
+            touchBar={touchBarShown}
+            dockHeight={dockHeight}
           />
         </BlockNoteView>
       </OpenBlockMenuContext.Provider>
