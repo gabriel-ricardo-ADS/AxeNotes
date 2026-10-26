@@ -16,10 +16,18 @@ interface IconPickerDialogProps {
   hasIcon: boolean
   /** `null` remove o ícone. */
   onSelect: (icon: PageIcon | null) => void
+  /** Texto de apoio do diálogo (o padrão fala do ícone da página). */
+  description?: string
 }
 
 /** Seletor de ícone: grade simples de emojis curados, sem biblioteca. */
-export function IconPickerDialog({ open, onOpenChange, hasIcon, onSelect }: IconPickerDialogProps) {
+export function IconPickerDialog({
+  open,
+  onOpenChange,
+  hasIcon,
+  onSelect,
+  description,
+}: IconPickerDialogProps) {
   function choose(icon: PageIcon | null) {
     onSelect(icon)
     onOpenChange(false)
@@ -30,7 +38,7 @@ export function IconPickerDialog({ open, onOpenChange, hasIcon, onSelect }: Icon
       <DialogContent>
         <DialogHeader>
           <DialogTitle>{t('workspace.icon.title')}</DialogTitle>
-          <DialogDescription>{t('workspace.icon.description')}</DialogDescription>
+          <DialogDescription>{description ?? t('workspace.icon.description')}</DialogDescription>
         </DialogHeader>
         <div
           role="group"

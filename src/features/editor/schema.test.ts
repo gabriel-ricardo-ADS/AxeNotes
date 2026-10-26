@@ -8,11 +8,12 @@ function menuTitles(query = ''): string[] {
   return slashMenuItems(editor, query).map((item) => item.title)
 }
 
-describe('editor schema (Fase 2a)', () => {
+describe('editor schema', () => {
   it('has only the native blocks of the roadmap, without media', () => {
     expect(Object.keys(editorSchema.blockSpecs).sort()).toEqual(
       [
         'bulletListItem',
+        'callout',
         'checkListItem',
         'codeBlock',
         'divider',
@@ -37,10 +38,20 @@ describe('editor schema (Fase 2a)', () => {
       expect(titles).toContain(wanted.title)
     }
     expect(titles).toContain('Tabela')
+    expect(titles).toContain('Destaque')
   })
 
   it('filters the "/" menu by what is typed, in pt-BR', () => {
     expect(menuTitles('tabe')).toEqual(['Tabela'])
+  })
+
+  it('finds the callout by its pt-BR and English names, right after Quote', () => {
+    expect(menuTitles('destaq')).toEqual(['Destaque'])
+    expect(menuTitles('callout')).toEqual(['Destaque'])
+    const titles = menuTitles()
+    expect(titles.indexOf('Destaque')).toBe(
+      titles.indexOf(editorDictionary.slash_menu.quote.title) + 1,
+    )
   })
 
   it('uses the AxeNotes placeholders', () => {

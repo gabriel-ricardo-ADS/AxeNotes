@@ -297,6 +297,13 @@ export const ptBR = {
       heading: 'Título',
       list: 'Lista',
       toggle: 'Lista expansível',
+      callout: 'Escreva um destaque',
+    },
+    callout: {
+      title: 'Destaque',
+      subtext: 'Texto em evidência, com emoji e cor de fundo',
+      changeIcon: 'Trocar o ícone do destaque',
+      iconDescription: 'Escolha um emoji para o destaque.',
     },
   },
 } as const

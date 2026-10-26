@@ -98,6 +98,77 @@
   border-left-color: var(--text);
 }
 
+/*
+ * Destaque (callout). O BlockNote pinta a cor de fundo no `.bn-block` (o bloco e os filhos); aqui só a
+ * forma: raio 4, padding 16, emoji de 20 px. Sem cor ("Automático"), uma borda discreta no lugar do fundo.
+ */
+.axn-editor .bn-block:has(> .bn-block-content[data-content-type='callout']) {
+  border-radius: var(--r-tag);
+  margin-block: 4px;
+}
+
+.axn-editor
+  .bn-block:not([data-background-color]):has(> .bn-block-content[data-content-type='callout']) {
+  box-shadow: inset 0 0 0 1px var(--border);
+}
+
+/* A cor já está no `.bn-block`; repetida no conteúdo, apagaria os cantos arredondados. */
+.axn-editor .bn-block-content[data-content-type='callout'] {
+  background-color: transparent;
+}
+
+.axn-callout {
+  display: flex;
+  align-items: flex-start;
+  gap: 8px;
+  width: 100%;
+  padding: 16px 16px 16px 12px;
+}
+
+.axn-callout-icon {
+  display: inline-flex;
+  flex-shrink: 0;
+  align-items: center;
+  justify-content: center;
+  width: 28px;
+  height: 24px;
+  border-radius: var(--r-tag);
+  font-size: 20px;
+  line-height: 1;
+  user-select: none;
+}
+
+button.axn-callout-icon:enabled {
+  cursor: pointer;
+}
+
+button.axn-callout-icon:enabled:hover {
+  background-color: rgb(255 255 255 / 0.06);
+}
+
+button.axn-callout-icon:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 1px;
+}
+
+@media (pointer: coarse) {
+  /* Alvo de toque de 44 px sem empurrar o texto: a área cresce para fora do quadrado do emoji. */
+  button.axn-callout-icon {
+    position: relative;
+  }
+
+  button.axn-callout-icon::after {
+    content: '';
+    position: absolute;
+    inset: -10px -8px;
+  }
+}
+
+.axn-callout-text {
+  flex: 1;
+  min-width: 0;
+}
+
 /* Títulos dos blocos na escala do app: H1 30, H2 24, H3 20. */
 .axn-editor [data-content-type='heading'] {
   --level: 1.875em;

@@ -1,15 +1,22 @@
 import { withCollaboration } from '@blocknote/core/yjs'
-import { SuggestionMenuController, useCreateBlockNote } from '@blocknote/react'
+import {
+  FormattingToolbarController,
+  SuggestionMenuController,
+  useCreateBlockNote,
+} from '@blocknote/react'
 import { BlockNoteView } from '@blocknote/shadcn'
 import { TriangleAlertIcon } from 'lucide-react'
-import { useEffect, useRef } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { createPortal } from 'react-dom'
+import { handleCalloutIconClicks } from '@/features/editor/blocks/callout/callout'
 import { editorDictionary } from '@/features/editor/dictionary'
+import { AxnFormattingToolbar } from '@/features/editor/formatting-toolbar'
 import { editorSchema } from '@/features/editor/schema'
 import { slashMenuItems } from '@/features/editor/slash-menu'
 import { SyncIndicator } from '@/features/sync/components/SyncIndicator'
 import type { PageDoc } from '@/features/sync/page-doc'
 import { usePageDoc, useSyncStatus } from '@/features/sync/use-page-doc'
+import { IconPickerDialog } from '@/features/workspace/components/IconPickerDialog'
 import { t } from '@/i18n'
 import '@/features/editor/editor.css'
 
@@ -92,6 +99,9 @@ function LoadedEditor({ pageDoc, editable }: { pageDoc: PageDoc; editable: boole
     }),
     [pageDoc],
   )
+  // Destaque cujo emoji está sendo trocado (o bloco só pede; o seletor é do app).
+  const [calloutIconFor, setCalloutIconFor] = useState<string | null>(null)
+  useEffect(() => handleCalloutIconClicks(editor, setCalloutIconFor), [editor])
 
   // Texto de busca e prévias saem dos blocos do editor (page_texts).
   useEffect(() => {
@@ -110,13 +120,29 @@ function LoadedEditor({ pageDoc, editable }: { pageDoc: PageDoc; editable: boole
         theme="dark"
         emojiPicker={false}
         slashMenu={false}
+        formattingToolbar={false}
         className="axn-editor"
       >
+        <FormattingToolbarController formattingToolbar={AxnFormattingToolbar} />
         <SuggestionMenuController
           triggerCharacter="/"
           getItems={(query) => Promise.resolve(slashMenuItems(editor, query))}
         />
       </BlockNoteView>
+      <IconPickerDialog
+        open={calloutIconFor !== null}
+        onOpenChange={(open) => {
+          if (!open) setCalloutIconFor(null)
+        }}
+        hasIcon={false}
+        description={t('editor.callout.iconDescription')}
+        onSelect={(icon) => {
+          const block = calloutIconFor === null ? undefined : editor.getBlock(calloutIconFor)
+          if (icon && block?.type === 'callout') {
+            editor.updateBlock(block, { props: { emoji: icon.value } })
+          }
+        }}
+      />
     </section>
   )
 }
