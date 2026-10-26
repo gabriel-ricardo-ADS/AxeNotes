@@ -305,5 +305,27 @@ export const ptBR = {
       changeIcon: 'Trocar o ícone do destaque',
       iconDescription: 'Escolha um emoji para o destaque.',
     },
+    pageLink: {
+      loading: 'Carregando o link…',
+      unavailable: 'Página indisponível',
+      trashed: 'na lixeira',
+      trashedLabel: '{title} (na lixeira)',
+      error: 'Não foi possível carregar o link',
+    },
+    slash: {
+      subpage: 'Página',
+      subpageSubtext: 'Cria uma subpágina dentro desta',
+      pageLink: 'Link para página',
+      pageLinkSubtext: 'Aponta para outra página do workspace',
+    },
+    pagePicker: {
+      title: 'Link para página',
+      description:
+        'Digite para buscar a página. Use as setas para escolher e Enter para criar o link.',
+      inputLabel: 'Buscar a página do link',
+    },
+    errors: {
+      subpage: 'Não foi possível criar a subpágina. O link foi removido; tente de novo.',
+    },
   },
 } as const

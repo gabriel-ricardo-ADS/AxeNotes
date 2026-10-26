@@ -181,3 +181,85 @@ button.axn-callout-icon:focus-visible {
 .axn-editor [data-content-type='heading'][data-level='3'] {
   --level: 1.25em;
 }
+
+/*
+ * Link para página (e subpágina): ícone + título atuais, sublinhado discreto como na Home de referência.
+ * Na lixeira, esmaecido com etiqueta; indisponível, sem link.
+ */
+.axn-page-link-row {
+  display: flex;
+  width: 100%;
+  padding-block: 2px;
+}
+
+/* O @blocknote/shadcn devolve os links do editor ao padrão do navegador (azul e sublinhado): aqui não. */
+.bn-shadcn .bn-editor a.axn-page-link,
+.axn-page-link {
+  display: inline-flex;
+  max-width: 100%;
+  min-height: 30px;
+  align-items: center;
+  gap: 6px;
+  border-radius: var(--r-tag);
+  padding-inline: 2px 6px;
+  color: var(--text);
+  text-decoration: none;
+}
+
+a.axn-page-link:hover {
+  background-color: var(--bg-hover);
+}
+
+a.axn-page-link:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 1px;
+}
+
+.axn-page-link-title {
+  overflow: hidden;
+  font-weight: 600;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  text-decoration: underline;
+  text-decoration-color: var(--text-faint);
+  text-decoration-thickness: 1px;
+  text-underline-offset: 4px;
+}
+
+.bn-shadcn .bn-editor a.axn-page-link[data-trashed] {
+  color: var(--text-muted);
+}
+
+.axn-page-link-tag {
+  display: inline-block;
+  flex-shrink: 0;
+  border-radius: var(--r-tag);
+  background-color: var(--c-red-block);
+  padding: 0 6px;
+  color: var(--c-red-text);
+  font-size: 12px;
+  line-height: 20px;
+}
+
+.axn-page-link-muted {
+  color: var(--text-muted);
+  font-style: italic;
+}
+
+.axn-page-link-retry {
+  border-radius: var(--r-tag);
+  padding: 0 6px;
+  color: var(--text);
+  font-style: normal;
+  text-decoration: underline;
+}
+
+@media (pointer: coarse) {
+  .axn-page-link {
+    min-height: 44px;
+  }
+
+  .axn-page-link-retry {
+    min-height: 44px;
+  }
+}

@@ -19,6 +19,7 @@ describe('editor schema', () => {
         'divider',
         'heading',
         'numberedListItem',
+        'pageLink',
         'paragraph',
         'quote',
         'table',
@@ -52,6 +53,22 @@ describe('editor schema', () => {
     expect(titles.indexOf('Destaque')).toBe(
       titles.indexOf(editorDictionary.slash_menu.quote.title) + 1,
     )
+  })
+
+  it('offers "Página" and "Link para página" only when the app wires their actions', () => {
+    const editor = BlockNoteEditor.create({ schema: editorSchema, dictionary: editorDictionary })
+    const actions = { createSubpage: vi.fn(), linkToPage: vi.fn() }
+    expect(slashMenuItems(editor, 'pági').map((item) => item.title)).not.toContain('Página')
+    const titles = slashMenuItems(editor, '', actions).map((item) => item.title)
+    expect(titles.slice(titles.indexOf('Destaque'), titles.indexOf('Destaque') + 3)).toEqual([
+      'Destaque',
+      'Página',
+      'Link para página',
+    ])
+    slashMenuItems(editor, 'subpagina', actions)[0]?.onItemClick()
+    expect(actions.createSubpage).toHaveBeenCalled()
+    slashMenuItems(editor, 'link para', actions)[0]?.onItemClick()
+    expect(actions.linkToPage).toHaveBeenCalled()
   })
 
   it('uses the AxeNotes placeholders', () => {

@@ -1,5 +1,6 @@
 import { BlockNoteSchema, defaultBlockSpecs } from '@blocknote/core'
 import { createCalloutBlock } from '@/features/editor/blocks/callout/callout'
+import { createPageLinkBlock } from '@/features/editor/blocks/page-link/page-link'
 
 /**
  * Blocos do editor: os nativos do roadmap (2a) e os do AxeNotes (2c). Lista explícita (e não "todos
@@ -19,6 +20,7 @@ export const editorSchema = BlockNoteSchema.create({
     divider: defaultBlockSpecs.divider,
     table: defaultBlockSpecs.table,
     callout: createCalloutBlock(),
+    pageLink: createPageLinkBlock(),
   },
 })
 
