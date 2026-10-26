@@ -1,6 +1,6 @@
 # CODEMAP — onde está cada coisa no AxeNotes
 
-> Atualizado em 2026-10-26, `main` em 915ef05 (#19).
+> Atualizado em 2026-10-26, Fase 2c-1 (blocos do AxeNotes e menu do bloco), sobre a `main` em d548ccf (#20).
 
 Este arquivo responde **"onde fica isso?"** e **"o que acontece, passo a passo?"**. O **porquê** das escolhas está
 nos outros docs: [ARCHITECTURE](ARCHITECTURE.md) (stack, modelo de dados, sync), [DECISIONS](DECISIONS.md),
@@ -62,7 +62,7 @@ nos outros docs: [ARCHITECTURE](ARCHITECTURE.md) (stack, modelo de dados, sync),
 | `src/features/auth/`                                        | Entrar, criar conta, OTP, recuperar senha, sair, sessão (`AuthProvider`), guardas de rota, `UserMenu`.                                 | Dados do workspace.                                                                    |
 | `src/features/workspace/`                                   | Workspace do usuário, páginas (CRUD, árvore, ordem, mover), página inicial, "Editada há…", `PagesSection`/`PageTree`.                  | Conteúdo do corpo da página (é `sync`/`editor`); lixeira (é `trash`).                  |
 | `src/features/pages/`                                       | Rota `/p/:pageId`: `PagePage`, `PageView`, `PageTitle`, `Breadcrumb`, `PageMenu`, estados de carregamento.                             | Lista de páginas (é `workspace`).                                                      |
-| `src/features/editor/`                                      | O **chunk do editor**: `PageEditor`, schema de blocos, dicionário pt-BR, menu "/", `src/features/editor/editor.css`.                                       | Lógica de sync (é `sync`). Só `editor/` e `sync/` podem importar BlockNote/Yjs.        |
+| `src/features/editor/`                                      | O **chunk do editor**: `PageEditor`, schema de blocos, dicionário pt-BR, menu "/", `src/features/editor/editor.css`; blocos do AxeNotes em `src/features/editor/blocks/` (destaque, link de página); menu do bloco ⋮⋮ em `src/features/editor/block-menu/`; link para o bloco (`src/features/editor/block-link.ts`); links seguros (`src/features/editor/safe-links.ts`). | Lógica de sync (é `sync`). Só `editor/` e `sync/` podem importar BlockNote/Yjs.        |
 | `src/features/sync/`                                        | Y.Doc por página, IndexedDB, sincronização com o servidor, metadados `axenotes-sync`, reenvio em segundo plano, indicador.             | Telas de página.                                                                       |
 | `src/features/favorites/`, `recents/`, `trash/`, `search/`  | Uma pasta por função da sidebar: `api/`, `hooks/`, `components/`, um `src/features/<feature>/query-keys.ts` e a lógica pura (`src/features/favorites/favorites.ts`, `src/features/recents/recents.ts`…).    | Lógica de outra feature; reaproveite via import, não copie.                            |
 | `src/features/home/`                                        | A rota `/`: mostra a página inicial do workspace.                                                                                      | —                                                                                      |
@@ -183,8 +183,10 @@ Cada item: **o que acontece → `arquivo:função`**.
 6. **Chunk antigo depois de um deploy**: o arquivo com hash velho some e o Cloudflare devolve `index.html` (MIME errado)
    → o import falha → `lazyWithReload` chama `reloadOnChunkError`: recarrega **uma** vez (guarda em `sessionStorage`
    por 10 s contra loop) e fica em suspenso; falhando de novo, `RouteErrorBoundary` mostra "recarregar".
-7. Divisão em vendors (`react`, `supabase`, `vendor`) em `vite.config.ts` (`codeSplitting.groups`); o orçamento de
-   cada chunk é conferido por `scripts/check-bundle-size.mjs` (`pnpm size:check`, depois do build).
+7. Divisão em vendors (`react`, `supabase`, `vendor`) e no grupo `shared` (código do app usado pela entrada e por
+   3+ chunks: textos, cliente Supabase, `cn`; sem ele o rolldown passou a fundi-lo na entrada) em `vite.config.ts`
+   (`codeSplitting.groups`); o orçamento de cada chunk é conferido por `scripts/check-bundle-size.mjs`
+   (`pnpm size:check`, depois do build).
 
 ### 3.7 Árvore de páginas (criar, mover, `sort_key`)
 
@@ -259,6 +261,9 @@ Cada item: **o que acontece → `arquivo:função`**.
    termo no trecho (só texto, sem HTML do servidor); `searchPath` mostra o caminho curto vindo de `ancestorsOf`.
 5. Escolher: `SearchDialog` navega (a inicial vai para `/`), `notifyPick` fecha a gaveta mobile, `restoreFocus`
    devolve o foco. No iOS o diálogo se mede por `src/features/search/hooks/use-visual-viewport.ts:useVisualViewport`.
+6. O corpo do diálogo (campo + lista, recentes ou resultados) é `src/features/search/components/PageSearchPanel.tsx:PageSearchPanel`,
+   usado também pelo seletor do "Link para página" (`src/features/search/components/PagePickerDialog.tsx:PagePickerDialog`, ver 3.14),
+   que devolve o id em vez de navegar.
 
 ### 3.11 Abrir uma página
 
@@ -275,9 +280,12 @@ Cada item: **o que acontece → `arquivo:função`**.
    `Y.Doc`, abre o banco `axenotes-page-<id>` (`prepareDatabase` → `rememberOpenedDatabase` → `y-indexeddb`) e espera
    `whenSynced` (limite de 8 s; se falhar, **cai para memória** e o editor mostra aviso; nunca tela de erro).
 6. Depois de `ready`, `openPageDoc` chama `ContentSync.start` (`supabaseSync`), que cria a `PageSyncSession` (3.12).
-7. `PageEditor` só então monta `LoadedEditor`: `useCreateBlockNote(withCollaboration({ fragment }))` no fragmento
+7. `PageEditor` só então monta `LoadedEditor`: `useCreateBlockNote(withCollaboration({ ...EDITOR_OPTIONS, fragment }))`
+   (`src/features/editor/editor-options.ts:EDITOR_OPTIONS`: schema, dicionário, links seguros) no fragmento
    `document-store`, registra `setTextSource(() => editor.document)` e desenha o `SyncIndicator` num portal no
-   `statusSlot` do `PageView`. Cada envio confirmado chama `onContentSaved` → `markPageEditedLocally`.
+   `statusSlot` do `PageView`. Cada envio confirmado chama `onContentSaved` → `markPageEditedLocally`. Ele também
+   liga o side menu próprio (`AxnSideMenu`), o menu do bloco, os atalhos (`listenBlockShortcuts`), os seletores
+   (emoji do destaque, "Link para página") e, se o endereço tem `#bloco-<id>`, `useRevealBlock` (ver 3.15).
 8. Trocar de página desmonta tudo: `pageDoc.destroy()` → `session.stop()` (tenta enviar o pendente por até 2 s) →
    fecha o banco → `doc.destroy()`.
 
@@ -346,6 +354,62 @@ dias e que não está `dirty`; ela volta do servidor ao abrir).
    `scripts/cloudflare-headers.test.ts` falha se o arquivo sair do formato ou perder uma diretiva.
 3. `pnpm dev` **não** aplica a CSP (o HMR injeta inline).
 4. Por que `style-src 'unsafe-inline'`, por que zod `jitless`, como conferir no DevTools: `docs/DEPLOY.md`.
+
+### 3.14 Blocos do editor (destaque, link de página, subpágina)
+
+Lista de blocos: `src/features/editor/schema.ts:editorSchema` (explícita, sem mídia). Itens do "/":
+`src/features/editor/slash-menu.tsx:slashMenuItems`. Decisões: DECISÃO-030.
+
+1. **Destaque (callout)** — `src/features/editor/blocks/callout/callout.ts:createCalloutBlock`, em DOM puro
+   (`createBlockSpec`; um node view React quebrava o Enter no WebKit do iPhone). Props `emoji`, `backgroundColor`,
+   `textColor`; pelo "/" nasce cinza (`CALLOUT_DEFAULT_BACKGROUND`). O emoji é validado (`calloutEmoji`) e o clique
+   pede o seletor ao app (`handleCalloutIconClicks` → `IconPickerDialog` no `PageEditor`); leitor não troca.
+2. **Link de página** — `src/features/editor/blocks/page-link/page-link.tsx:createPageLinkBlock` guarda **só** o
+   `pageId`. `src/features/editor/blocks/page-link/PageLinkView.tsx:PageLinkView` valida o id
+   (`src/features/editor/blocks/page-link/page-link-id.ts:isPageId`) e usa `usePage` (lista em cache ou consulta
+   pontual): ícone e título atuais; na lixeira continua clicável (abre só leitura); inexistente/sem acesso =
+   "Página indisponível"; erro = "Tentar de novo". A página inicial aponta para `/`.
+3. **"/" → "Página"** — `src/features/editor/blocks/page-link/insert-page-link.ts:insertSubpage`: gera o id,
+   insere o `pageLink` no lugar do "/", `createPage(paginaAtual, { id })` (`sort_key` no fim dos filhos), e abre a
+   subpágina com `FOCUS_TITLE_STATE`. Falhou: tira o bloco e avisa (`EditorNotice`). Desfazer tira só o bloco.
+4. **"/" → "Link para página"** — o `PageEditor` guarda o bloco do cursor e abre o `PagePickerDialog` (sem a
+   própria página); escolher chama `insertPageLink` (troca o parágrafo vazio ou insere depois; cursor no próximo
+   bloco de texto). Fechar o seletor devolve o foco ao editor.
+5. **Busca (`page_texts`)** — `blocksToPlainText` já lê o texto do destaque; o `pageLink` não tem conteúdo, então
+   o título do link **não** entra (ele muda sem esta página ser editada).
+6. **Links externos** — `src/features/editor/safe-links.ts:isSafeLink` (opção `links.isValidLink` do BlockNote):
+   só `http:`, `https:` e `mailto:` viram link ao colar HTML, colar texto, no autolink e ao desenhar (href inválido
+   de um Y.Doc de outro membro sai vazio). O `<a>` sai com `rel="noopener noreferrer nofollow"`, mas o clique e o
+   "Abrir" da barra de link chamam `window.open`, onde o `rel` não vale: os dois passam por
+   `src/features/editor/safe-links.ts:openSafeLink` (`noopener,noreferrer`), pelo `links.onClick` de
+   `EDITOR_OPTIONS` e por `src/features/editor/link-toolbar.tsx:AxnLinkToolbar`.
+
+### 3.15 Menu do bloco (⋮⋮) e link para o bloco
+
+1. **Alça** — o `PageEditor` desliga o side menu do BlockNote e usa
+   `src/features/editor/block-menu/AxnSideMenu.tsx:AxnSideMenu`: "+" e uma ⋮⋮ que arrasta (`blockDragStart`) e, no
+   clique, congela o side menu e abre o menu pelo `OpenBlockMenuContext`. Com ponteiro grosso (iPad) a alça tem
+   44 px e o "+" some (CSS em `src/features/editor/editor.css`). Pelo teclado: Ctrl/⌘+/ abre o menu do bloco do cursor.
+2. **Modelo** — `src/features/editor/block-menu/block-menu.ts:buildBlockMenu` (itens por tipo de bloco, atalhos,
+   ✓ no tipo e nas cores atuais) e `filterMenu` (busca sem acento, por começo de palavra, achatando subitens:
+   "Transformar em › Título 1", "Cor › Fundo › Verde"). Destinos do "Transformar em":
+   `src/features/editor/block-menu/block-actions.ts:transformTargets` (só blocos de texto do schema).
+3. **Tela** — `src/features/editor/block-menu/BlockMenuPanel.tsx:BlockMenuPanel` (combobox + listbox; submenus
+   como painéis em sequência; →/Enter entra, ←/Backspace volta, Del/Ctrl+D/Alt+Shift+L agem) dentro de
+   `src/features/editor/block-menu/BlockMenu.tsx:BlockMenu`: popover (Radix) no desktop, `Sheet side="bottom"` no
+   toque. Fechar devolve o foco ao editor e descongela o side menu.
+4. **Ações** — `src/features/editor/block-menu/block-actions.ts:runBlockCommand`: `transformBlock`,
+   `setBlockColor`, `duplicateBlock` (clona sem ids, `withoutIds`), `removeBlock`, `copyBlockLink`. Cada uma é um
+   passo de desfazer.
+5. **Atalhos** — `src/features/editor/block-menu/block-shortcuts.ts:listenBlockShortcuts` escuta na raiz do editor
+   (captura) e só age com o evento nascendo **dentro** do elemento editável e o editor editável:
+   `matchBlockShortcut` (Ctrl/⌘+D, Alt+Shift+L pela tecla física, Ctrl/⌘+/); Enter num `pageLink` selecionado abre a
+   página.
+6. **Link para o bloco** — `src/features/editor/block-link.ts:blockLinkUrl` monta `/p/:pageId#bloco-<id>`;
+   `parseBlockHash` só aceita id de bloco (uuid ou `initialBlockId`). Ao abrir (e a cada mudança de hash),
+   `src/features/editor/use-reveal-block.ts:useRevealBlock` espera o bloco (até 5 s, pelo `onChange`, se o conteúdo
+   ainda está chegando) e `revealBlock` rola até ele e o destaca ~2 s com uma animação (Web Animations: o ProseMirror
+   apagaria um atributo nosso). O hash sobrevive ao login (`RequireAuth` guarda `pathname + search + hash`).
 
 ---
 
@@ -480,7 +544,22 @@ Todas: `execute` só para `authenticated`; `anon` nada. Nome, argumentos, o que 
 | `src/features/search/api/search.ts:searchPages` | RPC `search_pages`. | `src/features/search/hooks/use-search.ts:useSearch` |
 | `src/features/editor/PageEditor.tsx:PageEditor` | Editor BlockNote ligado ao Y.Doc (`export default`). | `PageView` (por `loadPageEditor`) |
 | `src/features/editor/load-page-editor.ts:loadPageEditor` | Import único do chunk do editor. | `PageView`, `AppLayout`, `UserMenu` |
-| `src/features/editor/schema.ts:editorSchema` | Lista explícita de blocos permitidos. | `PageEditor` |
+| `src/features/editor/schema.ts:editorSchema` | Lista explícita de blocos permitidos. | `src/features/editor/editor-options.ts:EDITOR_OPTIONS` |
+| `src/features/editor/editor-options.ts:EDITOR_OPTIONS` | Opções do BlockNote de todo editor do app (schema, dicionário, links seguros). | `PageEditor`, `src/features/editor/test-editor.ts:createTestEditor` |
+| `src/features/editor/slash-menu.tsx:slashMenuItems` | Itens do "/" (padrões sem mídia + Destaque, Página, Link para página). | `PageEditor` |
+| `src/features/editor/blocks/callout/callout.ts:createCalloutBlock` | Bloco Destaque, em DOM puro. | `editorSchema` |
+| `src/features/editor/blocks/page-link/page-link.tsx:createPageLinkBlock` | Bloco de link de página (só `pageId`). | `editorSchema` |
+| `src/features/editor/blocks/page-link/PageLinkView.tsx:PageLinkView` | Ícone e título atuais, lixeira, indisponível. | `createPageLinkBlock` |
+| `src/features/editor/blocks/page-link/insert-page-link.ts:insertSubpage` | "/" → "Página": cria a subpágina e o link. | `PageEditor` |
+| `src/features/editor/blocks/page-link/insert-page-link.ts:insertPageLink` | "/" → "Link para página": põe o link no lugar do "/". | `PageEditor` |
+| `src/features/editor/safe-links.ts:isSafeLink` | Só http, https e mailto viram link. | `EDITOR_OPTIONS` |
+| `src/features/editor/block-menu/block-menu.ts:buildBlockMenu` | Itens do menu do bloco para um bloco. | `BlockMenu` |
+| `src/features/editor/block-menu/block-menu.ts:filterMenu` | Busca "Pesquisar ações…". | `BlockMenuPanel` |
+| `src/features/editor/block-menu/block-actions.ts:runBlockCommand` | Executa um item do menu (um passo de desfazer). | `PageEditor` |
+| `src/features/editor/block-menu/block-actions.ts:transformTargets` | Destinos do "Transformar em". | `BlockMenu` |
+| `src/features/editor/block-menu/block-shortcuts.ts:listenBlockShortcuts` | Atalhos do bloco só com o foco no editor. | `PageEditor` |
+| `src/features/editor/block-link.ts:revealBlock` | Rola até o bloco do `#bloco-<id>` e o destaca. | `src/features/editor/use-reveal-block.ts:useRevealBlock` |
+| `src/features/search/components/PageSearchPanel.tsx:PageSearchPanel` | Campo + lista da busca de páginas. | `SearchDialog`, `PagePickerDialog` |
 | `src/features/sync/use-page-doc.ts:usePageDoc` | Abre/fecha o Y.Doc conforme a página. | `PageEditor` |
 | `src/features/sync/use-page-doc.ts:useSyncStatus` | Status do salvamento (hook de store externa). | `PageEditor` |
 | `src/features/sync/page-doc.ts:openPageDoc` | Y.Doc + IndexedDB + início do sync; cai para memória se falhar. | `usePageDoc`, `src/features/sync/background.ts:resyncPage` |
@@ -509,11 +588,20 @@ Todas: `execute` só para `authenticated`; `anon` nada. Nome, argumentos, o que 
 
 ## 6. Onde mexer para…
 
-- **Adicionar um bloco novo ao editor** — skill `novo-bloco`. Resumo: `src/features/editor/schema.ts:editorSchema`
-  (`blockSpecs`; a lista é explícita de propósito), item no menu "/" em `src/features/editor/slash-menu.ts:slashMenuItems`,
-  rótulos em `src/features/editor/dictionary.ts:editorDictionary` e `src/i18n/pt-BR.ts`, CSS em `src/features/editor/editor.css`, e um teste
-  em `src/features/editor/schema.test.ts`. O texto de busca (`src/features/sync/page-text.ts:blocksToPlainText`) só entende texto, links
-  e tabela: bloco com conteúdo novo precisa ensinar a função.
+- **Adicionar um bloco novo ao editor** — skill `novo-bloco`. Resumo: a spec em `src/features/editor/blocks/<nome>/`,
+  registrada em `src/features/editor/schema.ts:editorSchema` (`blockSpecs`; a lista é explícita de propósito), item no
+  menu "/" em `src/features/editor/slash-menu.tsx:slashMenuItems`, rótulos em `src/features/editor/dictionary.ts:editorDictionary`
+  e `src/i18n/pt-BR.ts`, CSS em `src/features/editor/editor.css`, e testes em `src/features/editor/schema.test.ts` e
+  ao lado da spec. Bloco com **texto** (`content: 'inline'`): prefira `createBlockSpec` do core (DOM puro) — node view
+  React com texto quebra o Enter no WebKit do iPhone; React serve para bloco sem texto (como o link de página). Se o
+  bloco tem texto, entre também em "Transformar em" (`transformTargets`) e no seletor de tipo da barra
+  (`src/features/editor/formatting-toolbar.tsx:AxnFormattingToolbar`). O texto de busca
+  (`src/features/sync/page-text.ts:blocksToPlainText`) só entende texto, links e tabela: bloco com conteúdo novo
+  precisa ensinar a função. Props vindas do Y.Doc são de outro membro: valide antes de usar (ids, emojis, URLs).
+- **Mudar o menu do bloco (⋮⋮)** — itens e ordem em `src/features/editor/block-menu/block-menu.ts:buildBlockMenu`, o que
+  cada item faz em `src/features/editor/block-menu/block-actions.ts:runBlockCommand`, atalhos em
+  `src/features/editor/block-menu/block-shortcuts.ts:matchBlockShortcut`, textos em `editor.blockMenu` de
+  `src/i18n/pt-BR.ts`. "Mover para" é da V1 (DECISÃO-021).
 - **Adicionar um texto em pt-BR** — a chave em `src/i18n/pt-BR.ts` (a chave vira tipo em
   `src/i18n/index.ts:TranslationKey`) e `t('a.b.c')` no componente. Nada de string solta.
 - **Criar uma store Zustand** — `import { create } from '@/lib/create-store'` (o ESLint barra o `create` do
@@ -569,6 +657,9 @@ Todas: `execute` só para `authenticated`; `anon` nada. Nome, argumentos, o que 
 | Arrastar não move | Vizinhos com a mesma `sort_key` (`planMove` → `tie`, aviso na sidebar); ou destino dentro da própria subárvore. |
 | Erro só no Safari/iPhone | IndexedDB indisponível → cai para memória (aviso no editor); `visualViewport` da busca; WebKit nos e2e (`mobile`, `tablet`). |
 | Violação de CSP no Console | `public/_headers` e `docs/DEPLOY.md`; `pnpm dev` não aplica a CSP, use `pnpm build && pnpm preview`. |
+| Link de página mostra "Página indisponível" | A página foi apagada de vez ou o usuário não tem acesso (`usePage` → `notFound`), ou o `pageId` do bloco não é um uuid (`isPageId`). Na lixeira ele mostra "na lixeira" e continua clicável. |
+| Um link colado não virou link | Só `http:`, `https:` e `mailto:` viram link (`isSafeLink`); o resto fica como texto. |
+| `#bloco-<id>` não rola nem destaca | O id precisa existir no documento em até 5 s (`useRevealBlock`); o destaque é uma animação (DevTools → Animations), não um atributo. |
 | Teste de banco falha | `pnpm test:db`; os helpers sobem as migrações num PGlite novo por arquivo (`supabase/tests/helpers/db.ts`). Se acabou de criar uma função, atualize a lista de `supabase/tests/schema.test.ts`. |
 | e2e falhou | `pnpm e2e` precisa de `.env.local` (`E2E_EMAIL`, `E2E_PASSWORD`, e o 2º usuário para `rls-smoke`). Sem credenciais os testes são pulados. Trace: `trace: 'on-first-retry'` em `playwright.config.ts`; abra com `pnpm exec playwright show-trace`. Sobras `e2e-…` são removidas por `e2e/cleanup.setup.ts`. |
 | Supabase local | `pnpm dlx supabase@latest start` (Docker) e `db reset` **só local**; nunca `db reset --linked`. Ver `supabase/README.md`. A CSP só libera `*.supabase.co`: com Supabase local use `pnpm dev`. |
@@ -607,3 +698,7 @@ Todas: `execute` só para `authenticated`; `anon` nada. Nome, argumentos, o que 
 | **chunk** | Arquivo JS carregado sob demanda: `auth-routes`, `app-routes`, `PageEditor`. |
 | **RLS** | Row Level Security: o Postgres filtra as linhas por usuário/papel. Barrar um `update` não dá erro, só zero linhas. |
 | **PGlite** | Postgres em WASM usado nos testes de `supabase/tests/`, sem Docker. |
+| **destaque (callout)** | Bloco com emoji e texto sobre fundo colorido (`callout` no schema). |
+| **`pageLink`** | Bloco que aponta para uma página pelo id; serve para "Link para página" e para subpágina. Excluir o bloco não apaga a página. |
+| **menu do bloco (⋮⋮)** | Menu da alça do bloco: Transformar em, Cor, Link para o bloco, Duplicar, Excluir. |
+| **link para o bloco** | `/p/:pageId#bloco-<id>`: abre a página, rola até o bloco e o destaca. |

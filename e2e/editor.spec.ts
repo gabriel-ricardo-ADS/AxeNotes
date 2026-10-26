@@ -1,6 +1,14 @@
 import { expect, type Page } from '@playwright/test'
 import { E2E_USER_1, hasE2ECredentials, SKIP_NO_CREDENTIALS } from './support/env'
-import { createTestPage, sortKeySequence } from './support/pages-api'
+import {
+  blocks,
+  focusEnd,
+  insertFromSlashMenu,
+  newPage,
+  openPage,
+  settle,
+  surface,
+} from './support/editor'
 import { test } from './support/run-fixture'
 import { openNavigation, SIGNED_OUT_STATE, signInThroughUi } from './support/ui'
 
@@ -10,44 +18,10 @@ import { openNavigation, SIGNED_OUT_STATE, signInThroughUi } from './support/ui'
 
 test.skip(!hasE2ECredentials, SKIP_NO_CREDENTIALS)
 
-const content = (page: Page) => page.getByRole('region', { name: 'Conteúdo da página' })
-const surface = (page: Page) => content(page).locator('.bn-editor')
-const blocks = (page: Page, type: string) =>
-  content(page).locator(`.bn-block-content[data-content-type="${type}"]`)
-
-/** Abre a página e espera o editor (chunk próprio + IndexedDB) ficar pronto. */
-async function openPage(page: Page, id: string) {
-  await page.goto(`/p/${id}`)
-  await expect(surface(page)).toBeVisible()
-  // O aviso de prévia do 2a saiu no 2b.
+/** Abre a página e confere que o aviso de prévia do 2a não voltou (saiu no 2b). */
+async function openEditorPage(page: Page, id: string) {
+  await openPage(page, id)
   await expect(page.getByText(/Prévia: o conteúdo fica salvo só neste aparelho/)).toHaveCount(0)
-}
-
-/** Põe o cursor no fim do último bloco. */
-async function focusEnd(page: Page) {
-  await surface(page).click()
-  await page.keyboard.press('ControlOrMeta+End')
-}
-
-/** Escolhe um item do menu "/" pelo nome, digitando para filtrar. */
-async function insertFromSlashMenu(page: Page, filter: string, item: string) {
-  await page.keyboard.type(`/${filter}`)
-  await page
-    .getByRole('option', { name: new RegExp(item) })
-    .first()
-    .click()
-}
-
-/** y-indexeddb grava cada update na hora; dá um respiro antes de recarregar. */
-async function settle(page: Page) {
-  await page.waitForTimeout(300)
-}
-
-async function newPage(
-  run: { prefix: string; api: Parameters<typeof createTestPage>[0] },
-  name: string,
-) {
-  return createTestPage(run.api, { title: `${run.prefix}${name}`, sortKey: sortKeySequence()() })
 }
 
 test('writes blocks with the "/" menu and markdown, and finds them after reloading', async ({
@@ -55,7 +29,7 @@ test('writes blocks with the "/" menu and markdown, and finds them after reloadi
   run,
 }) => {
   const id = await newPage(run, 'editor')
-  await openPage(page, id)
+  await openEditorPage(page, id)
   await focusEnd(page)
 
   await page.keyboard.type('# Seção de leituras')
@@ -92,7 +66,7 @@ test('keeps editing while offline and still has it after reconnecting and reload
   run,
 }) => {
   const id = await newPage(run, 'offline')
-  await openPage(page, id)
+  await openEditorPage(page, id)
   await focusEnd(page)
   await page.keyboard.type('antes de cair a rede')
 
@@ -113,7 +87,7 @@ test('switching pages never mixes their content', async ({ page, run }) => {
   const first = await newPage(run, 'pagina-a')
   const second = await newPage(run, 'pagina-b')
 
-  await openPage(page, first)
+  await openEditorPage(page, first)
   await focusEnd(page)
   await page.keyboard.type('só da página A')
   await settle(page)
@@ -156,7 +130,7 @@ test('Ctrl/Cmd+K opens the search without a selection and the link field with on
 }, testInfo) => {
   test.skip(testInfo.project.name !== 'desktop', 'atalho de teclado físico: só no desktop')
   const id = await newPage(run, 'atalho')
-  await openPage(page, id)
+  await openEditorPage(page, id)
   await focusEnd(page)
   await page.keyboard.type('palavra')
 
@@ -182,7 +156,7 @@ test.describe('logout', () => {
   test('signing out deletes the axenotes-page-* databases', async ({ page, run }) => {
     const id = await newPage(run, 'logout')
     await signInThroughUi(page, E2E_USER_1)
-    await openPage(page, id)
+    await openEditorPage(page, id)
     await focusEnd(page)
     await page.keyboard.type('conteúdo da conta anterior')
     await settle(page)

@@ -34,6 +34,10 @@ export default defineConfig({
             },
             { name: 'supabase', test: /node_modules[\\/]@supabase[\\/]/, priority: 2 },
             { name: 'vendor', test: /node_modules[\\/]/, minShareCount: 2, priority: 1 },
+            // Código do app usado pela entrada E pelos chunks de rota e do editor (textos, cliente
+            // Supabase, `cn`): chunk próprio, como já saía sozinho até a 2c-1. Sem este grupo o
+            // rolldown passou a fundi-lo na entrada (a mesma coisa baixada no início, mas a entrada crescia).
+            { name: 'shared', test: /[\\/]src[\\/]/, minShareCount: 3, priority: 0 },
           ],
         },
       },

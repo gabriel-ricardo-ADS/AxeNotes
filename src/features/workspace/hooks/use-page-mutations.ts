@@ -130,12 +130,18 @@ export function usePageMutations() {
     },
   })
 
-  /** Cria uma página (raiz com `parentId` null) no fim dos irmãos. Devolve o id, ou null se falhar. */
-  async function createPage(parentId: string | null): Promise<string | null> {
+  /**
+   * Cria uma página (raiz com `parentId` null) no fim dos irmãos. Devolve o id, ou null se falhar.
+   * `options.id`: id já gerado por quem chama (o bloco de subpágina aponta para ele antes do insert).
+   */
+  async function createPage(
+    parentId: string | null,
+    options?: { id?: string },
+  ): Promise<string | null> {
     const userId = session?.user.id
     if (!workspace || userId === undefined) return null
 
-    const id = crypto.randomUUID()
+    const id = options?.id ?? crypto.randomUUID()
     if (parentId !== null) expand(parentId)
     try {
       await createMutation.mutateAsync({

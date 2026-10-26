@@ -13,5 +13,7 @@ export const editorDictionary: Dictionary = {
     numberedListItem: t('editor.placeholders.list'),
     checkListItem: t('editor.placeholders.list'),
     toggleListItem: t('editor.placeholders.toggle'),
+    // O placeholder é achado pelo `data-content-type` do bloco: vale para blocos customizados também.
+    callout: t('editor.placeholders.callout'),
   },
 }

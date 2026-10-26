@@ -4,7 +4,7 @@ import { Dialog as SheetPrimitive } from 'radix-ui'
 import { t } from '@/i18n'
 import { cn } from '@/lib/utils'
 
-// Baseado no Sheet do shadcn/ui, reduzido ao que o app usa (gaveta lateral) e com animações
+// Baseado no Sheet do shadcn/ui, reduzido ao que o app usa (gaveta lateral e bottom sheet) e com animações
 // próprias (keyframes em src/styles/index.css) em vez de tw-animate-css.
 
 function Sheet({ ...props }: React.ComponentProps<typeof SheetPrimitive.Root>) {
@@ -46,7 +46,7 @@ function SheetContent({
   showCloseButton = true,
   ...props
 }: React.ComponentProps<typeof SheetPrimitive.Content> & {
-  side?: 'right' | 'left'
+  side?: 'right' | 'left' | 'bottom'
   showCloseButton?: boolean
 }) {
   return (
@@ -55,11 +55,13 @@ function SheetContent({
       <SheetPrimitive.Content
         data-slot="sheet-content"
         className={cn(
-          'fixed inset-y-0 z-50 flex h-full flex-col bg-background shadow-lg',
+          'fixed z-50 flex flex-col bg-background shadow-lg',
           side === 'left' &&
-            'left-0 border-r data-[state=closed]:animate-sheet-out-left data-[state=open]:animate-sheet-in-left',
+            'inset-y-0 left-0 h-full border-r data-[state=closed]:animate-sheet-out-left data-[state=open]:animate-sheet-in-left',
           side === 'right' &&
-            'right-0 border-l data-[state=closed]:animate-sheet-out-right data-[state=open]:animate-sheet-in-right',
+            'inset-y-0 right-0 h-full border-l data-[state=closed]:animate-sheet-out-right data-[state=open]:animate-sheet-in-right',
+          side === 'bottom' &&
+            'inset-x-0 bottom-0 max-h-[85dvh] rounded-t-card border-t pb-[env(safe-area-inset-bottom)] data-[state=closed]:animate-sheet-out-bottom data-[state=open]:animate-sheet-in-bottom',
           className,
         )}
         {...props}

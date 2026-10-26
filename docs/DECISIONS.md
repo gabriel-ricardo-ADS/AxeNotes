@@ -383,3 +383,33 @@ como título e ícone já faziam.
   `pages` a cada lote de 1–5 s; hoje não há Realtime em `pages`, então não há barulho na árvore).
 - No cliente, cada envio confirmado atualiza `lastEditedAt` no cache da lista de páginas (`setQueryData`), também no
   máximo a cada 60 s e sem buscar a página de novo (`src/features/workspace/last-edited.ts`).
+
+### DECISÃO-030 — Blocos do AxeNotes e menu do bloco (Fase 2c-1)
+**DECIDIDA** — Gabriel aprovou o plano da 2c em 2026-10-26 e dividiu a entrega em **2c-1** (callout, links de
+página, menu do bloco) e **2c-2** (editor no mobile: alça no celular, barra acima do teclado, "/" e "Transformar em"
+em bottom sheet, meta `interactive-widget`). Sem migration, sem dependência nova.
+- **Um tipo de bloco para links de página:** `pageLink { pageId }`. "/" → "Página" cria a subpágina e insere um
+  `pageLink`; "/" → "Link para página" aponta para uma página existente. Se um dia precisar distinguir, "é
+  subpágina" se deriva sem mudar o schema (o pai da página é a página que contém o link).
+- **O título NUNCA vai para o Y.Doc:** o bloco desenha o ícone e o título atuais a partir do cache do workspace
+  (`usePage`). Na lixeira: continua clicável e abre só leitura. Inexistente ou sem acesso: "Página indisponível"
+  (mesma tela para os dois, como em `usePage`).
+- **Excluir o bloco não apaga a página** (só o link); **duplicar duplica o link**, não a página. **Ctrl+Z depois de
+  criar uma subpágina tira só o bloco; a página continua na árvore.** Revisável se o uso pedir "excluir o bloco
+  manda a subpágina para a lixeira".
+- **`page_texts`:** o título do link **não** entra no texto da busca (ficaria velho quando a página de destino
+  muda de nome, e a busca já acha a página de destino pelo título dela). O texto do destaque entra; o emoji não.
+- **Destaque (callout) em DOM puro** (`createBlockSpec` do core), não em React: no WebKit do iPhone o Enter dentro do
+  texto de um node view React quebrava o conteúdo. Cor pelas props `backgroundColor`/`textColor` do BlockNote; pelo
+  "/" nasce cinza.
+- **Menu do bloco** sem "Mover para" (DECISÃO-021): Transformar em ▸ (só blocos de texto do schema), Cor ▸, Link
+  para o bloco (Alt+Shift+L), Duplicar (Ctrl+D), Excluir (Del), com "Pesquisar ações…". Popover no desktop, bottom
+  sheet no toque. Atalhos só com o foco dentro do editor; Ctrl/⌘+/ abre o menu pelo teclado.
+- **Link para o bloco:** `/p/:pageId#bloco-<id>`; o hash sobrevive ao login (o `RequireAuth` guarda o hash). O
+  destaque é uma animação (Web Animations), porque o ProseMirror redesenha o DOM do bloco.
+- **Links externos só `http:`, `https:` e `mailto:`** (`links.isValidLink` do BlockNote): vale para colar HTML,
+  colar texto, autolink e para desenhar (um href inválido vindo de um Y.Doc de outro membro sai `href=""`). O
+  padrão do BlockNote aceitava também `tel:`, `ftp:`, `sms:` etc. O clique no link e o "Abrir" da barra de link
+  abrem com `noopener,noreferrer` (o `window.open` padrão do BlockNote não punha; achado da revisão de segurança).
+- **Alça no celular (2c-2):** no iPhone a margem do texto tem 24 px; a alça ⋮⋮ fica como 1º botão da barra acima
+  do teclado. No iPad a alça de 44 px aparece na margem (sem o "+", que não cabe).

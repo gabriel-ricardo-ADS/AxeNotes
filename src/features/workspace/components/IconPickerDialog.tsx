@@ -16,10 +16,21 @@ interface IconPickerDialogProps {
   hasIcon: boolean
   /** `null` remove o ícone. */
   onSelect: (icon: PageIcon | null) => void
+  /** Texto de apoio do diálogo (o padrão fala do ícone da página). */
+  description?: string
+  /** Para onde o foco vai ao fechar; sem isto, o Radix devolve a quem abriu. */
+  onCloseFocus?: () => void
 }
 
 /** Seletor de ícone: grade simples de emojis curados, sem biblioteca. */
-export function IconPickerDialog({ open, onOpenChange, hasIcon, onSelect }: IconPickerDialogProps) {
+export function IconPickerDialog({
+  open,
+  onOpenChange,
+  hasIcon,
+  onSelect,
+  description,
+  onCloseFocus,
+}: IconPickerDialogProps) {
   function choose(icon: PageIcon | null) {
     onSelect(icon)
     onOpenChange(false)
@@ -27,10 +38,16 @@ export function IconPickerDialog({ open, onOpenChange, hasIcon, onSelect }: Icon
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent>
+      <DialogContent
+        onCloseAutoFocus={(event) => {
+          if (!onCloseFocus) return
+          event.preventDefault()
+          onCloseFocus()
+        }}
+      >
         <DialogHeader>
           <DialogTitle>{t('workspace.icon.title')}</DialogTitle>
-          <DialogDescription>{t('workspace.icon.description')}</DialogDescription>
+          <DialogDescription>{description ?? t('workspace.icon.description')}</DialogDescription>
         </DialogHeader>
         <div
           role="group"
