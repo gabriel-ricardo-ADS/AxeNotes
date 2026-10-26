@@ -23,6 +23,7 @@
     "e2e": "playwright test",
     "screenshots": "node e2e/screenshot.ts",
     "license:check": "node scripts/check-licenses.mjs",
+    "codemap:check": "node scripts/check-codemap.mjs",
     "knip": "knip",
     "size:check": "node scripts/check-bundle-size.mjs"
   },

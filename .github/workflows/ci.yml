@@ -35,6 +35,8 @@ jobs:
             script: knip
           - name: format
             script: format:check
+          - name: codemap
+            script: codemap:check
     steps:
       - uses: actions/checkout@v7.0.1
 

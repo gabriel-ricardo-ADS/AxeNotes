@@ -4,6 +4,7 @@ import reactHooks from 'eslint-plugin-react-hooks'
 import reactRefresh from 'eslint-plugin-react-refresh'
 import globals from 'globals'
 import tseslint from 'typescript-eslint'
+import { axenotesPlugin } from './scripts/eslint-require-tsdoc.mjs'
 
 export default tseslint.config(
   {
@@ -70,6 +71,20 @@ export default tseslint.config(
   {
     files: ['src/lib/create-store.ts'],
     rules: { 'no-restricted-imports': 'off' },
+  },
+  {
+    // Todo export destas pastas precisa de TSDoc (regra local, scripts/eslint-require-tsdoc.mjs).
+    // O que escrever e onde cada coisa fica: docs/CODEMAP.md.
+    files: [
+      'src/lib/**/*.{ts,tsx}',
+      'src/features/*/api/**/*.{ts,tsx}',
+      'src/features/*/hooks/**/*.{ts,tsx}',
+      'src/features/sync/**/*.{ts,tsx}',
+      'src/features/auth/**/*.{ts,tsx}',
+    ],
+    ignores: ['**/*.test.{ts,tsx}'],
+    plugins: { axenotes: axenotesPlugin },
+    rules: { 'axenotes/require-exported-tsdoc': 'error' },
   },
   {
     // Scripts Node em JavaScript (sem checagem de tipos).

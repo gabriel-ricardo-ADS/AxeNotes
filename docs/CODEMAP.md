@@ -80,7 +80,7 @@ Padrão de uma feature: `api/` (só chamadas ao Supabase, validadas com zod) →
 | `supabase/seed.sql`, `supabase/config.toml`                                              | Seed fictícia (só local) e config mínima do CLI.                                                                              | Dados reais; a seed **nunca** vai para o remoto.              |
 | `e2e/`                                                                                   | Specs do Playwright; `e2e/auth.setup.ts` salva a sessão por projeto; `e2e/cleanup.setup.ts` limpa sobras `e2e-…`; `e2e/screenshot.ts`.    | Teste que não precisa de navegador.                           |
 | `e2e/support/`                                                                           | `e2e/support/env.ts` (credenciais do `.env.local`), `e2e/support/pages-api.ts` (API REST p/ criar/limpar páginas), `e2e/support/run-fixture.ts`, `e2e/support/ui.ts`.        | Segredos.                                                     |
-| `scripts/`                                                                               | Ferramentas Node: `scripts/check-licenses.mjs`, `scripts/check-bundle-size.mjs`, `scripts/check-codemap.mjs`, `scripts/cloudflare-headers.ts`, `scripts/format-edited-file.mjs`. | Código do app.                                                |
+| `scripts/`                                                                               | Ferramentas Node: `scripts/check-licenses.mjs`, `scripts/check-bundle-size.mjs`, `scripts/check-codemap.mjs`, `scripts/eslint-require-tsdoc.mjs` (regra local do lint), `scripts/cloudflare-headers.ts`, `scripts/format-edited-file.mjs`. | Código do app.                                                |
 | `public/`                                                                                | `_headers` (CSP e demais headers do Cloudflare Pages), ícones/estáticos.                                                      | Código.                                                       |
 | `.claude/`                                                                               | Skills (`design-axenotes`, `fase`, `migracao-supabase`, `novo-bloco`, `verificar-ui`), agentes revisores, hook de formatação. | —                                                             |
 | `.github/`                                                                               | `.github/workflows/ci.yml` (matriz: typecheck, lint, test, build, licenses, knip, format, codemap) e o template de PR.                | —                                                             |
@@ -503,6 +503,7 @@ Todas: `execute` só para `authenticated`; `anon` nada. Nome, argumentos, o que 
 | `src/i18n/index.ts:t` | Traduz uma chave tipada de `src/i18n/pt-BR.ts`. | Todo componente |
 | `src/test/fake-supabase.ts:fakeDb` | Banco em memória dos testes (`rpcCalls`, `rpcFailures`, `rpcGates`). | Testes de componente |
 | `scripts/check-codemap.mjs` | Confere as referências deste arquivo (`pnpm codemap:check`). | CI |
+| `scripts/eslint-require-tsdoc.mjs:requireExportedTsdoc` | Regra do ESLint: export sem TSDoc é erro nas pastas cobertas (ver `eslint.config.js`). | `pnpm lint` |
 
 ---
 
@@ -540,6 +541,9 @@ Todas: `execute` só para `authenticated`; `anon` nada. Nome, argumentos, o que 
 - **Criar uma query nova** — função em `features/<x>/api/` (zod no retorno), chave em `features/<x>/query-keys.ts`
   (inclua `userId` ou `workspaceId`: o cache é limpo no logout, mas a chave evita vazamento entre contas), hook em
   `hooks/`.
+- **Exportar algo novo em `src/lib`, `src/features/*/api`, `src/features/*/hooks`, `src/features/sync` ou `src/features/auth`** — o export precisa de um
+  comentário TSDoc `/** … */` em pt-BR (1–3 linhas: o que faz, quando usar, efeitos e erros). O `pnpm lint` falha sem ele
+  (regra `axenotes/require-exported-tsdoc`; testes em `scripts/eslint-require-tsdoc.test.mjs`).
 - **Acrescentar uma dependência** — licença compatível com GPL-3.0; `pnpm license:check` confere. `pnpm knip` acusa
   o que ficar sem uso.
 - **Mudar tempos do sync** — `SYNC_TIMING` e as constantes de compactação em `src/features/sync/supabase-sync.ts`; os

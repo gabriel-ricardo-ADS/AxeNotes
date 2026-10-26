@@ -34,7 +34,8 @@ depois (DECISÃO-001).
 - **PWA**: vite-plugin-pwa. **Futuro**: Capacitor.
 - **Hospedagem**: Cloudflare Pages (front) + Workers/Durable Objects (sync); Supabase Free.
 - **Qualidade**: ESLint, Prettier, Vitest, Testing Library, Playwright (desktop 1440×900, iPhone,
-  iPad), GitHub Actions (typecheck, lint, test, build com orçamento de bundle, licenças, knip e format). O e2e
+  iPad), GitHub Actions (typecheck, lint, test, build com orçamento de bundle, licenças, knip, format e
+  `codemap:check`, que confere as referências do `docs/CODEMAP.md`). O e2e
   ainda não roda no CI: precisa dos secrets do Supabase (ver ROADMAP, Fase 1).
 
 Licenças: toda dependência precisa ser compatível com GPL-3.0 (DECISÃO-003).
@@ -90,8 +91,10 @@ e2e/              # specs do Playwright (auth.setup.ts salva a sessão por proje
                   # apaga, com faxina inicial em cleanup.setup.ts; editor, sync, busca, lixeira e layout têm
                   # specs próprios) + screenshot.ts (pnpm screenshots)
 public/           # _headers: CSP e headers de segurança do Cloudflare Pages (docs/DEPLOY.md)
-scripts/          # check-licenses.mjs; check-bundle-size.mjs (orçamento de bundle); format-edited-file.mjs (hook do
-                  # Prettier); cloudflare-headers.ts (lê o _headers para o pnpm preview)
+scripts/          # check-licenses.mjs; check-bundle-size.mjs (orçamento de bundle); check-codemap.mjs (referências do
+                  # CODEMAP); eslint-require-tsdoc.mjs (regra local: export sem TSDoc é erro em src/lib, api/, hooks/,
+                  # sync e auth); format-edited-file.mjs (hook do Prettier); cloudflare-headers.ts (lê o _headers
+                  # para o pnpm preview)
 ```
 
 ## 4. Modelo de dados (rascunho — refinar nas fases 1 e 5)
