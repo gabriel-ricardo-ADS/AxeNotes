@@ -3,6 +3,7 @@ import { useState, type SyntheticEvent } from 'react'
 import { Link, useLocation, useNavigate } from 'react-router'
 import { Button, buttonVariants } from '@/components/ui/button'
 import { signIn } from '@/features/auth/api/auth'
+import { useAuth } from '@/features/auth/auth-context'
 import { AuthCard } from '@/features/auth/components/AuthLayout'
 import { FormError } from '@/features/auth/components/FormError'
 import { PasswordField } from '@/features/auth/components/PasswordField'
@@ -17,6 +18,7 @@ import { cn } from '@/lib/utils'
 export function SignInPage() {
   const navigate = useNavigate()
   const location = useLocation()
+  const { localDataError } = useAuth()
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
   const [fieldErrors, setFieldErrors] = useState<FieldErrors>({})
@@ -29,7 +31,11 @@ export function SignInPage() {
   const kind = mutation.error ? mapAuthError(mutation.error) : null
   // Conta ainda não confirmada: em vez de erro, leva à tela do código.
   const errorMessage =
-    kind !== null && kind !== 'email_not_confirmed' ? t(authErrorMessageKey(kind)) : null
+    kind !== null && kind !== 'email_not_confirmed'
+      ? t(authErrorMessageKey(kind))
+      : localDataError
+        ? t('auth.errors.localDataNotCleared')
+        : null
 
   function handleSubmit(event: SyntheticEvent) {
     event.preventDefault()

@@ -3,7 +3,9 @@ import type { MockInstance } from 'vitest'
 import { useSearchStore } from '@/features/search/search-store'
 import { indexedDbSyncMeta } from '@/features/sync/sync-meta'
 import { forgetOpenedDatabases, pageDbName, rememberOpenedDatabase } from '@/lib/idb-names'
+import { claimLocalData, readLocalDataOwner } from '@/lib/local-data-owner'
 import {
+  clientStateResetInProgress,
   KNOWN_IDB_DATABASES,
   onBeforeStorageClear,
   resetClientState,
@@ -185,6 +187,27 @@ describe('resetClientState', () => {
     )
   })
 
+  it('forgets the local data owner once IndexedDB is gone', async () => {
+    claimLocalData('user-a')
+
+    await resetClientState(new QueryClient())
+
+    expect(readLocalDataOwner()).toBeNull()
+  })
+
+  it('keeps the local data owner when IndexedDB could not be deleted', async () => {
+    claimLocalData('user-a')
+    vi.stubGlobal('indexedDB', {
+      databases: vi.fn(() => Promise.resolve([{ name: 'axenotes-a' }])),
+      deleteDatabase: vi.fn(() => fakeDeleteRequest('error')),
+    })
+
+    await resetClientState(new QueryClient())
+
+    // A próxima conta diferente que entrar dispara a limpeza de novo.
+    expect(readLocalDataOwner()).toBe('user-a')
+  })
+
   it('runs once when called again while a reset is in progress', async () => {
     const databases = vi.fn(() => Promise.resolve([]))
     vi.stubGlobal('indexedDB', { databases, deleteDatabase: vi.fn() })
@@ -195,7 +218,9 @@ describe('resetClientState', () => {
     const second = resetClientState(queryClient)
 
     expect(second).toBe(first)
+    expect(clientStateResetInProgress()).toBe(first)
     await Promise.all([first, second])
+    expect(clientStateResetInProgress()).toBeNull()
     expect(clear).toHaveBeenCalledTimes(1)
     expect(databases).toHaveBeenCalledTimes(1)
 
