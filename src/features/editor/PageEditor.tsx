@@ -2,6 +2,7 @@ import { SideMenuExtension } from '@blocknote/core/extensions'
 import { withCollaboration } from '@blocknote/core/yjs'
 import {
   FormattingToolbarController,
+  LinkToolbarController,
   SideMenuController,
   SuggestionMenuController,
   useCreateBlockNote,
@@ -23,6 +24,7 @@ import { isPageId } from '@/features/editor/blocks/page-link/page-link-id'
 import { EditorNotice, type EditorNoticeValue } from '@/features/editor/components/EditorNotice'
 import { EDITOR_OPTIONS } from '@/features/editor/editor-options'
 import { AxnFormattingToolbar } from '@/features/editor/formatting-toolbar'
+import { AxnLinkToolbar } from '@/features/editor/link-toolbar'
 import { slashMenuItems, type SlashMenuActions } from '@/features/editor/slash-menu'
 import { useRevealBlock } from '@/features/editor/use-reveal-block'
 import { FOCUS_TITLE_STATE, pagePath } from '@/features/pages/routes'
@@ -225,10 +227,12 @@ function LoadedEditor({
           slashMenu={false}
           formattingToolbar={false}
           sideMenu={false}
+          linkToolbar={false}
           className="axn-editor"
         >
           <SideMenuController sideMenu={AxnSideMenu} />
           <FormattingToolbarController formattingToolbar={AxnFormattingToolbar} />
+          <LinkToolbarController linkToolbar={AxnLinkToolbar} />
           <SuggestionMenuController
             triggerCharacter="/"
             getItems={(query) => Promise.resolve(slashMenuItems(editor, query, slashActions))}

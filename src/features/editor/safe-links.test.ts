@@ -1,6 +1,6 @@
 import { blocksToYXmlFragment, yXmlFragmentToBlocks } from '@blocknote/core/yjs'
 import * as Y from 'yjs'
-import { isSafeLink } from '@/features/editor/safe-links'
+import { handleEditorLinkClick, isSafeLink, openSafeLink } from '@/features/editor/safe-links'
 import { createTestEditor } from '@/features/editor/test-editor'
 
 const DANGEROUS = [
@@ -103,5 +103,39 @@ describe('links in the editor', () => {
     expect(anchor?.getAttribute('target')).toBe('_blank')
     expect(anchor?.getAttribute('rel')).toMatch(/noopener/)
     expect(anchor?.getAttribute('rel')).toMatch(/noreferrer/)
+  })
+})
+
+describe('opening links', () => {
+  afterEach(() => {
+    vi.restoreAllMocks()
+  })
+
+  it('opens safe links in a new tab with noopener and noreferrer', () => {
+    const open = vi.spyOn(window, 'open').mockReturnValue(null)
+    expect(openSafeLink('https://exemplo.com/a')).toBe(true)
+    expect(open).toHaveBeenCalledWith('https://exemplo.com/a', '_blank', 'noopener,noreferrer')
+  })
+
+  it('never opens a dangerous link', () => {
+    const open = vi.spyOn(window, 'open').mockReturnValue(null)
+    for (const href of DANGEROUS) expect(openSafeLink(href)).toBe(false)
+    expect(open).not.toHaveBeenCalled()
+  })
+
+  it('a click on an editor link is handled by us (not by the default window.open without noopener)', () => {
+    const open = vi.spyOn(window, 'open').mockReturnValue(null)
+    const anchor = document.createElement('a')
+    anchor.setAttribute('data-inline-content-type', 'link')
+    anchor.setAttribute('href', 'mailto:ana@exemplo.com')
+    const text = document.createElement('span')
+    anchor.appendChild(text)
+    document.body.appendChild(anchor)
+    const event = new MouseEvent('click')
+    Object.defineProperty(event, 'target', { value: text })
+
+    expect(handleEditorLinkClick(event)).toBe(true)
+    expect(open).toHaveBeenCalledWith('mailto:ana@exemplo.com', '_blank', 'noopener,noreferrer')
+    anchor.remove()
   })
 })

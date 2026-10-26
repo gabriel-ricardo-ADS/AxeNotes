@@ -70,6 +70,10 @@ describe('callout block', () => {
 
   it('only shows a short emoji (anything else falls back to the default)', () => {
     expect(calloutEmoji('🌿')).toBe('🌿')
+    expect(calloutEmoji('❤️')).toBe('❤️')
+    expect(calloutEmoji('👩‍💻')).toBe('👩‍💻')
+    expect(calloutEmoji('ATENÇÃO😀')).toBe(CALLOUT_DEFAULT_EMOJI)
+    expect(calloutEmoji('🌿🌿')).toBe(CALLOUT_DEFAULT_EMOJI)
     expect(calloutEmoji('')).toBe(CALLOUT_DEFAULT_EMOJI)
     expect(calloutEmoji('<img src=x onerror=alert(1)>')).toBe(CALLOUT_DEFAULT_EMOJI)
     expect(calloutEmoji('texto comprido demais 🌿🌿🌿')).toBe(CALLOUT_DEFAULT_EMOJI)

@@ -8,9 +8,13 @@ export const CALLOUT_DEFAULT_EMOJI = '💡'
 /** Fundo de um destaque novo (pelo "/" ou pelo "Transformar em"). */
 export const CALLOUT_DEFAULT_BACKGROUND = 'gray'
 
-/** O emoji gravado só é mostrado se for mesmo um emoji curto (o Y.Doc pode vir de outro membro). */
+const graphemes = new Intl.Segmenter(undefined, { granularity: 'grapheme' })
+
+/** O emoji gravado só é mostrado se for mesmo UM emoji (o Y.Doc pode vir de outro membro). */
 export function calloutEmoji(value: string): string {
-  return parsePageIcon({ type: 'emoji', value })?.value ?? CALLOUT_DEFAULT_EMOJI
+  const icon = parsePageIcon({ type: 'emoji', value })
+  if (!icon || [...graphemes.segment(icon.value)].length !== 1) return CALLOUT_DEFAULT_EMOJI
+  return icon.value
 }
 
 // Quem abre o seletor de emoji de cada editor (o PageEditor registra; o bloco só pede).

@@ -27,3 +27,26 @@ export function isSafeLink(href: string | null | undefined): boolean {
     return false
   }
 }
+
+/**
+ * Abre um link do editor em outra aba SEM dar à página aberta acesso a esta (`noopener,noreferrer`;
+ * o `rel` do `<a>` não vale para `window.open`). Link fora da lista não abre. Devolve se abriu.
+ */
+export function openSafeLink(href: string | null | undefined): boolean {
+  if (!isSafeLink(href) || typeof href !== 'string') return false
+  const url = new URL(href.trim(), window.location.href).href
+  window.open(url, '_blank', 'noopener,noreferrer')
+  return true
+}
+
+/**
+ * Clique num link dentro do editor (opção `links.onClick` do BlockNote): abre pelo {@link openSafeLink}
+ * e marca o clique como tratado (o padrão do BlockNote abriria sem `noopener`).
+ */
+export function handleEditorLinkClick(event: MouseEvent): boolean {
+  const target = event.target
+  const anchor =
+    target instanceof Element ? target.closest('a[data-inline-content-type="link"]') : null
+  openSafeLink(anchor?.getAttribute('href'))
+  return true
+}
