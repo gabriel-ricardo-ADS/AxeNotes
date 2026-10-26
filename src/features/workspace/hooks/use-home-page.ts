@@ -5,6 +5,7 @@ import { useWorkspace } from '@/features/workspace/hooks/use-workspace'
 import { workspaceKeys } from '@/features/workspace/query-keys'
 import type { WorkspaceInfo } from '@/features/workspace/types'
 
+/** Situação da página inicial: carregando, erro (com `retry`), inexistente ou pronta. */
 export type HomePageState =
   | { status: 'loading' }
   | { status: 'error'; retry: () => void }

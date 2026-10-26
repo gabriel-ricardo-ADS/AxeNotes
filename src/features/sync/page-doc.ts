@@ -1,3 +1,6 @@
+// Y.Doc de uma página + seu banco IndexedDB (`axenotes-page-<id>`, y-indexeddb). Se o IndexedDB falhar,
+// o doc segue só em memória. Depois de carregar o aparelho, inicia o `ContentSync` (o envio ao
+// servidor fica em supabase-sync.ts). Ver docs/CODEMAP.md §3.11.
 import { IndexeddbPersistence } from 'y-indexeddb'
 import * as Y from 'yjs'
 import type {
@@ -18,6 +21,7 @@ export const LOCAL_LOAD_TIMEOUT_MS = 8000
 /** `local` = salvo no IndexedDB do aparelho; `memory` = o IndexedDB falhou e nada fica no aparelho (o servidor ainda recebe). */
 export type PageDocStorage = 'local' | 'memory'
 
+/** Y.Doc de uma página aberta, com o banco local e a sessão de sincronização. */
 export interface PageDoc {
   pageId: string
   doc: Y.Doc

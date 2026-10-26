@@ -1,5 +1,9 @@
 import type { TranslationKey } from '@/i18n'
 
+/**
+ * Categorias de falha de autenticação que a interface sabe explicar (cada uma tem texto em
+ * pt-BR).
+ */
 export type AuthFailureKind =
   | 'invalid_credentials'
   | 'email_not_confirmed'

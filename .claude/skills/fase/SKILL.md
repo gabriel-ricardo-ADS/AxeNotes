@@ -23,4 +23,6 @@ argument-hint: "[número da fase]"
 8. Abra PR draft com: resumo, como testar (passo a passo), prints desktop/mobile, migrações que o
    Gabriel precisa aplicar, decisões tomadas, pendências, e se o `pnpm e2e` rodou ou não (e por
    quê). Marque como pronto para revisão só com tudo verde.
-9. Atualize `docs/` se algo mudou (modelo de dados, decisão, roadmap).
+9. Atualize `docs/` se algo mudou (modelo de dados, decisão, roadmap). PR que cria ou muda um fluxo,
+   uma RPC ou uma função-chave atualiza o `docs/CODEMAP.md` no mesmo PR; confira com
+   `pnpm codemap:check`.

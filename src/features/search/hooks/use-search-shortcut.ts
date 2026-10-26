@@ -5,7 +5,7 @@ import { useSearchStore } from '@/features/search/search-store'
 /**
  * Abre a busca com Ctrl+K (Windows/Linux) ou ⌘K (Mac) em qualquer tela do app. Regras:
  * - `preventDefault` sempre que o atalho vale, para não cair na barra de busca/endereço do navegador;
- * - evento já tratado por outro (`defaultPrevented`, ex.: o "criar link" do editor, Fase 2) é ignorado;
+ * - evento já tratado por outro (`defaultPrevented`, ex.: o "criar link" do editor) é ignorado;
  * - com outro diálogo aberto (Mover para…, ícone, excluir) não abre nada por cima;
  * - com a própria busca aberta, só volta o foco ao campo e seleciona o texto;
  * - campo de texto com foco (ex.: o título da página) NÃO impede: Ctrl+K não digita nada.

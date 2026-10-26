@@ -1,3 +1,6 @@
+// Manutenção do sync em segundo plano (uma vez por aba): reenvia páginas `dirty` já fechadas, registra
+// bancos antigos sem metadados e despeja os que não abrem há 30 dias. Também registra o envio do
+// "Sair" (`registerPendingContentFlusher`). Ver docs/CODEMAP.md §3.12 e §3.4.
 import { currentSessionUserId } from '@/features/auth/api/auth'
 import { openPageDoc } from '@/features/sync/page-doc'
 import { openSyncSessions, PageSyncSession, supabaseSync } from '@/features/sync/supabase-sync'
@@ -11,6 +14,7 @@ export const EVICT_AFTER_MS = 30 * 24 * 60 * 60 * 1000
 /** Quantas páginas fechadas uma rodada em segundo plano reenvia (uma por vez). */
 const RESYNC_BATCH = 10
 
+/** Tudo que a manutenção em segundo plano usa de fora; os testes trocam por fakes. */
 export interface BackgroundDeps {
   meta: SyncMeta
   now: () => number

@@ -5,6 +5,7 @@ import { usePages } from '@/features/workspace/hooks/use-pages'
 import { useWorkspace } from '@/features/workspace/hooks/use-workspace'
 import type { PageRow } from '@/features/workspace/types'
 
+/** Resultado de `useVisibleRecents`: os recentes prontos para exibir e o estado da consulta. */
 export interface VisibleRecents {
   /** Os recentes para mostrar (sem a página inicial, a lixeira e o que o usuário não alcança). */
   pages: PageRow[]

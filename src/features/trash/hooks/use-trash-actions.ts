@@ -6,6 +6,7 @@ import { trashKeys } from '@/features/trash/query-keys'
 import { useWorkspace } from '@/features/workspace/hooks/use-workspace'
 import { workspaceKeys } from '@/features/workspace/query-keys'
 
+/** Ação em andamento numa linha da lixeira. */
 export type TrashRowAction = 'restore' | 'delete'
 
 /**

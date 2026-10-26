@@ -1,3 +1,6 @@
+// Sessão do Supabase em estado React (`AuthProvider`). Dispara a limpeza do cliente no logout e na troca
+// de conta (`resetClientState`) e segura a sessão nova até apagar os dados locais de outra conta.
+// Ver docs/CODEMAP.md §3.1, §3.4 e §3.5.
 import type { Session } from '@supabase/supabase-js'
 import { useQueryClient } from '@tanstack/react-query'
 import { useCallback, useEffect, useMemo, useRef, useState, type ReactNode } from 'react'

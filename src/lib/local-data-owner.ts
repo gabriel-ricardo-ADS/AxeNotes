@@ -10,6 +10,7 @@
  */
 export const LOCAL_DATA_OWNER_KEY = 'axenotes-local-owner'
 
+/** Id do dono gravado dos dados locais; `null` se não há (ou se não há localStorage). */
 export function readLocalDataOwner(): string | null {
   try {
     return localStorage.getItem(LOCAL_DATA_OWNER_KEY)

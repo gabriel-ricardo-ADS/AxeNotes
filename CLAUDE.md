@@ -11,6 +11,7 @@ Antes de qualquer tarefa, leia o que for relevante em `docs/`:
 | `docs/PRD.md` | requisitos, prioridades (MVP / V1 / V2) e critérios de aceite |
 | `docs/UI-REFERENCE.md` | qualquer trabalho visual ou de interação (descreve os vídeos/prints da cliente) |
 | `docs/ARCHITECTURE.md` | stack, estrutura de pastas, modelo de dados, sincronização, notificações |
+| `docs/CODEMAP.md` | **leia antes de mexer em um fluxo**: onde está cada coisa (pastas, fluxos, banco, funções-chave) |
 | `docs/ROADMAP.md` | fases, tarefas e definição de pronto de cada fase |
 | `docs/DECISIONS.md` | decisões tomadas e em aberto — respeite as decididas, não invente as abertas |
 

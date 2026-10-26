@@ -1,3 +1,6 @@
+// Lógica pura da busca: normalizar o termo, reconhecer o atalho, escolher o modo da tela e marcar o
+// termo no trecho. A chamada ao servidor fica em api/search.ts; o diálogo, em components/SearchDialog.tsx.
+// Ver docs/CODEMAP.md §3.10.
 import type { PageRow } from '@/features/workspace/types'
 import { t } from '@/i18n'
 

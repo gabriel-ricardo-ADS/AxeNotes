@@ -4,6 +4,7 @@
 
 /** Quanto tempo uma recarga recente impede outra (proteção contra loop). */
 export const RELOAD_GUARD_MS = 10_000
+/** Chave do sessionStorage com a hora da última recarga por chunk antigo. */
 export const RELOAD_KEY = 'axenotes:chunk-reload-at'
 
 /**
@@ -22,10 +23,12 @@ const CHUNK_LOAD_ERROR = new RegExp(
   'i',
 )
 
+/** O erro é uma falha de BUSCAR um módulo (rede, 404, MIME errado) e não do código dele? */
 export function isChunkLoadError(error: unknown): boolean {
   return error instanceof Error && CHUNK_LOAD_ERROR.test(error.message)
 }
 
+/** Dependências do navegador, injetáveis nos testes: storage, recarga e relógio. */
 export interface ReloadDeps {
   storage: () => Storage
   reload: () => void

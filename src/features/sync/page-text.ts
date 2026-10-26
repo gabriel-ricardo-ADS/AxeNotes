@@ -2,6 +2,7 @@ import type { Json } from '@/lib/database.types'
 
 /** Limites de `page_texts` no servidor (texto 1 MiB, JSON 256 KiB). */
 const PAGE_TEXT_MAX_BYTES = 1024 * 1024
+/** Tamanho máximo do JSON das prévias (256 KiB, o limite de `set_page_text`). */
 export const PAGE_JSON_MAX_BYTES = 256 * 1024
 /** Quantos blocos do topo vão para as prévias. */
 export const PREVIEW_BLOCKS = 20
@@ -12,6 +13,7 @@ export interface TextBlock {
   children?: readonly TextBlock[]
 }
 
+/** O que `set_page_text` recebe: texto puro para a busca e os primeiros blocos para prévias. */
 export interface PageTextSnapshot {
   text: string
   json: Json | null

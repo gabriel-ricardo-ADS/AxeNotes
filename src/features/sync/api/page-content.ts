@@ -26,6 +26,7 @@ export type ContentErrorKind =
   | 'offline'
   | 'unknown'
 
+/** Erro de uma chamada de conteúdo, já classificado em `ContentErrorKind` (sem dados da página). */
 export class ContentSyncError extends Error {
   constructor(readonly kind: ContentErrorKind) {
     super(`content_sync_${kind}`)

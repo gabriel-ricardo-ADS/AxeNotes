@@ -1,5 +1,6 @@
 import { SYNC_META_DB, SYNC_META_STORE } from '@/lib/idb-names'
 
+/** Um registro de `axenotes-sync` como a leitura crua o enxerga (só `pageId` e `state`). */
 export interface SyncMetaEntry {
   pageId: string
   state: string

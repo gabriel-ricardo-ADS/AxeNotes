@@ -8,6 +8,10 @@ interface ConnectionInfo {
   effectiveType?: string
 }
 
+/**
+ * Dependências do navegador, injetáveis nos testes: agendar em ocioso, rede e economia de
+ * dados.
+ */
 export interface PrefetchDeps {
   /** Agenda `run` para um momento ocioso. */
   schedule: (run: () => void) => void
