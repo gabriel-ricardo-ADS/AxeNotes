@@ -276,6 +276,73 @@ a.axn-page-link:focus-visible {
   }
 }
 
+/*
+ * Barra acima do teclado (toque). Fica no `document.body` (portal do editor) e segue a área visível pelas
+ * variáveis `--bn-vv-*` do `useVirtualKeyboard`, como a barra mobile do BlockNote. Sem as variáveis, cai
+ * no fundo da tela (100dvh). CSS puro com tokens: nada daqui entra no CSS de entrada.
+ */
+.axn-touch-dock {
+  position: fixed;
+  top: 0;
+  left: 0;
+  z-index: 40;
+  display: flex;
+  width: var(--bn-vv-width, 100vw);
+  flex-direction: column;
+  transform: translate(
+      var(--bn-vv-left, 0px),
+      calc(var(--bn-vv-top, 0px) + var(--bn-vv-height, 100dvh))
+    )
+    translateY(-100%);
+  border-top: 1px solid var(--border);
+  background-color: var(--bg-elevated);
+  padding-bottom: env(safe-area-inset-bottom, 0);
+  font-family: var(--font-sans);
+  color: var(--text);
+}
+
+.axn-touch-bar {
+  display: flex;
+  flex-wrap: nowrap;
+  gap: 2px;
+  overflow-x: auto;
+  overscroll-behavior-x: contain;
+  padding: 2px 4px;
+  scrollbar-width: none;
+  touch-action: pan-x;
+}
+
+.axn-touch-bar::-webkit-scrollbar {
+  display: none;
+}
+
+.axn-touch-button {
+  display: inline-flex;
+  min-width: 44px;
+  height: 44px;
+  flex-shrink: 0;
+  align-items: center;
+  justify-content: center;
+  border-radius: var(--r-tag);
+  color: var(--text);
+  -webkit-tap-highlight-color: transparent;
+}
+
+.axn-touch-button[aria-pressed='true'],
+.axn-touch-button[aria-expanded='true'] {
+  background-color: var(--bg-hover);
+  color: var(--text-strong);
+}
+
+.axn-touch-button:disabled {
+  color: var(--text-faint);
+}
+
+.axn-touch-button:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: -2px;
+}
+
 /* Amostras "A" do submenu Cor (texto colorido ou fundo colorido), como na referência. */
 .axn-swatch {
   display: inline-flex;

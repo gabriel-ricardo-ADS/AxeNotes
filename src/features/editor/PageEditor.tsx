@@ -1,11 +1,13 @@
 import { SideMenuExtension } from '@blocknote/core/extensions'
 import { withCollaboration } from '@blocknote/core/yjs'
 import {
-  FormattingToolbarController,
+  DesktopFormattingToolbarController,
   LinkToolbarController,
   SideMenuController,
   SuggestionMenuController,
   useCreateBlockNote,
+  useEditorFocus,
+  useVirtualKeyboard,
 } from '@blocknote/react'
 import { BlockNoteView } from '@blocknote/shadcn'
 import { TriangleAlertIcon } from 'lucide-react'
@@ -26,7 +28,11 @@ import { EDITOR_OPTIONS } from '@/features/editor/editor-options'
 import { AxnFormattingToolbar } from '@/features/editor/formatting-toolbar'
 import { AxnLinkToolbar } from '@/features/editor/link-toolbar'
 import { slashMenuItems, type SlashMenuActions } from '@/features/editor/slash-menu'
+import { shouldShowTouchBar } from '@/features/editor/touch/touch-editor'
+import { TouchToolbarController } from '@/features/editor/touch/TouchToolbar'
+import { useZoomed } from '@/features/editor/touch/use-visual-viewport-box'
 import { useRevealBlock } from '@/features/editor/use-reveal-block'
+import { ensureYUndoAttached } from '@/features/editor/y-undo'
 import { FOCUS_TITLE_STATE, pagePath } from '@/features/pages/routes'
 import { PagePickerDialog } from '@/features/search/components/PagePickerDialog'
 import { SyncIndicator } from '@/features/sync/components/SyncIndicator'
@@ -118,6 +124,7 @@ function LoadedEditor({
   pageId: string
   editable: boolean
 }) {
+  const touch = useMediaQuery('(pointer: coarse)')
   const editor = useCreateBlockNote(
     withCollaboration({
       ...EDITOR_OPTIONS,
@@ -125,6 +132,13 @@ function LoadedEditor({
     }),
     [pageDoc],
   )
+  // Desfazer/Refazer (Ctrl+Z e a barra do toque) pelo Yjs: religa a pilha se a view foi recriada.
+  useEffect(() => {
+    ensureYUndoAttached(editor)
+    return editor.onMount(() => {
+      ensureYUndoAttached(editor)
+    })
+  }, [editor])
   // Destaque cujo emoji está sendo trocado (o bloco só pede; o seletor é do app).
   const [calloutIconFor, setCalloutIconFor] = useState<string | null>(null)
   useEffect(() => handleCalloutIconClicks(editor, setCalloutIconFor), [editor])
@@ -160,7 +174,6 @@ function LoadedEditor({
   )
 
   // Menu do bloco (⋮⋮ ou Ctrl/⌘+/): popover no desktop, bottom sheet no toque.
-  const touch = useMediaQuery('(pointer: coarse)')
   const apple = useMemo(() => isApplePlatform(), [])
   const [menuTarget, setMenuTarget] = useState<BlockMenuTarget | null>(null)
   const openBlockMenu = useCallback((blockId: string, anchor: HTMLElement) => {
@@ -207,6 +220,22 @@ function LoadedEditor({
   }, [editor, homeId, navigate, openBlockMenu, runCommand])
   useRevealBlock(editor, useLocation().hash)
 
+  // Barra acima do teclado (toque): as mesmas fontes decidem se ela aparece e se a barra flutuante do
+  // desktop some, então nunca há duas barras (DECISÃO-031).
+  const keyboardOpen = useVirtualKeyboard()
+  const focused = useEditorFocus({ includeEditorUI: true }, editor)
+  const zoomed = useZoomed()
+  const modalOpen = menuTarget !== null || calloutIconFor !== null || linkPickerAt !== undefined
+  const touchBarShown = shouldShowTouchBar({
+    touch,
+    keyboardOpen,
+    focused,
+    editable,
+    modalOpen,
+    zoomed,
+  })
+  const [, setDockHeight] = useState(0)
+
   // Texto de busca e prévias saem dos blocos do editor (page_texts).
   useEffect(() => {
     const session = pageDoc.session
@@ -231,7 +260,11 @@ function LoadedEditor({
           className="axn-editor"
         >
           <SideMenuController sideMenu={AxnSideMenu} />
-          <FormattingToolbarController formattingToolbar={AxnFormattingToolbar} />
+          {touchBarShown ? (
+            <TouchToolbarController onHeightChange={setDockHeight} />
+          ) : (
+            <DesktopFormattingToolbarController formattingToolbar={AxnFormattingToolbar} />
+          )}
           <LinkToolbarController linkToolbar={AxnLinkToolbar} />
           <SuggestionMenuController
             triggerCharacter="/"
