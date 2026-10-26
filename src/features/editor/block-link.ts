@@ -2,7 +2,7 @@
 // Ver docs/CODEMAP.md §3.15.
 
 /** Prefixo do hash que aponta para um bloco. */
-export const BLOCK_HASH_PREFIX = '#bloco-'
+const BLOCK_HASH_PREFIX = '#bloco-'
 
 /** Quanto tempo o bloco fica destacado. */
 export const BLOCK_HIGHLIGHT_MS = 2000

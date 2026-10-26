@@ -16,10 +16,10 @@ export const BLOCK_COLORS = [
   'red',
 ] as const
 
-export type BlockColor = (typeof BLOCK_COLORS)[number]
+type BlockColor = (typeof BLOCK_COLORS)[number]
 
 /** Prop de cor que o menu mexe. */
-export type ColorProp = 'textColor' | 'backgroundColor'
+type ColorProp = 'textColor' | 'backgroundColor'
 
 /** O que um item do menu faz. */
 export type BlockCommand =
@@ -84,7 +84,7 @@ export interface BlockMenuInput {
 }
 
 /** Rótulo dos atalhos do menu, no estilo do sistema. */
-export function shortcutLabels(apple: boolean) {
+function shortcutLabels(apple: boolean) {
   return apple
     ? { duplicate: '⌘D', copyLink: '⌥⇧L', remove: 'Del', openMenu: '⌘/' }
     : { duplicate: 'Ctrl+D', copyLink: 'Alt+Shift+L', remove: 'Del', openMenu: 'Ctrl+/' }
@@ -98,7 +98,7 @@ function sameProps(
 }
 
 /** O destino que descreve o bloco como ele está (tipo e props batem), se houver. */
-export function currentTarget(
+function currentTarget(
   block: BlockMenuInput['block'],
   targets: readonly TransformTarget[],
 ): TransformTarget | undefined {
