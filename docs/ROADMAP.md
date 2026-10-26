@@ -97,11 +97,16 @@ code-splitting por rota (dois chunks lazy + vendors `react`, `supabase` e `vendo
   **Pronto quando:** editar no navegador A (inclusive offline), voltar online e ver o conteúdo no navegador B; dois
   aparelhos editando a mesma página convergem; compactação provada em PGlite sem perder update concorrente; busca
   acha uma palavra do corpo; logout com update pendente não perde nada; aviso de prévia removido.
-- **2c — blocos e mobile (próximo):** `callout` e `pageLink`/`subpage`, menu do bloco (Transformar em, Cor,
-  Duplicar, Excluir, Link do bloco), alça ao tocar, barra acima do teclado (`visualViewport`; avaliar a meta viewport
-  `interactive-widget=resizes-content` que o BlockNote pede) e menus em bottom sheet.
-  **Pronto quando:** recriar a Home (`01-home.jpg`) sem colunas; no iPhone e no iPad, inserir e transformar blocos só
-  com toque, com a barra acima do teclado.
+- **2c — blocos e mobile:** dividida em dois PRs (DECISÃO-030).
+  - **2c-1 — blocos e menu do bloco (feita):** `callout` (destaque), `pageLink` (link de página e subpágina, com
+    estados de lixeira e indisponível), menu do bloco (Transformar em, Cor, Link para o bloco, Duplicar, Excluir, com
+    busca; popover no desktop, bottom sheet no toque), link para o bloco com destaque, links externos só
+    http/https/mailto. Home de referência (`01-home.jpg`) recriada sem colunas (`e2e/home-referencia.spec.ts`).
+  - **2c-2 — editor no mobile (próximo):** alça ao tocar (iPhone: na barra; iPad: na margem), barra acima do teclado
+    (`MobileFormattingToolbarController` do BlockNote, que segue o `visualViewport`), meta viewport
+    `interactive-widget=resizes-content`, "/" e "Transformar em" em bottom sheet, prévia ao passar o mouse sobre o
+    link de página (item 06 da UI-REFERENCE).
+    **Pronto quando:** no iPhone e no iPad, inserir e transformar blocos só com toque, com a barra acima do teclado.
 
 Escopo original da fase (repartido acima entre 2a, 2b e 2c):
 - BlockNote + `@blocknote/shadcn`, tema escuro com nossos tokens, idioma pt-BR. (2a)
