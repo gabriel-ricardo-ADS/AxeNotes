@@ -2,6 +2,11 @@ import { insertPageLink, insertSubpage } from '@/features/editor/blocks/page-lin
 import { createTestEditor } from '@/features/editor/test-editor'
 import { blocksToPlainText } from '@/features/sync/page-text'
 
+// O schema traz o link de página, que lê páginas pela API: sem o cliente de verdade (nem .env).
+vi.mock('@/lib/supabase', async () => ({
+  supabase: (await import('@/test/fake-supabase')).fakeSupabase,
+}))
+
 const CURRENT = '00000000-0000-4000-8000-000000000001'
 const NEW_ID = '00000000-0000-4000-8000-0000000000aa'
 const OTHER = '00000000-0000-4000-8000-0000000000bb'

@@ -6,6 +6,11 @@ import {
 } from '@/features/editor/block-link'
 import { installMatchMedia } from '@/test/match-media'
 
+// O helper de matchMedia importa o layout do app, que traz o cliente Supabase (sem .env na CI).
+vi.mock('@/lib/supabase', async () => ({
+  supabase: (await import('@/test/fake-supabase')).fakeSupabase,
+}))
+
 const PAGE = '00000000-0000-4000-8000-000000000001'
 const BLOCK = '1f0e6c3a-7b1e-4c5d-9a2b-3c4d5e6f7a8b'
 

@@ -7,6 +7,11 @@ import { slashMenuItems } from '@/features/editor/slash-menu'
 import { createTestEditor } from '@/features/editor/test-editor'
 import { blocksToPlainText } from '@/features/sync/page-text'
 
+// O schema traz o link de página, que lê páginas pela API: sem o cliente de verdade (nem .env).
+vi.mock('@/lib/supabase', async () => ({
+  supabase: (await import('@/test/fake-supabase')).fakeSupabase,
+}))
+
 describe('callout block', () => {
   it('is born gray from the "/" menu, with the default emoji', () => {
     const editor = createTestEditor()

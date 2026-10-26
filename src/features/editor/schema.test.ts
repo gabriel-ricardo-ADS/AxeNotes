@@ -3,6 +3,11 @@ import { editorDictionary } from '@/features/editor/dictionary'
 import { editorSchema } from '@/features/editor/schema'
 import { slashMenuItems } from '@/features/editor/slash-menu'
 
+// O schema traz o link de página, que lê páginas pela API: sem o cliente de verdade (nem .env).
+vi.mock('@/lib/supabase', async () => ({
+  supabase: (await import('@/test/fake-supabase')).fakeSupabase,
+}))
+
 function menuTitles(query = ''): string[] {
   const editor = BlockNoteEditor.create({ schema: editorSchema, dictionary: editorDictionary })
   return slashMenuItems(editor, query).map((item) => item.title)

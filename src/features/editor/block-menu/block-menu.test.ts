@@ -8,6 +8,11 @@ import {
 import { transformTargets } from '@/features/editor/block-menu/block-actions'
 import { createTestEditor } from '@/features/editor/test-editor'
 
+// O schema traz o link de página, que lê páginas pela API: sem o cliente de verdade (nem .env).
+vi.mock('@/lib/supabase', async () => ({
+  supabase: (await import('@/test/fake-supabase')).fakeSupabase,
+}))
+
 const editor = createTestEditor()
 const targets = transformTargets(editor)
 
