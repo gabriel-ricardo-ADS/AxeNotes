@@ -10,6 +10,7 @@ type PendingContentFlusher = (timeoutMs: number) => Promise<number>
 
 let flusher: PendingContentFlusher | null = null
 
+/** Registra quem sabe enviar o conteúdo pendente (o sync, ao carregar). Devolve o cancelamento. */
 export function registerPendingContentFlusher(fn: PendingContentFlusher): () => void {
   flusher = fn
   return () => {

@@ -79,6 +79,7 @@ export async function fetchPage(pageId: string): Promise<FoundPage | null> {
   return { page: toPageRow(data), trashed: trashedAtSchema.parse(data).trashed_at !== null }
 }
 
+/** Dados para criar uma página (o `id` é gerado no cliente). */
 export interface NewPage {
   id: string
   workspaceId: string
@@ -106,6 +107,7 @@ export async function insertPage(page: NewPage): Promise<void> {
   if (error) throw new Error('pages_insert_failed')
 }
 
+/** Campos que o cliente pode alterar numa página; o que ficar `undefined` não é enviado. */
 export interface PagePatch {
   parentId?: string | null
   title?: string

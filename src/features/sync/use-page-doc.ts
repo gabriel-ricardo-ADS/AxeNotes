@@ -4,6 +4,7 @@ import type { ContentSyncSession, SyncStatus } from '@/features/sync/content-syn
 import { openPageDoc, type PageDoc, type PageDocStorage } from '@/features/sync/page-doc'
 import { supabaseSync } from '@/features/sync/supabase-sync'
 
+/** `loading` até carregar o conteúdo do aparelho; depois o doc pronto e onde ele ficou guardado. */
 export type PageDocState =
   { status: 'loading' } | { status: 'ready'; pageDoc: PageDoc; storage: PageDocStorage }
 

@@ -28,6 +28,7 @@ export interface ContentSyncSession {
   onSaved: (listener: () => void) => () => void
 }
 
+/** Opções ao iniciar a sincronização de uma página. */
 export interface ContentSyncOptions {
   /** false para leitor e página na lixeira: nunca envia. */
   canWrite: boolean

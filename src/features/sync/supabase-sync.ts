@@ -1,3 +1,6 @@
+// Sincronização do conteúdo de UMA página aberta com o Supabase (`PageSyncSession`): fila de envio com
+// debounce, recebimento por foco/polling, compactação do log e texto de busca. O servidor é a fonte de
+// verdade; o IndexedDB é cache e fila. Ver docs/CODEMAP.md §3.12 e docs/adr/0001-conteudo-yjs.md.
 import { IndexeddbPersistence } from 'y-indexeddb'
 import * as Y from 'yjs'
 import {
@@ -13,6 +16,7 @@ import { indexedDbSyncMeta, type SyncMeta, type SyncMetaState } from '@/features
 /** Origem dos updates que vieram do servidor: não voltam para a fila de envio. */
 export const SERVER_ORIGIN = Symbol('axenotes-server')
 
+/** Tempos do sync em milissegundos: envio, polling, texto de busca, retry e fechamento. */
 export const SYNC_TIMING = {
   /** Envio depois de 1 s sem digitar, e no máximo 5 s depois da primeira edição pendente. */
   idleMs: 1000,
@@ -34,6 +38,7 @@ export const APPEND_MAX_BYTES = 1024 * 1024
 const SNAPSHOT_MAX_BYTES = 8 * 1024 * 1024
 /** Compacta quando, desde o último snapshot, há mais que isto de updates vivos. */
 export const COMPACT_MAX_UPDATES = 100
+/** Idem, em bytes: compacta quando os updates vivos desde o último snapshot passam de 256 kB. */
 export const COMPACT_MAX_BYTES = 256 * 1024
 
 /** Tudo que a sessão usa de fora; os testes trocam por fakes. */
@@ -113,6 +118,11 @@ const errorKind = (error: unknown) => (error instanceof ContentSyncError ? error
 
 type TimerName = 'send' | 'retry' | 'poll' | 'text'
 
+/**
+ * Sincronização de UMA página aberta: envia as edições locais, recebe as de outros aparelhos,
+ * compacta o log e grava o texto de busca. Criada por `createContentSync`.
+ * Ver docs/CODEMAP.md §3.12.
+ */
 export class PageSyncSession implements ContentSyncSession {
   private status: SyncStatus = 'saved'
   private readonly listeners = new Set<() => void>()

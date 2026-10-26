@@ -6,8 +6,10 @@ const PAGE_DB_PREFIX = 'axenotes-page-'
 
 /** Metadados da sincronização (estado e última abertura de cada página), nome fixo. */
 export const SYNC_META_DB = 'axenotes-sync'
+/** Nome do object store de `SYNC_META_DB` (uma linha por página, chave `pageId`). */
 export const SYNC_META_STORE = 'pages'
 
+/** Nome do banco IndexedDB do y-indexeddb de uma página: `axenotes-page-<id>`. */
 export const pageDbName = (pageId: string): string => `${PAGE_DB_PREFIX}${pageId}`
 
 /** Id da página de um banco `axenotes-page-<id>`; `null` para outros bancos. */
@@ -26,10 +28,12 @@ export function rememberOpenedDatabase(name: string): void {
   openedThisSession.add(name)
 }
 
+/** Bancos de página abertos nesta aba (anotados por `rememberOpenedDatabase`). */
 export function openedDatabases(): string[] {
   return [...openedThisSession]
 }
 
+/** Esquece os bancos anotados (depois de apagá-los no logout). */
 export function forgetOpenedDatabases(): void {
   openedThisSession.clear()
 }

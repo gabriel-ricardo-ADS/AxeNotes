@@ -36,6 +36,7 @@ const envSchema = z.object({
     .refine((value) => !isServiceKey(value)),
 })
 
+/** Variáveis do Supabase já validadas (URL https e chave anon/publishable). */
 export type SupabaseEnv = z.infer<typeof envSchema>
 
 /**

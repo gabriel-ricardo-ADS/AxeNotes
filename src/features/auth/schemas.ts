@@ -33,11 +33,16 @@ const code = z
   .string()
   .regex(new RegExp(`^\\d{${String(CODE_LENGTH)}}$`), t('auth.errors.codeInvalid'))
 
+/**
+ * Login: e-mail válido e senha preenchida (as regras de força valem só ao criar ou trocar a
+ * senha).
+ */
 export const signInSchema = z.object({
   email,
   password: z.string().min(1, t('auth.errors.passwordRequired')),
 })
 
+/** Cadastro: nome (até 100 caracteres), e-mail e senha nova (mínimo 8 caracteres, até 72 bytes). */
 export const signUpSchema = z.object({
   name: z
     .string()
@@ -48,8 +53,11 @@ export const signUpSchema = z.object({
   password: newPassword,
 })
 
+/** Só o e-mail (pedir a recuperação da senha, reenviar o código). */
 export const emailSchema = z.object({ email })
+/** E-mail e código de 6 dígitos (confirmar o cadastro e a recuperação). */
 export const verifyCodeSchema = z.object({ email, code })
+/** Senha nova da recuperação, com as mesmas regras de força do cadastro. */
 export const newPasswordSchema = z.object({ password: newPassword })
 
 /** Só dígitos, no máximo CODE_LENGTH: aceita colar "123 456", "123-456" etc. */
@@ -57,6 +65,7 @@ export function normalizeCode(raw: string): string {
   return raw.replace(/\D/g, '').slice(0, CODE_LENGTH)
 }
 
+/** Primeira mensagem de erro de cada campo, indexada pelo nome do campo. */
 export type FieldErrors = Partial<Record<string, string>>
 
 /** Primeira mensagem de cada campo, para mostrar sob o input correspondente. */

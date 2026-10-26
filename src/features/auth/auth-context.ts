@@ -1,8 +1,13 @@
 import type { Session } from '@supabase/supabase-js'
 import { createContext, useContext } from 'react'
 
+/**
+ * `loading` até o primeiro evento de sessão do Supabase; depois `authenticated` ou
+ * `unauthenticated`.
+ */
 export type AuthStatus = 'loading' | 'authenticated' | 'unauthenticated'
 
+/** O que o `AuthProvider` entrega a quem chama `useAuth`. */
 export interface AuthContextValue {
   status: AuthStatus
   session: Session | null
@@ -22,8 +27,10 @@ export interface AuthContextValue {
   signOut: () => Promise<void>
 }
 
+/** Contexto da sessão; leia por `useAuth`, que lança erro fora do `AuthProvider`. */
 export const AuthContext = createContext<AuthContextValue | null>(null)
 
+/** Sessão e ações de autenticação do `AuthProvider`. Lança erro se usado fora dele. */
 export function useAuth(): AuthContextValue {
   const value = useContext(AuthContext)
   if (value === null) throw new Error('useAuth precisa estar dentro de <AuthProvider>.')

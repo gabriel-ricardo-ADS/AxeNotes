@@ -1,6 +1,10 @@
 import { useId, type ComponentProps, type ReactNode } from 'react'
 import { Input } from '@/components/ui/input'
 
+/**
+ * Props do `TextField`: as do `<input>` (menos `id`) mais rótulo, dica, erro e conteúdo à
+ * direita.
+ */
 export interface TextFieldProps extends Omit<ComponentProps<'input'>, 'id'> {
   label: string
   error?: string | undefined

@@ -20,6 +20,10 @@ export function readFrom(state: unknown): string | undefined {
   return isRecord(state) && typeof state.from === 'string' ? state.from : undefined
 }
 
+/**
+ * Lê, de forma defensiva, o `location.state` da tela do código (o PWA do iOS pode abrir sem
+ * ele).
+ */
 export function readCodeState(state: unknown): CodeRouteState {
   if (!isRecord(state)) return {}
   const out: CodeRouteState = {}

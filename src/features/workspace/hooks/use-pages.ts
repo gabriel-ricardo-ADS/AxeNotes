@@ -1,3 +1,5 @@
+// Leitura das páginas do workspace: `usePages` (a lista inteira, de onde a árvore é montada) e `usePage`
+// (uma página pelo id, inclusive na lixeira). Ver docs/CODEMAP.md §3.7 e §3.11.
 import { useQuery } from '@tanstack/react-query'
 import { fetchPage, fetchPages } from '@/features/workspace/api/pages'
 import { useWorkspace } from '@/features/workspace/hooks/use-workspace'
@@ -15,6 +17,7 @@ export function usePages() {
   })
 }
 
+/** Resultado de procurar uma página pelo id (ver `usePage`). */
 export type PageLookup =
   | { status: 'loading' }
   | { status: 'error' }

@@ -1,6 +1,6 @@
 import type { PageIcon } from '@/features/workspace/page-icon'
 
-/** Página como a árvore e a tela da página a enxergam (sem conteúdo; ele chega na Fase 2). */
+/** Página como a árvore e a tela da página a enxergam (sem o conteúdo: ele vive no Y.Doc, ver `src/features/sync/`). */
 export interface PageRow {
   id: string
   parentId: string | null

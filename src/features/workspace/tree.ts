@@ -1,3 +1,6 @@
+// Lógica pura da árvore de páginas (sem React nem Supabase): montar e ordenar por `sort_key`, validar e
+// planejar "mover", decidir se pode ir para a lixeira. É o que os testes de `tree.test.ts` cobrem.
+// Ver docs/CODEMAP.md §3.7.
 import { keyAtIndex } from '@/lib/fractional-index'
 import type { PageRow } from '@/features/workspace/types'
 

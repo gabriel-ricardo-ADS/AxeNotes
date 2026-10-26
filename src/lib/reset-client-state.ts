@@ -1,3 +1,6 @@
+// Ponto ÚNICO de limpeza do cliente no logout e na troca de conta: cache do Query, stores Zustand,
+// IndexedDB, service worker, Cache Storage e o marcador do dono dos dados locais. Quem criar estado
+// novo no aparelho registra a limpeza aqui. Ver docs/CODEMAP.md §3.4 e §3.5.
 import type { QueryClient } from '@tanstack/react-query'
 import { resetAllStores } from '@/lib/create-store'
 import { forgetOpenedDatabases, openedDatabases, pageDbName, SYNC_META_DB } from '@/lib/idb-names'
@@ -31,8 +34,9 @@ let pending: Promise<void> | null = null
 /**
  * Ponto ÚNICO de limpeza do cliente ao sair (ou ao trocar de conta). Apaga o cache do TanStack
  * Query e devolve as stores Zustand ao estado inicial na hora, antes do próximo render; depois apaga
- * IndexedDB, service workers, Cache Storage e o marcador do dono dos dados locais. Erros de limpeza só vão para o log: o logout segue.
- * Chamadas enquanto uma limpeza está em andamento recebem a mesma promise (roda uma vez por logout).
+ * IndexedDB, service workers, Cache Storage e o marcador do dono dos dados locais. Erros de limpeza
+ * só vão para o log: o logout segue. Chamadas enquanto uma limpeza está em andamento recebem a mesma
+ * promise (roda uma vez por logout).
  * A sessão do Supabase não é tocada aqui: o `signOut` cuida dela.
  */
 export function resetClientState(queryClient: QueryClient): Promise<void> {

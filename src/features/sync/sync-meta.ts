@@ -1,18 +1,20 @@
 import { SYNC_META_DB, SYNC_META_STORE } from '@/lib/idb-names'
 
+// Metadados da sincronização por página, num banco IndexedDB de nome fixo (`axenotes-sync`,
+// registrado em `KNOWN_IDB_DATABASES`). Compartilhado entre as abas: o "Sair" de uma aba enxerga o
+// pendente das outras. Ver docs/CODEMAP.md §3.12.
+const STORE = SYNC_META_STORE
+
 /**
- * Metadados da sincronização por página, num banco IndexedDB de nome fixo (`axenotes-sync`,
- * registrado em `KNOWN_IDB_DATABASES`). Compartilhado entre as abas: o "Sair" de uma aba enxerga o
- * pendente das outras. Estados:
+ * Estado de sincronização de uma página neste aparelho:
  * - `clean`: o servidor tem tudo o que o aparelho tem;
  * - `dirty`: há edição local ainda não confirmada pelo servidor (o conteúdo está no banco da página);
  * - `blocked`: o servidor recusou (leitor, sem acesso ou lixeira). Não conta como pendente, não é
  *   reenviada em segundo plano e volta a `dirty` quando a página abre de novo com permissão de escrita.
  */
-const STORE = SYNC_META_STORE
-
 export type SyncMetaState = 'clean' | 'dirty' | 'blocked'
 
+/** Registro de uma página no banco `axenotes-sync`. */
 export interface SyncMetaRecord {
   pageId: string
   /** Epoch ms da última abertura neste aparelho (base do despejo de 30 dias). */
@@ -20,6 +22,7 @@ export interface SyncMetaRecord {
   state: SyncMetaState
 }
 
+/** O que se sabe ao abrir a página e decide o estado inicial (`stateOnOpen`). */
 export interface OpeningInfo {
   canWrite: boolean
   hasLocalContent: boolean
@@ -35,6 +38,7 @@ export function stateOnOpen(
   return current
 }
 
+/** Acesso aos metadados de sincronização; a implementação real é `indexedDbSyncMeta`. */
 export interface SyncMeta {
   /**
    * Anota a abertura. Página sem registro entra `dirty` se já tem conteúdo no aparelho (ex.: do 2a),
@@ -132,6 +136,7 @@ function serialized(pageId: string, task: () => Promise<void>): Promise<void> {
   return next
 }
 
+/** `SyncMeta` sobre o IndexedDB `axenotes-sync`; as gravações de uma mesma página saem em ordem. */
 export const indexedDbSyncMeta: SyncMeta = {
   markOpened: (pageId, now, opening) =>
     serialized(pageId, () =>

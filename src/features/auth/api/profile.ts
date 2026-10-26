@@ -1,5 +1,6 @@
 import { supabase } from '@/lib/supabase'
 
+/** Perfil do usuário como o app usa (hoje só o nome de exibição). */
 export interface Profile {
   displayName: string
 }
