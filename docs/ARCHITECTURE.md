@@ -1,5 +1,8 @@
 # Arquitetura do AxeNotes
 
+> Este documento explica o **porquê** (estratégia, modelo de dados, sync). Para achar **onde** cada coisa fica no
+> código, e o passo a passo de cada fluxo, veja o [CODEMAP](CODEMAP.md).
+
 ## 1. Estratégia de plataforma (por que web + PWA)
 
 Um app estilo Notion vive ou morre pelo editor de blocos e pelas bases de dados. Os editores de
@@ -31,7 +34,8 @@ depois (DECISÃO-001).
 - **PWA**: vite-plugin-pwa. **Futuro**: Capacitor.
 - **Hospedagem**: Cloudflare Pages (front) + Workers/Durable Objects (sync); Supabase Free.
 - **Qualidade**: ESLint, Prettier, Vitest, Testing Library, Playwright (desktop 1440×900, iPhone,
-  iPad), GitHub Actions (typecheck, lint, test, build, licenças; o e2e entra no CI na Fase 1).
+  iPad), GitHub Actions (typecheck, lint, test, build com orçamento de bundle, licenças, knip e format). O e2e
+  ainda não roda no CI: precisa dos secrets do Supabase (ver ROADMAP, Fase 1).
 
 Licenças: toda dependência precisa ser compatível com GPL-3.0 (DECISÃO-003).
 
@@ -41,7 +45,8 @@ Licenças: toda dependência precisa ser compatível com GPL-3.0 (DECISÃO-003).
 src/
   app/            # rotas (lazy, dois chunks: route-modules.ts), providers, RouteErrorBoundary
     layout/       # AppLayout: sidebar fixa (>= 768 px) ou gaveta pelo ☰ (MobileNav) + conteúdo
-  components/ui/  # shadcn/ui (hoje só o Sheet, adaptado: animações próprias, sem tw-animate-css)
+  components/ui/  # shadcn/ui (alert-dialog, button, dialog, dropdown-menu, input e sheet; o Sheet é adaptado:
+                  # animações próprias, sem tw-animate-css)
   features/
     auth/         # entrar, criar conta, código OTP, recuperar senha, AuthProvider (sessão), guardas
     workspace/    # workspace do usuário, páginas (api/ + hooks/), árvore da sidebar (components/), tree.ts
@@ -52,6 +57,7 @@ src/
     search/       # busca Ctrl/Cmd+K por título e corpo: diálogo (combobox + listbox), atalho, RPC search_pages
     pages/        # tela da página /p/:pageId: título, ícone, breadcrumb, "Editada há…", editor (lazy); página
                   # na lixeira abre só para leitura
+    home/         # a rota "/": mostra a página inicial do workspace
     editor/       # PageEditor (chunk próprio), schema (blocos), dicionário pt-BR, menu "/", editor.css
     sync/         # Y.Doc por página + y-indexeddb (page-doc.ts) e sincronização com o Supabase (2b:
                   # supabase-sync.ts, api/, sync-meta.ts, background.ts, indicador); depois: outbox (Fase 10)
@@ -62,11 +68,14 @@ src/
     ai/           # configurações de provedor, chamadas ao proxy
     sharing/      # convites, papéis, links públicos, presença
     settings/
-  hooks/          # hooks genéricos (use-media-query)
+  hooks/          # hooks genéricos (use-media-query, use-now)
   lib/            # supabase.ts (cliente tipado; env validada em supabase-env.ts), query-client.ts,
-                  # database.types.ts (gerado), fractional-index, utils (cn), create-store.ts (stores
-                  # Zustand), reset-client-state.ts (limpeza do logout), lazy-with-reload.ts e
-                  # chunk-reload.ts (chunk antigo após deploy), zod-config.ts (zod sem eval, por causa da CSP)
+                  # database.types.ts (gerado), fractional-index, utils (cn), relative-time, create-store.ts
+                  # (stores Zustand), reset-client-state.ts (limpeza do logout), local-data-owner.ts (dono dos
+                  # dados locais), idb-names.ts e sync-meta-read.ts (nomes e leitura crua dos bancos IndexedDB),
+                  # pending-content.ts (ponte do "Sair" com o sync), lazy-with-reload.ts e chunk-reload.ts (chunk
+                  # antigo após deploy), prefetch-on-idle.ts (baixa o chunk do editor em ocioso), zod-config.ts
+                  # (zod sem eval, por causa da CSP)
   i18n/           # pt-BR.ts (todos os textos) + index.ts (t() com chaves tipadas)
   styles/         # tokens.css (variáveis do tema), theme.css (@theme do Tailwind, também usado pelo editor.css)
                   # + index.css (Tailwind v4, base)
@@ -78,9 +87,11 @@ workers/
 e2e/              # specs do Playwright (auth.setup.ts salva a sessão por projeto; rls-smoke.spec.ts lê o
                   # projeto real; pages-tree.spec.ts e favoritos-recentes.spec.ts (fixture em support/run-fixture.ts)
                   # escrevem só páginas "e2e-…" do usuário de teste 1 (e favoritos/recentes delas) e as
-                  # apaga, com faxina inicial em cleanup.setup.ts) + screenshot.ts (pnpm screenshots)
+                  # apaga, com faxina inicial em cleanup.setup.ts; editor, sync, busca, lixeira e layout têm
+                  # specs próprios) + screenshot.ts (pnpm screenshots)
 public/           # _headers: CSP e headers de segurança do Cloudflare Pages (docs/DEPLOY.md)
-scripts/          # check-licenses.mjs; cloudflare-headers.ts (lê o _headers para o pnpm preview)
+scripts/          # check-licenses.mjs; check-bundle-size.mjs (orçamento de bundle); format-edited-file.mjs (hook do
+                  # Prettier); cloudflare-headers.ts (lê o _headers para o pnpm preview)
 ```
 
 ## 4. Modelo de dados (rascunho — refinar nas fases 1 e 5)

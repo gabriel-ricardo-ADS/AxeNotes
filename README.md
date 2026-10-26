@@ -9,6 +9,7 @@ Stack: React + TypeScript + Vite · BlockNote · Supabase · Tailwind + shadcn/u
 
 - Requisitos: [docs/PRD.md](docs/PRD.md)
 - Arquitetura: [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md)
+- Mapa do código (onde fica cada fluxo, banco, funções-chave): [docs/CODEMAP.md](docs/CODEMAP.md)
 - Roadmap: [docs/ROADMAP.md](docs/ROADMAP.md)
 - Decisões: [docs/DECISIONS.md](docs/DECISIONS.md)
 - Referência de UI: [docs/UI-REFERENCE.md](docs/UI-REFERENCE.md)
