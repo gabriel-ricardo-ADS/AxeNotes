@@ -12,9 +12,9 @@ import { gzipSync } from 'node:zlib'
 export const BUDGETS = [
   { label: 'entrada JS', source: { entry: 'js' }, limitKb: 10 }, // 8,91
   { label: 'rotas do app', source: { prefix: 'app-routes', ext: '.js' }, limitKb: 84 }, // 76,14
-  { label: 'editor', source: { prefix: 'PageEditor', ext: '.js' }, limitKb: 405 }, // 368,51
+  { label: 'editor', source: { prefix: 'PageEditor', ext: '.js' }, limitKb: 405 }, // 368,70
   { label: 'CSS de entrada', source: { entry: 'css' }, limitKb: 8.1 }, // 7,38
-  { label: 'CSS do editor', source: { prefix: 'PageEditor', ext: '.css' }, limitKb: 18 }, // 16,30
+  { label: 'CSS do editor', source: { prefix: 'PageEditor', ext: '.css' }, limitKb: 18 }, // 16,41
 ]
 
 /** Arquivos de entrada referenciados pelo index.html do build (só os de /assets/). */
