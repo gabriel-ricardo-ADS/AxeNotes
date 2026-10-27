@@ -16,9 +16,11 @@ export default defineConfig({
   // inclusa). O `pnpm dev` não: o HMR do Vite injeta estilos e scripts inline.
   preview: { headers: parseHeadersFile(readFileSync('public/_headers', 'utf8')) },
   build: {
-    // Só cala o aviso do Vite para o chunk do editor (BlockNote + Yjs, ~1,1 MB minificado, lazy). O
-    // orçamento de verdade, em gzip e por chunk, é o `pnpm size:check` (scripts/check-bundle-size.mjs).
-    chunkSizeWarningLimit: 1200,
+    // O aviso do Vite olha o tamanho minificado (sem gzip) e só pega o chunk do editor (BlockNote + Yjs +
+    // sync, ~1,22 MB na 2c-2), que é lazy: só desce ao abrir uma página (ou em ocioso, prefetch). Repartir o
+    // chunk só para calar o aviso não reduziria o que se baixa. O orçamento de verdade, em gzip e por
+    // chunk, é o `pnpm size:check` (scripts/check-bundle-size.mjs).
+    chunkSizeWarningLimit: 1400,
     rolldownOptions: {
       output: {
         // Vendors em chunks próprios: mudam pouco, então o navegador reaproveita o cache entre deploys.

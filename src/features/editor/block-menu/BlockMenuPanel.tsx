@@ -175,13 +175,13 @@ export function BlockMenuPanel({
 
   const rowClass = cn(
     'flex w-full cursor-pointer items-center gap-2 rounded-tag px-2 text-left',
-    touch ? 'min-h-11' : 'min-h-7',
+    touch ? 'min-h-11' : 'axn-block-menu-row',
   )
 
   return (
     // O tamanho do texto fica aqui: no cn() o tailwind-merge trata text-ui como cor e o descartaria.
     <div className="flex min-h-0 flex-col text-ui" data-block-menu="">
-      <div className="shrink-0 p-1.5">
+      <div className="axn-block-menu-search shrink-0">
         <input
           ref={inputRef}
           role="combobox"
@@ -202,7 +202,7 @@ export function BlockMenuPanel({
           }}
           onKeyDown={onKeyDown}
           className={cn(
-            'w-full rounded-tag border bg-background px-2 text-strong outline-none placeholder:text-faint focus-visible:border-[var(--accent)]',
+            'axn-block-menu-input w-full rounded-tag border bg-background px-2 text-strong outline-none placeholder:text-faint',
             touch ? 'min-h-11' : 'min-h-8',
           )}
         />
@@ -212,17 +212,20 @@ export function BlockMenuPanel({
         <button
           type="button"
           onClick={back}
-          className={cn(rowClass, 'mx-1.5 w-auto text-meta text-muted-foreground hover:bg-hover')}
+          className={cn(
+            rowClass,
+            'axn-block-menu-back text-meta text-muted-foreground hover:bg-hover',
+          )}
         >
           <ChevronLeftIcon className="size-4" aria-hidden="true" />
           {submenu.label}
           <span className="sr-only">{t('editor.blockMenu.back')}</span>
         </button>
       ) : query === '' ? (
-        <p className="px-3.5 pt-1 pb-0.5 text-meta font-medium text-muted-foreground">{title}</p>
+        <p className="axn-block-menu-title text-meta font-medium text-muted-foreground">{title}</p>
       ) : null}
 
-      <div className="min-h-0 overflow-y-auto px-1.5 pb-1.5">
+      <div className="axn-block-menu-list min-h-0 overflow-y-auto">
         {items.length === 0 ? (
           <p className="px-2 py-2 text-ui text-muted-foreground">{t('editor.blockMenu.empty')}</p>
         ) : (
@@ -237,11 +240,11 @@ export function BlockMenuPanel({
               return (
                 <Fragment key={entry.id}>
                   {entry.section === '' ? (
-                    <li role="presentation" className="my-1 border-t" />
+                    <li role="presentation" className="axn-block-menu-divider border-t" />
                   ) : entry.section ? (
                     <li
                       role="presentation"
-                      className="px-2 pt-2 pb-0.5 text-meta font-medium text-muted-foreground"
+                      className="axn-block-menu-section text-meta font-medium text-muted-foreground"
                     >
                       {entry.section}
                     </li>

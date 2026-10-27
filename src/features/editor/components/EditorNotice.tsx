@@ -35,12 +35,12 @@ export function EditorNotice({
     // Sempre montada: leitores de tela só anunciam mudanças de uma região que já existia.
     <div
       role={notice?.kind === 'error' ? 'alert' : 'status'}
-      className="pointer-events-none fixed inset-x-0 bottom-[max(env(safe-area-inset-bottom),1rem)] z-50 flex justify-center px-4"
+      className="axn-editor-notice fixed inset-x-0 z-50 flex justify-center px-4"
     >
       {notice ? (
         <p
           className={cn(
-            'pointer-events-auto flex max-w-md items-center gap-1 rounded-card border bg-popover py-1 pr-1 pl-3 text-ui shadow-lg',
+            'axn-editor-notice-card flex items-center gap-1 rounded-card border bg-popover py-1 pr-1 pl-3 text-ui shadow-lg',
             notice.kind === 'error' ? 'text-red' : 'text-strong',
           )}
         >

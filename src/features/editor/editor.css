@@ -510,3 +510,77 @@ a.axn-page-link:focus-visible {
 .axn-swatch[data-prop='backgroundColor'][data-color='red'] {
   background-color: var(--c-red-block);
 }
+
+/*
+ * Menu do bloco, avisos do editor e ícone do link de página: regras que eram utilitários do Tailwind usados
+ * só por componentes do editor. Como o Tailwind do app varre todo o `src/`, eles iam para o CSS de
+ * ENTRADA; aqui ficam no chunk do editor. Mesmos valores de antes.
+ */
+.axn-block-menu-popover {
+  width: 16rem;
+  max-height: min(var(--radix-popover-content-available-height), 26rem);
+}
+
+.axn-block-menu-search {
+  padding: 6px;
+}
+
+.axn-block-menu-input:focus-visible {
+  border-color: var(--accent);
+}
+
+.axn-block-menu-row {
+  min-height: 28px;
+}
+
+.axn-block-menu-back {
+  width: auto;
+  margin-inline: 6px;
+}
+
+.axn-block-menu-title {
+  padding: 4px 14px 2px;
+}
+
+.axn-block-menu-section {
+  padding: 8px 8px 2px;
+}
+
+.axn-block-menu-list {
+  padding: 0 6px 6px;
+}
+
+.axn-block-menu-divider {
+  margin-block: 4px;
+}
+
+.axn-sheet-grabber {
+  width: 40px;
+  height: 4px;
+  margin: 0 auto 4px;
+  border-radius: 9999px;
+  background-color: var(--bg-hover);
+}
+
+.axn-editor-notice {
+  bottom: max(env(safe-area-inset-bottom), 1rem);
+  pointer-events: none;
+}
+
+.axn-editor-notice-card {
+  max-width: 28rem;
+  pointer-events: auto;
+}
+
+.axn-memory-notice {
+  background-color: var(--c-yellow-block);
+}
+
+.axn-memory-notice-icon {
+  margin-top: 2px;
+}
+
+.axn-page-link-icon {
+  font-size: 1rem;
+  line-height: 1.5rem;
+}

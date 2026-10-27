@@ -56,7 +56,7 @@ export function PageLinkView({ pageId }: { pageId: string }) {
       aria-label={trashed ? t('editor.pageLink.trashedLabel', { title }) : undefined}
       draggable={false}
     >
-      <PageIconView icon={page.icon} className="size-5 text-base" />
+      <PageIconView icon={page.icon} className="axn-page-link-icon size-5" />
       <span className="axn-page-link-title">{title}</span>
       {trashed ? (
         <span className="axn-page-link-tag" aria-hidden="true">

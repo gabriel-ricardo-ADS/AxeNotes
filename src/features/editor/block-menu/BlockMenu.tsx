@@ -123,7 +123,7 @@ export function BlockMenu({ editor, target, onClose, onCommand, touch, apple }: 
         >
           <SheetTitle className="sr-only">{t('editor.blockMenu.label')}</SheetTitle>
           <SheetDescription className="sr-only">{model?.title}</SheetDescription>
-          <div aria-hidden="true" className="mx-auto mb-1 h-1 w-10 rounded-full bg-hover" />
+          <div aria-hidden="true" className="axn-sheet-grabber" />
           {panel}
         </SheetContent>
       </Sheet>
@@ -141,7 +141,7 @@ export function BlockMenu({ editor, target, onClose, onCommand, touch, apple }: 
           collisionPadding={8}
           aria-label={t('editor.blockMenu.label')}
           onCloseAutoFocus={focusEditor}
-          className="z-50 flex max-h-[min(var(--radix-popover-content-available-height),26rem)] w-64 flex-col overflow-hidden rounded-card border bg-popover text-popover-foreground shadow-lg"
+          className="axn-block-menu-popover z-50 flex flex-col overflow-hidden rounded-card border bg-popover text-popover-foreground shadow-lg"
         >
           {panel}
         </Popover.Content>

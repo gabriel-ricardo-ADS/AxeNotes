@@ -6,13 +6,15 @@ import { join } from 'node:path'
 import { fileURLToPath } from 'node:url'
 import { gzipSync } from 'node:zlib'
 
-// Limites em kB (1000 bytes) de gzip no nível padrão do zlib = medido por este script em 2026-10-22
-// (comentário de cada linha) + ~10% de folga. Subiu de propósito? Ajuste aqui e explique no PR.
+// Limites em kB (1000 bytes) de gzip no nível padrão do zlib = medido por este script em 2026-10-26, na
+// Fase 2c-2 (comentário de cada linha) + ~10% de folga. Subiu de propósito? Ajuste aqui e explique no PR.
+// O CSS do editor (PageEditor-*.css) entrou na 2c-2: até então não tinha orçamento.
 export const BUDGETS = [
-  { label: 'entrada JS', source: { entry: 'js' }, limitKb: 14 }, // 12,72
-  { label: 'rotas do app', source: { prefix: 'app-routes', ext: '.js' }, limitKb: 83 }, // 74,78
-  { label: 'editor', source: { prefix: 'PageEditor', ext: '.js' }, limitKb: 378 }, // 343,35
-  { label: 'CSS de entrada', source: { entry: 'css' }, limitKb: 8 }, // 7,16
+  { label: 'entrada JS', source: { entry: 'js' }, limitKb: 10 }, // 8,91
+  { label: 'rotas do app', source: { prefix: 'app-routes', ext: '.js' }, limitKb: 84 }, // 76,14
+  { label: 'editor', source: { prefix: 'PageEditor', ext: '.js' }, limitKb: 405 }, // 368,51
+  { label: 'CSS de entrada', source: { entry: 'css' }, limitKb: 8.1 }, // 7,38
+  { label: 'CSS do editor', source: { prefix: 'PageEditor', ext: '.css' }, limitKb: 18 }, // 16,30
 ]
 
 /** Arquivos de entrada referenciados pelo index.html do build (só os de /assets/). */

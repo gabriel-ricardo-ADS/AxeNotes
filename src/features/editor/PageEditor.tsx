@@ -113,9 +113,9 @@ function MemoryNotice() {
   return (
     <p
       role="alert"
-      className="mt-6 flex items-start gap-2 rounded-tag bg-yellow-block px-3 py-2 text-ui text-yellow"
+      className="axn-memory-notice mt-6 flex items-start gap-2 rounded-tag px-3 py-2 text-ui text-yellow"
     >
-      <TriangleAlertIcon className="mt-0.5 size-4 shrink-0" aria-hidden="true" />
+      <TriangleAlertIcon className="axn-memory-notice-icon size-4 shrink-0" aria-hidden="true" />
       {t('editor.memoryNotice')}
     </p>
   )
