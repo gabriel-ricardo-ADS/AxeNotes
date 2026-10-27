@@ -2,16 +2,12 @@ import { GripVerticalIcon } from 'lucide-react'
 import { useContext, useEffect, useState } from 'react'
 import { OpenBlockMenuContext } from '@/features/editor/block-menu/open-block-menu-context'
 import type { AxnEditor } from '@/features/editor/schema'
-import { KEEP_EDITOR_FOCUS, marginHandlePosition } from '@/features/editor/touch/touch-editor'
+import {
+  blockContentElement,
+  KEEP_EDITOR_FOCUS,
+  marginHandlePosition,
+} from '@/features/editor/touch/touch-editor'
 import { t } from '@/i18n'
-
-/** O elemento do conteúdo de um bloco (sem os filhos aninhados). */
-export function blockContentElement(editor: AxnEditor, blockId: string): HTMLElement | null {
-  const outer = editor.domElement?.querySelector(
-    `.bn-block-outer[data-id="${CSS.escape(blockId)}"]`,
-  )
-  return outer?.querySelector<HTMLElement>(':scope > .bn-block > .bn-block-content') ?? null
-}
 
 /**
  * Alça ⋮⋮ de 44 px do iPad (toque com largura ≥ 768 px), na margem esquerda do bloco do cursor, sem

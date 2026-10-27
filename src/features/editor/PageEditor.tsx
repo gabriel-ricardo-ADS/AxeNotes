@@ -1,4 +1,4 @@
-import { SideMenuExtension } from '@blocknote/core/extensions'
+import { SideMenuExtension, SuggestionMenu } from '@blocknote/core/extensions'
 import { withCollaboration } from '@blocknote/core/yjs'
 import {
   DesktopFormattingToolbarController,
@@ -6,6 +6,7 @@ import {
   SideMenuController,
   useCreateBlockNote,
   useEditorFocus,
+  useExtensionState,
   useVirtualKeyboard,
 } from '@blocknote/react'
 import { BlockNoteView } from '@blocknote/shadcn'
@@ -33,6 +34,7 @@ import { slashMenuItems, type SlashMenuActions } from '@/features/editor/slash-m
 import { shouldShowTouchBar } from '@/features/editor/touch/touch-editor'
 import { TouchBlockHandle } from '@/features/editor/touch/TouchBlockHandle'
 import { SlashMenuController } from '@/features/editor/touch/touch-slash'
+import { useKeepCursorVisible } from '@/features/editor/touch/use-keep-cursor-visible'
 import { TouchToolbarController } from '@/features/editor/touch/TouchToolbar'
 import { useZoomed } from '@/features/editor/touch/use-visual-viewport-box'
 import { useRevealBlock } from '@/features/editor/use-reveal-block'
@@ -252,6 +254,11 @@ function LoadedEditor({
     zoomed,
   })
   const [dockHeight, setDockHeight] = useState(0)
+  const slashOpen = useExtensionState(SuggestionMenu, {
+    editor,
+    selector: (menu) => menu?.show === true && menu.triggerCharacter === '/',
+  })
+  useKeepCursorVisible(editor, { active: touchBarShown, section, dockHeight, slashOpen })
 
   // Texto de busca e prévias saem dos blocos do editor (page_texts).
   useEffect(() => {

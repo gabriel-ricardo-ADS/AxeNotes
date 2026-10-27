@@ -24,8 +24,7 @@ import {
 } from '@/features/editor/block-menu/open-block-menu-context'
 import type { editorSchema } from '@/features/editor/schema'
 import { BarButton } from '@/features/editor/touch/BarButton'
-import { blockContentElement } from '@/features/editor/touch/TouchBlockHandle'
-import { checklistToggleTarget } from '@/features/editor/touch/touch-editor'
+import { blockContentElement, checklistToggleTarget } from '@/features/editor/touch/touch-editor'
 import { TouchFormatPanel } from '@/features/editor/touch/TouchFormatPanel'
 import { t } from '@/i18n'
 

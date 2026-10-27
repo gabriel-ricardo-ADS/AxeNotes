@@ -1,6 +1,7 @@
 // Regras puras do editor no toque (barra acima do teclado, painéis, alça do iPad, cursor visível).
 // Os componentes ficam em TouchToolbar.tsx e TouchBlockHandle.tsx. Ver docs/CODEMAP.md §3.16.
 import type { MouseEvent } from 'react'
+import type { AxnEditor } from '@/features/editor/schema'
 
 /** O que decide se a barra acima do teclado aparece. */
 export interface TouchBarState {
@@ -111,4 +112,51 @@ export function marginHandlePosition(
     top: block.top - container.top + (firstLine - TOUCH_HANDLE_SIZE) / 2,
     left: Math.max(block.left - container.left - TOUCH_HANDLE_SIZE - 4, -container.left),
   }
+}
+
+/** O elemento do conteúdo de um bloco (sem os filhos aninhados), para ancorar menus e a alça. */
+export function blockContentElement(editor: AxnEditor, blockId: string): HTMLElement | null {
+  const outer = editor.domElement?.querySelector(
+    `.bn-block-outer[data-id="${CSS.escape(blockId)}"]`,
+  )
+  return outer?.querySelector<HTMLElement>(':scope > .bn-block > .bn-block-content') ?? null
+}
+
+/** Folga entre a linha do cursor e o que cobre o fim da tela (barra, painel "/"). */
+const CURSOR_MARGIN = 8
+
+/**
+ * Quanto rolar para a linha do cursor ficar acima do que cobre o fim da área visível (`coveredBottom`:
+ * barra + painel aberto). Só a diferença; 0 se já está visível. O iOS não conhece a nossa barra (só o
+ * teclado), então o próprio scroll do navegador não basta.
+ */
+export function cursorScrollDelta(input: {
+  caretBottom: number
+  area: Pick<VisibleArea, 'offsetTop' | 'height'>
+  coveredBottom: number
+}): number {
+  const limit = input.area.offsetTop + input.area.height - input.coveredBottom - CURSOR_MARGIN
+  return Math.max(0, Math.ceil(input.caretBottom - limit))
+}
+
+/**
+ * Espaço extra no fim do editor enquanto a barra está à vista: o que o teclado cobre (viewport do layout
+ * menos a área visível) mais a barra e o painel. Sem ele, no fim de uma página longa não há para onde rolar.
+ * Não depende do `offsetTop` (o Safari desloca a página enquanto o teclado está aberto; recalcular a cada
+ * deslocamento entraria em ciclo: espaço → rolagem → evento → espaço).
+ */
+export function bottomInset(
+  area: Pick<VisibleArea, 'height'> & { layoutHeight: number },
+  coveredBottom: number,
+): number {
+  return Math.max(0, area.layoutHeight - area.height) + coveredBottom
+}
+
+/** O ancestral que rola o elemento (no app, o `<main>` do `AppLayout`); sem nenhum, o documento. */
+export function findScrollParent(element: HTMLElement): HTMLElement {
+  for (let parent = element.parentElement; parent; parent = parent.parentElement) {
+    const { overflowY } = getComputedStyle(parent)
+    if (overflowY === 'auto' || overflowY === 'scroll' || overflowY === 'overlay') return parent
+  }
+  return document.documentElement
 }
