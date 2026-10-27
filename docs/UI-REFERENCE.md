@@ -86,6 +86,9 @@ Projeto). **Elas contêm dados pessoais — use só como referência visual.**
 - Sidebar vira gaveta; topo com ☰, breadcrumb curto e "…".
 - Colunas empilham verticalmente abaixo de 768 px (ordem: da esquerda para a direita).
 - Tabelas rolam na horizontal com a coluna de título fixa; galeria vira 2 cards por linha.
-- Alça do bloco aparece ao tocar no bloco; segurar e arrastar move; "+" flutuante.
-- Barra de ferramentas acima do teclado: "/", Aa (formatação), checklist, imagem, desfazer.
-- Menus viram bottom sheets.
+- Alça do bloco: no iPhone é o 1º botão da barra do teclado; no iPad aparece na margem do bloco do cursor depois de
+  tocar no editor (44 px, sem "+"). Segurar e arrastar por toque continua **pendente** (no desktop a alça arrasta).
+- Barra de ferramentas acima do teclado (Fase 2c-2, DECISÃO-031): ⋮⋮, "/", Aa (formatação), Tarefa (checklist),
+  Transformar em, Desfazer, Refazer, Fechar teclado. O botão "imagem" entra com o bloco de imagem, na Fase 3.
+- Menus viram bottom sheets (menu do bloco, Transformar em). O "/" e o Aa são painéis não modais acima da barra (o
+  teclado continua aberto).

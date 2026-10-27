@@ -1,6 +1,6 @@
 # CODEMAP — onde está cada coisa no AxeNotes
 
-> Atualizado em 2026-10-26, Fase 2c-1 (blocos do AxeNotes e menu do bloco), sobre a `main` em d548ccf (#20).
+> Atualizado em 2026-10-26, Fase 2c-2 (editor no toque), sobre a `main` em a68c535 (#21).
 
 Este arquivo responde **"onde fica isso?"** e **"o que acontece, passo a passo?"**. O **porquê** das escolhas está
 nos outros docs: [ARCHITECTURE](ARCHITECTURE.md) (stack, modelo de dados, sync), [DECISIONS](DECISIONS.md),
@@ -62,7 +62,7 @@ nos outros docs: [ARCHITECTURE](ARCHITECTURE.md) (stack, modelo de dados, sync),
 | `src/features/auth/`                                        | Entrar, criar conta, OTP, recuperar senha, sair, sessão (`AuthProvider`), guardas de rota, `UserMenu`.                                 | Dados do workspace.                                                                    |
 | `src/features/workspace/`                                   | Workspace do usuário, páginas (CRUD, árvore, ordem, mover), página inicial, "Editada há…", `PagesSection`/`PageTree`.                  | Conteúdo do corpo da página (é `sync`/`editor`); lixeira (é `trash`).                  |
 | `src/features/pages/`                                       | Rota `/p/:pageId`: `PagePage`, `PageView`, `PageTitle`, `Breadcrumb`, `PageMenu`, estados de carregamento.                             | Lista de páginas (é `workspace`).                                                      |
-| `src/features/editor/`                                      | O **chunk do editor**: `PageEditor`, schema de blocos, dicionário pt-BR, menu "/", `src/features/editor/editor.css`; blocos do AxeNotes em `src/features/editor/blocks/` (destaque, link de página); menu do bloco ⋮⋮ em `src/features/editor/block-menu/`; link para o bloco (`src/features/editor/block-link.ts`); links seguros (`src/features/editor/safe-links.ts`). | Lógica de sync (é `sync`). Só `editor/` e `sync/` podem importar BlockNote/Yjs.        |
+| `src/features/editor/`                                      | O **chunk do editor**: `PageEditor`, schema de blocos, dicionário pt-BR, menu "/", `src/features/editor/editor.css`; blocos do AxeNotes em `src/features/editor/blocks/` (destaque, link de página); menu do bloco ⋮⋮ em `src/features/editor/block-menu/`; editor no toque (barra acima do teclado, painéis, alça do iPad) em `src/features/editor/touch/`; link para o bloco (`src/features/editor/block-link.ts`); links seguros (`src/features/editor/safe-links.ts`). | Lógica de sync (é `sync`). Só `editor/` e `sync/` podem importar BlockNote/Yjs.        |
 | `src/features/sync/`                                        | Y.Doc por página, IndexedDB, sincronização com o servidor, metadados `axenotes-sync`, reenvio em segundo plano, indicador.             | Telas de página.                                                                       |
 | `src/features/favorites/`, `recents/`, `trash/`, `search/`  | Uma pasta por função da sidebar: `api/`, `hooks/`, `components/`, um `src/features/<feature>/query-keys.ts` e a lógica pura (`src/features/favorites/favorites.ts`, `src/features/recents/recents.ts`…).    | Lógica de outra feature; reaproveite via import, não copie.                            |
 | `src/features/home/`                                        | A rota `/`: mostra a página inicial do workspace.                                                                                      | —                                                                                      |
@@ -284,7 +284,7 @@ Cada item: **o que acontece → `arquivo:função`**.
    (`src/features/editor/editor-options.ts:EDITOR_OPTIONS`: schema, dicionário, links seguros) no fragmento
    `document-store`, registra `setTextSource(() => editor.document)` e desenha o `SyncIndicator` num portal no
    `statusSlot` do `PageView`. Cada envio confirmado chama `onContentSaved` → `markPageEditedLocally`. Ele também
-   liga o side menu próprio (`AxnSideMenu`), o menu do bloco, os atalhos (`listenBlockShortcuts`), os seletores
+   liga o side menu próprio (`AxnSideMenu`, só sem toque), a barra do toque (ver 3.16), o menu do bloco, os atalhos (`listenBlockShortcuts`), os seletores
    (emoji do destaque, "Link para página") e, se o endereço tem `#bloco-<id>`, `useRevealBlock` (ver 3.15).
 8. Trocar de página desmonta tudo: `pageDoc.destroy()` → `session.stop()` (tenta enviar o pendente por até 2 s) →
    fecha o banco → `doc.destroy()`.
@@ -386,10 +386,11 @@ Lista de blocos: `src/features/editor/schema.ts:editorSchema` (explícita, sem m
 
 ### 3.15 Menu do bloco (⋮⋮) e link para o bloco
 
-1. **Alça** — o `PageEditor` desliga o side menu do BlockNote e usa
+1. **Alça** — sem toque, o `PageEditor` desliga o side menu do BlockNote e usa
    `src/features/editor/block-menu/AxnSideMenu.tsx:AxnSideMenu`: "+" e uma ⋮⋮ que arrasta (`blockDragStart`) e, no
-   clique, congela o side menu e abre o menu pelo `OpenBlockMenuContext`. Com ponteiro grosso (iPad) a alça tem
-   44 px e o "+" some (CSS em `src/features/editor/editor.css`). Pelo teclado: Ctrl/⌘+/ abre o menu do bloco do cursor.
+   clique, congela o side menu e abre o menu pelo `OpenBlockMenuContext`. **No toque** o side menu (que nasce do hover)
+   não é montado: a ⋮⋮ é o 1º botão da barra do teclado e, no iPad, a alça da margem (`TouchBlockHandle`, ver 3.16).
+   Pelo teclado: Ctrl/⌘+/ abre o menu do bloco do cursor.
 2. **Modelo** — `src/features/editor/block-menu/block-menu.ts:buildBlockMenu` (itens por tipo de bloco, atalhos,
    ✓ no tipo e nas cores atuais) e `filterMenu` (busca sem acento, por começo de palavra, achatando subitens:
    "Transformar em › Título 1", "Cor › Fundo › Verde"). Destinos do "Transformar em":
@@ -397,7 +398,9 @@ Lista de blocos: `src/features/editor/schema.ts:editorSchema` (explícita, sem m
 3. **Tela** — `src/features/editor/block-menu/BlockMenuPanel.tsx:BlockMenuPanel` (combobox + listbox; submenus
    como painéis em sequência; →/Enter entra, ←/Backspace volta, Del/Ctrl+D/Alt+Shift+L agem) dentro de
    `src/features/editor/block-menu/BlockMenu.tsx:BlockMenu`: popover (Radix) no desktop, `Sheet side="bottom"` no
-   toque. Fechar devolve o foco ao editor e descongela o side menu.
+   toque. Fechar devolve o foco ao editor e descongela o side menu (menos quando veio do toque: `fromTouch` em
+   `src/features/editor/block-menu/open-block-menu-context.ts:BlockMenuOpenOptions`; `view: 'transform'` abre direto
+   na subtela, pelo `initialSubmenu` do `BlockMenuPanel`).
 4. **Ações** — `src/features/editor/block-menu/block-actions.ts:runBlockCommand`: `transformBlock`,
    `setBlockColor`, `duplicateBlock` (clona sem ids, `withoutIds`), `removeBlock`, `copyBlockLink`. Cada uma é um
    passo de desfazer.
@@ -410,6 +413,37 @@ Lista de blocos: `src/features/editor/schema.ts:editorSchema` (explícita, sem m
    `src/features/editor/use-reveal-block.ts:useRevealBlock` espera o bloco (até 5 s, pelo `onChange`, se o conteúdo
    ainda está chegando) e `revealBlock` rola até ele e o destaca ~2 s com uma animação (Web Animations: o ProseMirror
    apagaria um atributo nosso). O hash sobrevive ao login (`RequireAuth` guarda `pathname + search + hash`).
+
+### 3.16 Editor no toque (barra acima do teclado, painéis, alça do iPad, cursor visível)
+
+Decisões: DECISÃO-031. Tudo em `src/features/editor/touch/` (chunk do editor); regras puras em
+`src/features/editor/touch/touch-editor.ts`.
+
+1. **Quando aparece** — no `PageEditor`, `src/features/editor/touch/touch-editor.ts:shouldShowTouchBar` junta: toque
+   (`(pointer: coarse)`), teclado aberto (`useVirtualKeyboard` do BlockNote), editor focado com a UI dele
+   (`useEditorFocus({ includeEditorUI: true })`), editável, sem modal (menu do bloco, emoji, seletor de página) e sem zoom
+   (`src/features/editor/touch/use-visual-viewport-box.ts:useZoomed`). Verdadeiro → monta
+   `src/features/editor/touch/TouchToolbar.tsx:TouchToolbarController`; falso → `DesktopFormattingToolbarController`.
+   Uma regra só: nunca as duas barras.
+2. **Barra** — `TouchToolbarController` desenha num portal do BlockNote (`RenderInPortalElement` no `document.body`,
+   registrado no editor) com o modo de UI "mobile"; o CSS `.axn-touch-dock` (`src/features/editor/editor.css`) segue
+   `--bn-vv-*`. Botões em `src/features/editor/touch/BarButton.tsx:BarButton`, que não tiram o foco do editor
+   (`KEEP_EDITOR_FOCUS`: `preventDefault` no `mousedown`). Informa a altura (barra + painel) ao `PageEditor`.
+3. **Botões** — ⋮⋮ e "Transformar em" chamam o `OpenBlockMenuContext` com `fromTouch` (o `PageEditor` tira o foco
+   antes do sheet); "/" chama `openSuggestionMenu`; Aa abre
+   `src/features/editor/touch/TouchFormatPanel.tsx:TouchFormatPanel`; Tarefa é
+   `src/features/editor/block-menu/block-actions.ts:toggleChecklist` (`checklistToggleTarget`); Desfazer/Refazer são
+   `editor.undo()/redo()` (Yjs, religado por `src/features/editor/y-undo.ts:ensureYUndoAttached`); Fechar teclado é
+   `editor.blur()`.
+4. **"/" no toque** — `src/features/editor/touch/touch-slash.tsx:SlashMenuController` passa ao
+   `SuggestionMenuController` um middleware do floating-ui que põe o menu acima da barra
+   (`src/features/editor/touch/touch-editor.ts:slashPanelRect`), com os números da área visível em `options` (o
+   `useFloating` compara por valor e reposiciona a cada `resize`/`scroll` do `visualViewport`).
+5. **Alça do iPad** — `src/features/editor/touch/TouchBlockHandle.tsx:TouchBlockHandle`, absoluta dentro da seção do
+   editor, no bloco do cursor (`marginHandlePosition`), recalculada em seleção, mudança e resize.
+6. **Cursor visível** — `src/features/editor/touch/use-keep-cursor-visible.ts:useKeepCursorVisible`:
+   `scroll-padding-bottom` no container que rola (`findScrollParent`, o `<main>`), espaço extra no fim do editor
+   (`bottomInset`, só no resize) e rolagem da diferença (`cursorScrollDelta`) em seleção, mudança e resize.
 
 ---
 
@@ -558,6 +592,14 @@ Todas: `execute` só para `authenticated`; `anon` nada. Nome, argumentos, o que 
 | `src/features/editor/block-menu/block-actions.ts:runBlockCommand` | Executa um item do menu (um passo de desfazer). | `PageEditor` |
 | `src/features/editor/block-menu/block-actions.ts:transformTargets` | Destinos do "Transformar em". | `BlockMenu` |
 | `src/features/editor/block-menu/block-shortcuts.ts:listenBlockShortcuts` | Atalhos do bloco só com o foco no editor. | `PageEditor` |
+| `src/features/editor/touch/touch-editor.ts:shouldShowTouchBar` | Decide entre a barra do toque e a barra flutuante do desktop. | `PageEditor` |
+| `src/features/editor/touch/TouchToolbar.tsx:TouchToolbarController` | Barra acima do teclado (portal, `--bn-vv-*`) e o painel Aa. | `PageEditor` |
+| `src/features/editor/touch/touch-slash.tsx:SlashMenuController` | Menu "/" (popover no cursor ou painel acima da barra). | `PageEditor` |
+| `src/features/editor/touch/touch-editor.ts:slashPanelRect` | Posição e altura máxima do painel "/" no toque. | `SlashMenuController` |
+| `src/features/editor/touch/TouchBlockHandle.tsx:TouchBlockHandle` | Alça ⋮⋮ de 44 px na margem (iPad). | `PageEditor` |
+| `src/features/editor/touch/use-keep-cursor-visible.ts:useKeepCursorVisible` | Cursor nunca atrás da barra, do painel "/" ou do teclado. | `PageEditor` |
+| `src/features/editor/block-menu/block-actions.ts:toggleChecklist` | Botão Tarefa: checklist ↔ texto. | `TouchToolbar` |
+| `src/features/editor/y-undo.ts:ensureYUndoAttached` | Religa o desfazer do Yjs se a view do editor foi recriada. | `PageEditor` |
 | `src/features/editor/block-link.ts:revealBlock` | Rola até o bloco do `#bloco-<id>` e o destaca. | `src/features/editor/use-reveal-block.ts:useRevealBlock` |
 | `src/features/search/components/PageSearchPanel.tsx:PageSearchPanel` | Campo + lista da busca de páginas. | `SearchDialog`, `PagePickerDialog` |
 | `src/features/sync/use-page-doc.ts:usePageDoc` | Abre/fecha o Y.Doc conforme a página. | `PageEditor` |
@@ -602,6 +644,11 @@ Todas: `execute` só para `authenticated`; `anon` nada. Nome, argumentos, o que 
   cada item faz em `src/features/editor/block-menu/block-actions.ts:runBlockCommand`, atalhos em
   `src/features/editor/block-menu/block-shortcuts.ts:matchBlockShortcut`, textos em `editor.blockMenu` de
   `src/i18n/pt-BR.ts`. "Mover para" é da V1 (DECISÃO-021).
+- **Mudar a barra do teclado (toque)** — botões e ordem no `TouchToolbar` de
+  `src/features/editor/touch/TouchToolbar.tsx`, painel Aa em `src/features/editor/touch/TouchFormatPanel.tsx:TouchFormatPanel`,
+  quando aparece em `src/features/editor/touch/touch-editor.ts:shouldShowTouchBar`, estilos `.axn-touch-*` em
+  `src/features/editor/editor.css`, textos em `editor.touch` de `src/i18n/pt-BR.ts`. Botão novo: `BarButton` (44 px,
+  nunca tira o foco do editor). Mudou a altura da barra ou do painel "/"? Rode o `e2e/editor-mobile.spec.ts`.
 - **Adicionar um texto em pt-BR** — a chave em `src/i18n/pt-BR.ts` (a chave vira tipo em
   `src/i18n/index.ts:TranslationKey`) e `t('a.b.c')` no componente. Nada de string solta.
 - **Criar uma store Zustand** — `import { create } from '@/lib/create-store'` (o ESLint barra o `create` do
@@ -655,6 +702,9 @@ Todas: `execute` só para `authenticated`; `anon` nada. Nome, argumentos, o que 
 | Erro de permissão em RPC | Código `42501` (sem papel / não existe / lixeira, indistinguíveis de propósito) ou `22023` (limite/entrada inválida; a mensagem é o identificador, ex. `page_content_too_large`). Tabela 4.1. |
 | Alteração "não pegou" (título, mover, apagar) | A RLS não dá erro ao barrar `update`/`delete`: devolve zero linhas, e o app converte em erro (`updatePage`, `deletePagePermanently`). Veja o papel do usuário e se a página está na lixeira. |
 | Arrastar não move | Vizinhos com a mesma `sort_key` (`planMove` → `tie`, aviso na sidebar); ou destino dentro da própria subárvore. |
+| Barra do teclado não aparece (ou aparecem duas) | `shouldShowTouchBar`: toque (`(pointer: coarse)`), teclado aberto (o `visualViewport` precisa ficar 150 px abaixo da maior altura vista), foco no editor, editável, sem modal, sem zoom. A barra flutuante do desktop só é montada quando a do toque não está. |
+| Cursor atrás da barra ou do teclado | `useKeepCursorVisible`: `padding-bottom` da seção do editor e `scroll-padding-bottom` do `<main>` (DevTools → Elements, com a barra à vista). |
+| Desfazer não faz nada | A pilha do Yjs precisa estar ligada ao doc: `ensureYUndoAttached` (em dev o StrictMode a desligava). |
 | Erro só no Safari/iPhone | IndexedDB indisponível → cai para memória (aviso no editor); `visualViewport` da busca; WebKit nos e2e (`mobile`, `tablet`). |
 | Violação de CSP no Console | `public/_headers` e `docs/DEPLOY.md`; `pnpm dev` não aplica a CSP, use `pnpm build && pnpm preview`. |
 | Link de página mostra "Página indisponível" | A página foi apagada de vez ou o usuário não tem acesso (`usePage` → `notFound`), ou o `pageId` do bloco não é um uuid (`isPageId`). Na lixeira ele mostra "na lixeira" e continua clicável. |
