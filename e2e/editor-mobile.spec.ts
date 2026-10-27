@@ -215,6 +215,44 @@ test.describe('touch', () => {
       })
       .toBe(true)
   })
+
+  for (const [width, height] of [
+    [320, 568],
+    [390, 844],
+  ] as const) {
+    test(`with Aa open the cursor line stays above the panel (${String(width)}×${String(height)})`, async ({
+      page,
+      run,
+    }) => {
+      test.skip((page.viewportSize()?.width ?? 0) >= 768, 'tela de iPhone')
+      await page.setViewportSize({ width, height })
+      // Título longo: ele e a linha "Editada há…" ocupam a tela e empurram o editor para baixo.
+      const id = await newPage(run, 'barra-aa-cursor-com-um-titulo-que-quebra-em-varias-linhas')
+      await openPage(page, id)
+      await focusEnd(page)
+      for (let line = 1; line <= 3; line += 1) {
+        await page.keyboard.type(`Linha ${String(line)}`)
+        await page.keyboard.press('Enter')
+      }
+      await page.keyboard.type('Texto a formatar')
+      await openKeyboard(page)
+      // "Fechar teclado" fica à vista mesmo com a barra mais larga que a tela.
+      await expect(touchBar(page).getByRole('button', { name: 'Fechar teclado' })).toBeInViewport({
+        ratio: 1,
+      })
+      await touchBar(page).getByRole('button', { name: 'Formatação' }).tap()
+      const line = blocks(page, 'paragraph').filter({ hasText: 'Texto a formatar' })
+      const aboveDock = async () => {
+        const box = await line.boundingBox()
+        const dock = await page.locator('.axn-touch-dock').boundingBox()
+        return box && dock ? box.y + box.height <= dock.y : false
+      }
+      await expect.poll(aboveDock).toBe(true)
+      // Continua acima depois que o indicador de salvamento assenta (ele pode mudar de altura).
+      await page.waitForTimeout(1500)
+      await expect.poll(aboveDock).toBe(true)
+    })
+  }
 })
 
 test('desktop: no touch bar even with a short window, and "/" stays the popover at the cursor', async ({

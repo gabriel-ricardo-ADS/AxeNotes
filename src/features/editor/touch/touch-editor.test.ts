@@ -117,7 +117,11 @@ describe('bottomInset', () => {
 
   it('does not change when Safari scrolls the page (offsetTop), so it never loops', () => {
     const base = { height: 500, layoutHeight: 844 }
-    const values = [0, 120, 344].map((offsetTop) => bottomInset({ ...base, offsetTop }, 50))
+    // A área inteira do visualViewport (com o offsetTop), como o hook passa: o valor não depende dele.
+    const values = [0, 120, 344].map((offsetTop) => {
+      const area = { ...base, offsetTop, offsetLeft: 0, width: 390 }
+      return bottomInset(area, 50)
+    })
     expect(new Set(values).size).toBe(1)
   })
 })

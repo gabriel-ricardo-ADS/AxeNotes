@@ -13,6 +13,8 @@ interface BarButtonProps {
   disabled?: boolean
   /** Fechar teclado: o toque pode tirar o foco (é o que ele faz). */
   allowBlur?: boolean
+  /** Preso à ponta direita da barra (fica à vista com a barra rolada). */
+  end?: boolean
 }
 
 /** Botão de 44 px da barra e dos painéis do toque; o toque não tira o foco do editor (nem o teclado). */
@@ -25,11 +27,12 @@ export function BarButton({
   expanded,
   disabled,
   allowBlur,
+  end,
 }: BarButtonProps) {
   return (
     <button
       type="button"
-      className="axn-touch-button"
+      className={end ? 'axn-touch-button axn-touch-button-end' : 'axn-touch-button'}
       aria-label={label}
       aria-pressed={pressed}
       aria-expanded={expanded}

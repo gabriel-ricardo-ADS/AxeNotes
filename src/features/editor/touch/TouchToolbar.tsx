@@ -16,7 +16,7 @@ import {
   SlashIcon,
   Undo2Icon,
 } from 'lucide-react'
-import { useContext, useLayoutEffect, useRef, useState } from 'react'
+import { useContext, useLayoutEffect, useRef, useState, type KeyboardEvent } from 'react'
 import { toggleChecklist } from '@/features/editor/block-menu/block-actions'
 import {
   OpenBlockMenuContext,
@@ -34,6 +34,24 @@ function useAxnEditor() {
     typeof editorSchema.inlineContentSchema,
     typeof editorSchema.styleSchema
   >()
+}
+
+/** Setas ←/→, Home e End andam entre os botões habilitados da barra (teclado físico, leitor de tela). */
+function moveFocusWithArrows(event: KeyboardEvent<HTMLDivElement>) {
+  const step = { ArrowRight: 1, ArrowLeft: -1 }[event.key]
+  if (step === undefined && event.key !== 'Home' && event.key !== 'End') return
+  const buttons = [...event.currentTarget.querySelectorAll<HTMLButtonElement>('button:enabled')]
+  const current = buttons.indexOf(document.activeElement as HTMLButtonElement)
+  const next =
+    event.key === 'Home'
+      ? 0
+      : event.key === 'End'
+        ? buttons.length - 1
+        : (current + (step ?? 0) + buttons.length) % buttons.length
+  const target = buttons[next]
+  if (!target) return
+  event.preventDefault()
+  target.focus()
 }
 
 /** Os botões da barra acima do teclado, na ordem da DECISÃO-031. Rola na horizontal se não couber. */
@@ -69,7 +87,13 @@ function TouchToolbar({
   })
 
   return (
-    <div role="toolbar" aria-label={t('editor.touch.toolbar')} className="axn-touch-bar">
+    <div
+      role="toolbar"
+      aria-label={t('editor.touch.toolbar')}
+      aria-orientation="horizontal"
+      className="axn-touch-bar"
+      onKeyDown={moveFocusWithArrows}
+    >
       <BarButton
         label={t('editor.touch.blockOptions')}
         icon={GripVerticalIcon}
@@ -132,6 +156,7 @@ function TouchToolbar({
         label={t('editor.touch.hideKeyboard')}
         icon={KeyboardOffIcon}
         allowBlur
+        end
         onClick={() => {
           editor.blur()
         }}

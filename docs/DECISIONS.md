@@ -458,6 +458,10 @@ dependência nova.
 - **Cursor visível:** com a barra à vista, `scroll-padding-bottom` no `<main>`, espaço extra no fim do editor (o que o
   teclado cobre + barra + painel; recalculado no resize do `visualViewport`, nunca no scroll dele) e rolagem só da
   diferença quando a linha do cursor cairia atrás da barra ou do painel "/".
+- **Ajustes da revisão de UI:** o painel Aa ocupa no máximo 40% da área visível e rola (iPhone deitado, SE); "Fechar
+  teclado" fica preso à direita da barra mesmo com ela rolada; botões ligados/abertos têm um traço de destaque além do
+  fundo; rótulos "Texto"/"Fundo" com largura fixa e presos ao rolar; o "/" do toque não mostra atalhos de teclado; a
+  barra respeita a safe-area lateral; setas ←/→, Home e End andam entre os botões (`role="toolbar"`).
 - **Campos de texto no toque com ≥ 16 px** (link, busca do menu do bloco): com menos, o Safari dá zoom ao focar e a barra
   some no meio da edição.
 - **Bundle:** `chunkSizeWarningLimit: 1400` (o aviso do Vite olhava o tamanho minificado do chunk lazy do editor, ~1,22

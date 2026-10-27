@@ -15,7 +15,8 @@ const SLASH_PANEL = '.axn-touch-slash'
  * - `scroll-padding-bottom` no container que rola (o `<main>`) = barra + painel;
  * - espaço extra no fim do editor (`bottomInset`), recalculado só quando a barra ou o painel mudam de
  *   altura, quando ele abre/fecha e no `resize` do `visualViewport` — nunca no `scroll` dele;
- * - a cada mudança de seleção ou de conteúdo (e no `resize`), rola só o que falta (`cursorScrollDelta`).
+ * - a cada mudança de seleção ou de conteúdo, no `resize` e quando o que está acima do editor muda de altura,
+ *   rola só o que falta (`cursorScrollDelta`).
  * Ao sair (teclado fechou, barra sumiu), tira tudo o que pôs.
  */
 export function useKeepCursorVisible(
@@ -75,6 +76,11 @@ export function useKeepCursorVisible(
     window.addEventListener('resize', onResize)
 
     // O painel "/" nasce depois deste efeito e muda de altura com o filtro: acompanha pelo tamanho dele.
+    // O que fica acima do editor pode mudar de altura depois (a linha "Editada há… / Salvando…" quebra e
+    // empurra o texto): sem evento de seleção nem de resize. Só a rolagem é refeita (o espaço não muda).
+    const contentObserver = new ResizeObserver(reveal)
+    if (section.parentElement) contentObserver.observe(section.parentElement)
+
     let panelObserver: ResizeObserver | null = null
     const watchPanel = requestAnimationFrame(() => {
       const panel = slashOpen ? document.querySelector(SLASH_PANEL) : null
@@ -87,6 +93,7 @@ export function useKeepCursorVisible(
       cancelAnimationFrame(frame)
       cancelAnimationFrame(watchPanel)
       panelObserver?.disconnect()
+      contentObserver.disconnect()
       stopSelection()
       stopChange()
       window.visualViewport?.removeEventListener('resize', onResize)

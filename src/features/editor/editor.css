@@ -311,7 +311,9 @@ a.axn-page-link:focus-visible {
     translateY(-100%);
   border-top: 1px solid var(--border);
   background-color: var(--bg-elevated);
-  padding-bottom: env(safe-area-inset-bottom, 0);
+  /* iPhone deitado (viewport-fit=cover): nenhum botão sob o notch. */
+  padding: 0 env(safe-area-inset-right, 0) env(safe-area-inset-bottom, 0)
+    env(safe-area-inset-left, 0);
   font-family: var(--font-sans);
   color: var(--text);
 }
@@ -343,10 +345,21 @@ a.axn-page-link:focus-visible {
   -webkit-tap-highlight-color: transparent;
 }
 
+/* Ligado/aberto: além do fundo (pouco contraste com o da barra), um traço de destaque embaixo. */
 .axn-touch-button[aria-pressed='true'],
 .axn-touch-button[aria-expanded='true'] {
   background-color: var(--bg-hover);
+  box-shadow: inset 0 -2px 0 var(--accent);
   color: var(--text-strong);
+}
+
+/* "Fechar teclado" (a saída) fica sempre à vista na ponta direita, mesmo com a barra rolada em 320 px. */
+.axn-touch-button-end {
+  position: sticky;
+  right: 0;
+  margin-left: auto;
+  background-color: var(--bg-elevated);
+  box-shadow: -8px 0 8px -6px rgb(0 0 0 / 0.6);
 }
 
 .axn-touch-button:disabled {
@@ -359,9 +372,12 @@ a.axn-page-link:focus-visible {
 }
 
 /* Painel Aa: não modal, em cima da barra; cada fileira rola na horizontal. */
+/* Em tela baixa (iPhone deitado, SE) o painel não passa de 40% da área visível e rola. */
 .axn-touch-panel {
   display: flex;
+  max-height: calc(var(--bn-vv-height, 100dvh) * 0.4);
   flex-direction: column;
+  overflow-y: auto;
   border-bottom: 1px solid var(--border);
   padding-block: 2px;
 }
@@ -381,8 +397,17 @@ a.axn-page-link:focus-visible {
   display: none;
 }
 
+/* Rótulo da fileira de cores com largura fixa (as amostras alinham) e preso à esquerda ao rolar. */
 .axn-touch-row-label {
+  position: sticky;
+  left: 0;
+  z-index: 1;
+  min-width: 56px;
   flex-shrink: 0;
+  align-self: stretch;
+  display: flex;
+  align-items: center;
+  background-color: var(--bg-elevated);
   padding-inline: 8px 4px;
   color: var(--text-muted);
   font-size: var(--text-meta);
@@ -409,6 +434,11 @@ a.axn-page-link:focus-visible {
 /* Só a linha do item: o shadcn repete a classe `bn-suggestion-menu-item` no título e no subtítulo. */
 .axn-touch-slash [role='option'] {
   min-height: 44px;
+}
+
+/* Atalhos de teclado (⌘-Alt-1…) não servem no toque e roubam largura. */
+.axn-touch-slash [data-slot='badge'] {
+  display: none;
 }
 
 /*
