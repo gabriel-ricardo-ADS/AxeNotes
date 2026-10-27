@@ -53,6 +53,7 @@ describe('resolveBudgetFiles + evaluate', () => {
       'app-routes-DAywd9ES.js',
       'PageEditor-D45vSTg5.js',
       'index-Zz9-YyQq.css',
+      'PageEditor-CQaXBsLl.css',
     ])
   })
 
@@ -63,7 +64,7 @@ describe('resolveBudgetFiles + evaluate', () => {
     })
     expect(atLimit.every((result) => result.ok)).toBe(true)
 
-    const over = evaluate(resolved, (file) => (file.startsWith('PageEditor') ? 400_000 : 1_000))
+    const over = evaluate(resolved, (file) => (file === 'PageEditor-D45vSTg5.js' ? 500_000 : 1_000))
     expect(over.filter((result) => !result.ok).map((result) => result.label)).toEqual(['editor'])
   })
 

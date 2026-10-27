@@ -264,15 +264,193 @@ a.axn-page-link:focus-visible {
   }
 }
 
-/* Alça ⋮⋮ no toque (iPad): 44 px e sem o "+" (que não cabe na margem; o "/" insere blocos). */
-@media (pointer: coarse) {
-  .bn-side-menu .bn-button.axn-drag-handle {
-    min-width: 44px;
-    min-height: 44px;
-  }
+/*
+ * Alça ⋮⋮ do iPad (toque): 44 px na margem do bloco do cursor, sem o "+" (o "/" da barra insere blocos).
+ * O side menu do BlockNote não é montado no toque (ele nasce do hover); a posição vem do TouchBlockHandle.
+ */
+.axn-touch-handle {
+  position: absolute;
+  z-index: 10;
+  display: inline-flex;
+  width: 44px;
+  height: 44px;
+  align-items: center;
+  justify-content: center;
+  border-radius: var(--r-tag);
+  color: var(--text-faint);
+  -webkit-tap-highlight-color: transparent;
+}
 
-  .bn-side-menu .bn-button:not(.axn-drag-handle) {
-    display: none;
+.axn-touch-handle:active {
+  background-color: var(--bg-hover);
+  color: var(--text);
+}
+
+.axn-touch-handle:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: -2px;
+}
+
+/*
+ * Barra acima do teclado (toque). Fica no `document.body` (portal do editor) e segue a área visível pelas
+ * variáveis `--bn-vv-*` do `useVirtualKeyboard`, como a barra mobile do BlockNote. Sem as variáveis, cai
+ * no fundo da tela (100dvh). CSS puro com tokens: nada daqui entra no CSS de entrada.
+ */
+.axn-touch-dock {
+  position: fixed;
+  top: 0;
+  left: 0;
+  z-index: 40;
+  display: flex;
+  width: var(--bn-vv-width, 100vw);
+  flex-direction: column;
+  transform: translate(
+      var(--bn-vv-left, 0px),
+      calc(var(--bn-vv-top, 0px) + var(--bn-vv-height, 100dvh))
+    )
+    translateY(-100%);
+  border-top: 1px solid var(--border);
+  background-color: var(--bg-elevated);
+  /* iPhone deitado (viewport-fit=cover): nenhum botão sob o notch. */
+  padding: 0 env(safe-area-inset-right, 0) env(safe-area-inset-bottom, 0)
+    env(safe-area-inset-left, 0);
+  font-family: var(--font-sans);
+  color: var(--text);
+}
+
+.axn-touch-bar {
+  display: flex;
+  flex-wrap: nowrap;
+  gap: 2px;
+  overflow-x: auto;
+  overscroll-behavior-x: contain;
+  padding: 2px 4px;
+  scrollbar-width: none;
+  touch-action: pan-x;
+}
+
+.axn-touch-bar::-webkit-scrollbar {
+  display: none;
+}
+
+.axn-touch-button {
+  display: inline-flex;
+  min-width: 44px;
+  height: 44px;
+  flex-shrink: 0;
+  align-items: center;
+  justify-content: center;
+  border-radius: var(--r-tag);
+  color: var(--text);
+  -webkit-tap-highlight-color: transparent;
+}
+
+/* Ligado/aberto: além do fundo (pouco contraste com o da barra), um traço de destaque embaixo. */
+.axn-touch-button[aria-pressed='true'],
+.axn-touch-button[aria-expanded='true'] {
+  background-color: var(--bg-hover);
+  box-shadow: inset 0 -2px 0 var(--accent);
+  color: var(--text-strong);
+}
+
+/* "Fechar teclado" (a saída) fica sempre à vista na ponta direita, mesmo com a barra rolada em 320 px. */
+.axn-touch-button-end {
+  position: sticky;
+  right: 0;
+  margin-left: auto;
+  background-color: var(--bg-elevated);
+  box-shadow: -8px 0 8px -6px rgb(0 0 0 / 0.6);
+}
+
+.axn-touch-button:disabled {
+  color: var(--text-faint);
+}
+
+.axn-touch-button:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: -2px;
+}
+
+/* Painel Aa: não modal, em cima da barra; cada fileira rola na horizontal. */
+/* Em tela baixa (iPhone deitado, SE) o painel não passa de 40% da área visível e rola. */
+.axn-touch-panel {
+  display: flex;
+  max-height: calc(var(--bn-vv-height, 100dvh) * 0.4);
+  flex-direction: column;
+  overflow-y: auto;
+  border-bottom: 1px solid var(--border);
+  padding-block: 2px;
+}
+
+.axn-touch-row {
+  display: flex;
+  flex-wrap: nowrap;
+  align-items: center;
+  gap: 2px;
+  overflow-x: auto;
+  padding-inline: 4px;
+  scrollbar-width: none;
+  touch-action: pan-x;
+}
+
+.axn-touch-row::-webkit-scrollbar {
+  display: none;
+}
+
+/* Rótulo da fileira de cores com largura fixa (as amostras alinham) e preso à esquerda ao rolar. */
+.axn-touch-row-label {
+  position: sticky;
+  left: 0;
+  z-index: 1;
+  min-width: 56px;
+  flex-shrink: 0;
+  align-self: stretch;
+  display: flex;
+  align-items: center;
+  background-color: var(--bg-elevated);
+  padding-inline: 8px 4px;
+  color: var(--text-muted);
+  font-size: var(--text-meta);
+}
+
+/* O botão de link do BlockNote dentro do painel também com alvo de 44 px. */
+.axn-touch-row .bn-button {
+  min-width: 44px;
+  min-height: 44px;
+}
+
+/*
+ * Menu "/" no toque: painel inferior na largura da tela, colado em cima da barra (posição e altura
+ * máxima vêm de slashPanelRect). O menu de dentro herda a altura máxima e rola.
+ */
+.axn-touch-slash .bn-suggestion-menu {
+  width: 100%;
+  max-width: none;
+  max-height: inherit;
+  border-radius: var(--r-card) var(--r-card) 0 0;
+  overscroll-behavior: contain;
+}
+
+/* Só a linha do item: o shadcn repete a classe `bn-suggestion-menu-item` no título e no subtítulo. */
+.axn-touch-slash [role='option'] {
+  min-height: 44px;
+}
+
+/* Atalhos de teclado (⌘-Alt-1…) não servem no toque e roubam largura. */
+.axn-touch-slash [data-slot='badge'] {
+  display: none;
+}
+
+/*
+ * No toque, todo campo de texto do editor (link da barra, busca do menu do bloco) tem ≥ 16 px: com
+ * menos, o Safari do iOS dá zoom ao focar, e o zoom esconde a barra no meio da edição. `!important`
+ * porque os utilitários do @blocknote/shadcn (`.bn-root .text-sm`) são mais específicos.
+ */
+@media (pointer: coarse) {
+  .bn-root input,
+  .bn-root textarea,
+  [data-block-menu] input {
+    font-size: max(16px, 1em) !important;
   }
 }
 
@@ -361,4 +539,78 @@ a.axn-page-link:focus-visible {
 
 .axn-swatch[data-prop='backgroundColor'][data-color='red'] {
   background-color: var(--c-red-block);
+}
+
+/*
+ * Menu do bloco, avisos do editor e ícone do link de página: regras que eram utilitários do Tailwind usados
+ * só por componentes do editor. Como o Tailwind do app varre todo o `src/`, eles iam para o CSS de
+ * ENTRADA; aqui ficam no chunk do editor. Mesmos valores de antes.
+ */
+.axn-block-menu-popover {
+  width: 16rem;
+  max-height: min(var(--radix-popover-content-available-height), 26rem);
+}
+
+.axn-block-menu-search {
+  padding: 6px;
+}
+
+.axn-block-menu-input:focus-visible {
+  border-color: var(--accent);
+}
+
+.axn-block-menu-row {
+  min-height: 28px;
+}
+
+.axn-block-menu-back {
+  width: auto;
+  margin-inline: 6px;
+}
+
+.axn-block-menu-title {
+  padding: 4px 14px 2px;
+}
+
+.axn-block-menu-section {
+  padding: 8px 8px 2px;
+}
+
+.axn-block-menu-list {
+  padding: 0 6px 6px;
+}
+
+.axn-block-menu-divider {
+  margin-block: 4px;
+}
+
+.axn-sheet-grabber {
+  width: 40px;
+  height: 4px;
+  margin: 0 auto 4px;
+  border-radius: 9999px;
+  background-color: var(--bg-hover);
+}
+
+.axn-editor-notice {
+  bottom: max(env(safe-area-inset-bottom), 1rem);
+  pointer-events: none;
+}
+
+.axn-editor-notice-card {
+  max-width: 28rem;
+  pointer-events: auto;
+}
+
+.axn-memory-notice {
+  background-color: var(--c-yellow-block);
+}
+
+.axn-memory-notice-icon {
+  margin-top: 2px;
+}
+
+.axn-page-link-icon {
+  font-size: 1rem;
+  line-height: 1.5rem;
 }

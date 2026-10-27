@@ -131,6 +131,30 @@ Feito em 2026-10-20 no deploy de teste: desktop (Chrome), iPhone e iPad (Safari)
 Tudo funcionou. A única diferença: os emojis têm o estilo do sistema (esperado: o app guarda o
 caractere e cada sistema o desenha). Repetir este checklist antes do lançamento público.
 
+### Editor no toque (Fase 2c-2)
+
+No preview do PR, com o usuário de teste, numa página nova (apague-a no fim). iPhone e iPad no Safari; Android no
+Chrome. O e2e emula o teclado reduzindo a altura da janela; o teclado de verdade só se confere aqui.
+
+- **iPhone (retrato):** tocar no texto abre o teclado e a barra aparece colada em cima dele (⋮⋮, /, Aa, Tarefa,
+  Transformar em, Desfazer, Refazer, Fechar teclado), sem barra duplicada. Em 320 px (iPhone SE) a barra rola de lado.
+- **"/" da barra:** o painel abre acima da barra, o teclado continua aberto, digitar filtra, apagar o "/" fecha. A linha do
+  cursor fica visível acima do painel.
+- **Aa:** negrito, itálico, sublinhado, riscado, código, link e cores; o teclado não fecha. O **campo do Link não dá zoom**
+  ao focar (nem a busca do menu do bloco).
+- **Tarefa:** texto → checklist → texto. **⋮⋮ e Transformar em:** o teclado fecha, o bottom sheet abre; depois da ação o
+  teclado não volta sozinho e o próximo toque o reabre.
+- **Fim de uma página longa:** digitando no fim, o cursor nunca fica atrás da barra nem do teclado.
+- **iPhone na horizontal:** pouco espaço; o "/" abre baixo e ainda rola; nada fica atrás do teclado.
+- **Girar o aparelho com o teclado aberto:** a barra continua acima do teclado (o BlockNote zera a detecção quando a
+  largura muda; se ela sumir, um toque no texto a traz de volta).
+- **Zoom de pinça:** com zoom a barra some; ao voltar ao normal, ela volta.
+- **iPad:** a barra aparece com o teclado na tela; tocar num bloco mostra a alça ⋮⋮ de 44 px na margem, que abre o menu do
+  bloco. Com **teclado físico**: sem barra, alça da margem e "/" como no desktop. Com **trackpad**: anotar o que aparece
+  (se o iPadOS informar `pointer: fine`, é o desktop: alça por hover e arrastar; senão, a alça da margem e sem arrastar).
+- **Android (Chrome):** a barra fica acima do teclado (o layout encolhe com `interactive-widget=resizes-content`).
+- **Desktop:** nada mudou (barra flutuante só com seleção, "/" no cursor, alça por hover).
+
 ## Nome do projeto
 
 O deploy de teste usa o nome provisório `axenotes-dev` (`axenotes-dev.pages.dev`). O nome define a

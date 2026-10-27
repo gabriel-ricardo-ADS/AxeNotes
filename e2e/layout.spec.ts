@@ -6,6 +6,8 @@ function isWide(page: Page): boolean {
   return size !== null && size.width >= 768
 }
 
+const IGNORED_CONSOLE = 'Viewport argument key "interactive-widget" not recognized'
+
 test.describe('layout', () => {
   let errors: string[] = []
 
@@ -13,7 +15,11 @@ test.describe('layout', () => {
     errors = []
     page.on('pageerror', (error) => errors.push(error.message))
     page.on('console', (message) => {
-      if (message.type() === 'error') errors.push(message.text())
+      // O WebKit (Safari) avisa que não conhece a chave `interactive-widget` da meta viewport e a ignora:
+      // ela existe para o Android (DECISÃO-031) e no iOS não faz nada.
+      if (message.type() === 'error' && !message.text().includes(IGNORED_CONSOLE)) {
+        errors.push(message.text())
+      }
     })
     await page.goto('/')
     await expect(page.getByRole('heading', { level: 1, name: 'Página inicial' })).toBeVisible()

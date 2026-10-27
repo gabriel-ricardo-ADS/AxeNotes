@@ -1,4 +1,10 @@
 @import 'tailwindcss';
+
+/*
+ * Palavras que aparecem como texto no código do editor (o comando 'transform' do menu do bloco, a curva
+ * 'ease-out' de uma animação) e que o Tailwind tomaria por utilitários: nenhum componente usa essas classes.
+ */
+@source not inline('transform ease-out');
 @import './tokens.css';
 @import './theme.css';
 

@@ -287,6 +287,14 @@ Editor (BlockNote) ── Y.Doc ──┬─ y-indexeddb (aparelho, offline)
     pelos tokens. Usa `src/styles/theme.css` como referência, sem emitir as variáveis de novo.
   - **Mod+K:** o BlockNote só captura Ctrl/⌘+K com a barra de formatação aberta (com seleção) e chama
     `preventDefault`; a busca ignora eventos já tratados. Resultado: com seleção = link, sem seleção = busca.
+  - **Toque (Fase 2c-2, DECISÃO-031):** `src/features/editor/touch/`. Com `(pointer: coarse)`, teclado virtual aberto
+    (`useVirtualKeyboard` do BlockNote, pelo `visualViewport`) e o editor focado e editável, o `PageEditor` troca a barra
+    flutuante de formatação por uma barra fixa acima do teclado (⋮⋮, "/", Aa, Tarefa, Transformar em, Desfazer, Refazer,
+    Fechar teclado), num portal do BlockNote posicionado pelas variáveis `--bn-vv-*`. Aa e "/" abrem painéis não modais
+    acima da barra; ⋮⋮ e Transformar em abrem o bottom sheet do menu do bloco. No toque o side menu do BlockNote não é
+    montado; no iPad (≥ 768 px) há uma alça de 44 px na margem do bloco do cursor. O cursor fica sempre acima da barra
+    (`useKeepCursorVisible`: `scroll-padding-bottom` no `<main>`, espaço extra no fim do editor, rolagem da diferença).
+    Meta viewport com `interactive-widget=resizes-content` (Android). Desfazer/Refazer são os do Yjs (só edições locais).
 - **Logout:** todo estado de cliente sai pelo ponto único `src/lib/reset-client-state.ts` (ver §9). Quem criar
   um banco IndexedDB (y-indexeddb na Fase 2), um service worker ou um cache (Fase 6) não precisa de código novo
   para a limpeza quando o navegador tem `indexedDB.databases()`; para os demais, registra o nome em

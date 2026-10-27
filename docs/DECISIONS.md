@@ -387,7 +387,10 @@ como título e ícone já faziam.
 ### DECISÃO-030 — Blocos do AxeNotes e menu do bloco (Fase 2c-1)
 **DECIDIDA** — Gabriel aprovou o plano da 2c em 2026-10-26 e dividiu a entrega em **2c-1** (callout, links de
 página, menu do bloco) e **2c-2** (editor no mobile: alça no celular, barra acima do teclado, "/" e "Transformar em"
-em bottom sheet, meta `interactive-widget`). Sem migration, sem dependência nova.
+no toque, meta `interactive-widget`). Sem migration, sem dependência nova.
+**Corrigida na 2c-2 (2026-10-26):** o plano dizia "'/' e 'Transformar em' em bottom sheet". Ficou assim: o **"/" no toque é
+um painel inferior NÃO modal** acima da barra do teclado (o teclado continua aberto e o filtro segue pelo texto
+digitado); só o "Transformar em" e o ⋮⋮ abrem o bottom sheet modal da 2c-1. Detalhes na DECISÃO-031.
 - **Um tipo de bloco para links de página:** `pageLink { pageId }`. "/" → "Página" cria a subpágina e insere um
   `pageLink`; "/" → "Link para página" aponta para uma página existente. Se um dia precisar distinguir, "é
   subpágina" se deriva sem mudar o schema (o pai da página é a página que contém o link).
@@ -413,3 +416,56 @@ em bottom sheet, meta `interactive-widget`). Sem migration, sem dependência nov
   abrem com `noopener,noreferrer` (o `window.open` padrão do BlockNote não punha; achado da revisão de segurança).
 - **Alça no celular (2c-2):** no iPhone a margem do texto tem 24 px; a alça ⋮⋮ fica como 1º botão da barra acima
   do teclado. No iPad a alça de 44 px aparece na margem (sem o "+", que não cabe).
+
+### DECISÃO-031 — Editor no toque (Fase 2c-2)
+**DECIDIDA** — Gabriel aprovou o plano da 2c-2 em 2026-10-26 (com 10 ajustes). Fecha a Fase 2. Sem migration, sem
+dependência nova.
+- **Barra acima do teclado** (`src/features/editor/touch/TouchToolbar.tsx`): aparece só no toque
+  (`(pointer: coarse)`, o mesmo da 2c-1; nada de user-agent), com o teclado virtual aberto, o editor focado e editável,
+  sem modal e sem zoom de pinça. Some no leitor e na página da lixeira. É a mesma barra no iPhone, no iPad e no Android.
+  Montada com as peças da barra mobile do BlockNote 0.56 (portal no `document.body` registrado no editor, modo de UI
+  "mobile", posição pelas variáveis `--bn-vv-*` do `useVirtualKeyboard`, que considera o teclado aberto quando o
+  `visualViewport` fica mais de 150 px abaixo da maior altura vista). O `FormattingToolbarController` do BlockNote
+  trocava sozinho para a barra mobile; o `PageEditor` passou a decidir com uma regra só (`shouldShowTouchBar`) entre a
+  nossa barra e a barra flutuante do desktop: **nunca as duas**.
+- **Botões, nesta ordem:** ⋮⋮ Opções do bloco · / Inserir · Aa · Tarefa · Transformar em · Desfazer · Refazer · Fechar
+  teclado. Alvos de 44 px, `aria-label` em pt-BR; em 320 px a barra rola na horizontal. O toque não tira o foco do editor
+  (`preventDefault` no `mousedown`; no `pointerdown` o WebKit cancela o `click`), menos o Fechar teclado.
+- **"/" no toque:** `openSuggestionMenu('/', { deleteTriggerCharacter: true })` do BlockNote (insere o "/" de verdade;
+  apagar fecha). Painel inferior não modal na largura da tela, colado em cima da barra, com **altura máxima de 60% do
+  espaço visível acima dela** (o plano dizia 100%; com tudo, o painel cobria a linha do cursor). Esc, apagar o "/" ou
+  tocar fora fecham.
+- **Aa:** painel não modal acima da barra: negrito, itálico, sublinhado, riscado e código (rótulos do dicionário do
+  BlockNote, iguais aos da barra do desktop), link (o mesmo botão da barra do desktop; o endereço passa pelo
+  `isSafeLink`) e cor do **texto selecionado** (texto e fundo, com as amostras da 2c-1). A cor do bloco continua no ⋮⋮.
+- **Tarefa:** checklist ↔ texto. Uma lista com marcadores vira checklist; tocar de novo dá **texto** (não volta a ser
+  lista com marcadores). Bloco sem texto: botão desabilitado.
+- **⋮⋮ e "Transformar em"** abrem o bottom sheet modal da 2c-1 (o segundo já na subtela "Transformar em"). O teclado
+  fecha antes (o sheet ficaria atrás dele no iPhone) e, depois da ação, o foco **não** é devolvido à força: o iOS só
+  reabre o teclado com um gesto; o cursor fica no bloco e o próximo toque reabre.
+- **Desfazer/Refazer** = `editor.undo()/redo()` (y-prosemirror): só o que passou pelo editor neste aparelho; o que veio
+  do servidor ou do IndexedDB não entra na pilha. Em dev o StrictMode destruía o `UndoManager` (a pilha ficava vazia e o
+  Ctrl+Z só funcionava pelo desfazer nativo do navegador): `ensureYUndoAttached` religa.
+- **iPhone (< 768 px):** a alça mora na barra. **iPad (toque e ≥ 768 px):** além da barra, alça ⋮⋮ de 44 px na margem do
+  bloco do cursor, sem hover e sem "+", que aparece depois de tocar no editor e some no blur. No toque o side menu do
+  BlockNote (que nasce do hover) **não é montado**: nunca duas alças. Arrastar bloco por toque continua pendente.
+- **iPad com teclado físico** (o `visualViewport` não encolhe): sem barra; valem a alça da margem e o "/" do desktop.
+  **iPad com trackpad:** se o iPadOS informar `pointer: fine`, é desktop (alça por hover, arrastar). Se mantiver
+  `pointer: coarse` com o trackpad, fica como o toque: alça da margem, sem a alça por hover e sem arrastar. Aceito nesta
+  fase (não detectamos com `any-pointer`); está no roteiro de teste em aparelho.
+- **Android:** meta viewport `interactive-widget=resizes-content` (o layout encolhe com o teclado; o iOS ignora). Sem
+  `maximum-scale` nem `user-scalable=no` (o zoom continua; com zoom a barra some).
+- **Cursor visível:** com a barra à vista, `scroll-padding-bottom` no `<main>`, espaço extra no fim do editor (o que o
+  teclado cobre + barra + painel; recalculado no resize do `visualViewport`, nunca no scroll dele) e rolagem só da
+  diferença quando a linha do cursor cairia atrás da barra ou do painel "/".
+- **Ajustes da revisão de UI:** o painel Aa ocupa no máximo 40% da área visível e rola (iPhone deitado, SE); "Fechar
+  teclado" fica preso à direita da barra mesmo com ela rolada; botões ligados/abertos têm um traço de destaque além do
+  fundo; rótulos "Texto"/"Fundo" com largura fixa e presos ao rolar; o "/" do toque não mostra atalhos de teclado; a
+  barra respeita a safe-area lateral; setas ←/→, Home e End andam entre os botões (`role="toolbar"`).
+- **Campos de texto no toque com ≥ 16 px** (link, busca do menu do bloco): com menos, o Safari dá zoom ao focar e a barra
+  some no meio da edição.
+- **Bundle:** `chunkSizeWarningLimit: 1400` (o aviso do Vite olhava o tamanho minificado do chunk lazy do editor, ~1,22
+  MB; repartir não reduziria o que se baixa). Orçamentos em gzip (`scripts/check-bundle-size.mjs`) = medido + ~10%:
+  entrada JS 10, rotas 84, editor 405, CSS de entrada 8,1, **CSS do editor 18 (novo)**. Utilitários do Tailwind usados
+  só pelo editor saíram do CSS de entrada (viraram regras `axn-*` no `editor.css`).
+

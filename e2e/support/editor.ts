@@ -53,10 +53,31 @@ export async function newPage(run: Run, name: string, parentId: string | null = 
 export const blockMenu = (page: Page) =>
   page.getByRole('combobox', { name: 'Pesquisar ações do bloco' })
 
-/** Abre o menu do bloco pela alça ⋮⋮, passando o mouse sobre o bloco. */
+/** Toque (`pointer: coarse`): iPhone e iPad. */
+const isTouch = (page: Page) => page.evaluate(() => window.matchMedia('(pointer: coarse)').matches)
+
+/** A alça ⋮⋮ do iPad, na margem do bloco do cursor. */
+export const marginHandle = (page: Page) => page.locator('.axn-touch-handle')
+
+/**
+ * Abre o menu do bloco pela alça ⋮⋮. Desktop: passando o mouse sobre o bloco. iPad: tocando no bloco e na alça da
+ * margem. iPhone: a alça mora na barra do teclado, então "abre" o teclado, toca o ⋮⋮ da barra e devolve o tamanho
+ * da janela (o menu abre num bottom sheet).
+ */
 export async function openBlockMenu(page: Page, block: Locator) {
-  await block.hover()
-  await page.getByRole('button', { name: /abrir as ações do bloco/ }).click()
+  const size = page.viewportSize()
+  if (!(await isTouch(page))) {
+    await block.hover()
+    await page.getByRole('button', { name: /abrir as ações do bloco/ }).click()
+  } else if ((size?.width ?? 0) >= 768) {
+    await block.tap()
+    await marginHandle(page).tap()
+  } else {
+    await block.tap()
+    await openKeyboard(page)
+    await touchBar(page).getByRole('button', { name: 'Opções do bloco' }).tap()
+    if (size) await page.setViewportSize(size)
+  }
   await expect(blockMenu(page)).toBeVisible()
 }
 
@@ -65,4 +86,18 @@ export async function chooseInBlockMenu(page: Page, ...names: string[]) {
   for (const name of names) {
     await page.getByRole('option', { name, exact: true }).click()
   }
+}
+
+/** A barra do editor acima do teclado (toque). */
+export const touchBar = (page: Page) => page.getByRole('toolbar', { name: 'Ferramentas do editor' })
+
+/**
+ * "Abre" o teclado virtual: com o editor já focado, reduz a altura do viewport em 300 px (o
+ * `visualViewport` encolhe, como no Android com `interactive-widget=resizes-content`). O iOS real, em
+ * que o teclado cobre a página sem mudar o `innerHeight`, fica para o teste em aparelho.
+ */
+export async function openKeyboard(page: Page) {
+  const size = page.viewportSize()
+  if (!size) throw new Error('viewport sem tamanho')
+  await page.setViewportSize({ width: size.width, height: size.height - 300 })
 }

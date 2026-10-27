@@ -351,5 +351,17 @@ export const ptBR = {
     errors: {
       subpage: 'Não foi possível criar a subpágina. O link foi removido; tente de novo.',
     },
+    touch: {
+      toolbar: 'Ferramentas do editor',
+      blockOptions: 'Opções do bloco',
+      insert: 'Inserir bloco',
+      format: 'Formatação',
+      formatPanel: 'Formatação do texto',
+      checklist: 'Lista de tarefas',
+      transform: 'Transformar em',
+      undo: 'Desfazer',
+      redo: 'Refazer',
+      hideKeyboard: 'Fechar teclado',
+    },
   },
 } as const

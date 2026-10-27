@@ -1,11 +1,13 @@
-import { SideMenuExtension } from '@blocknote/core/extensions'
+import { SideMenuExtension, SuggestionMenu } from '@blocknote/core/extensions'
 import { withCollaboration } from '@blocknote/core/yjs'
 import {
-  FormattingToolbarController,
+  DesktopFormattingToolbarController,
   LinkToolbarController,
   SideMenuController,
-  SuggestionMenuController,
   useCreateBlockNote,
+  useEditorFocus,
+  useExtensionState,
+  useVirtualKeyboard,
 } from '@blocknote/react'
 import { BlockNoteView } from '@blocknote/shadcn'
 import { TriangleAlertIcon } from 'lucide-react'
@@ -17,7 +19,10 @@ import type { BlockCommand } from '@/features/editor/block-menu/block-menu'
 import { isApplePlatform, listenBlockShortcuts } from '@/features/editor/block-menu/block-shortcuts'
 import { AxnSideMenu } from '@/features/editor/block-menu/AxnSideMenu'
 import { BlockMenu, type BlockMenuTarget } from '@/features/editor/block-menu/BlockMenu'
-import { OpenBlockMenuContext } from '@/features/editor/block-menu/open-block-menu-context'
+import {
+  OpenBlockMenuContext,
+  type BlockMenuOpenOptions,
+} from '@/features/editor/block-menu/open-block-menu-context'
 import { handleCalloutIconClicks } from '@/features/editor/blocks/callout/callout'
 import { insertPageLink, insertSubpage } from '@/features/editor/blocks/page-link/insert-page-link'
 import { isPageId } from '@/features/editor/blocks/page-link/page-link-id'
@@ -26,7 +31,14 @@ import { EDITOR_OPTIONS } from '@/features/editor/editor-options'
 import { AxnFormattingToolbar } from '@/features/editor/formatting-toolbar'
 import { AxnLinkToolbar } from '@/features/editor/link-toolbar'
 import { slashMenuItems, type SlashMenuActions } from '@/features/editor/slash-menu'
+import { shouldShowTouchBar } from '@/features/editor/touch/touch-editor'
+import { TouchBlockHandle } from '@/features/editor/touch/TouchBlockHandle'
+import { SlashMenuController } from '@/features/editor/touch/touch-slash'
+import { useKeepCursorVisible } from '@/features/editor/touch/use-keep-cursor-visible'
+import { TouchToolbarController } from '@/features/editor/touch/TouchToolbar'
+import { useZoomed } from '@/features/editor/touch/use-visual-viewport-box'
 import { useRevealBlock } from '@/features/editor/use-reveal-block'
+import { ensureYUndoAttached } from '@/features/editor/y-undo'
 import { FOCUS_TITLE_STATE, pagePath } from '@/features/pages/routes'
 import { PagePickerDialog } from '@/features/search/components/PagePickerDialog'
 import { SyncIndicator } from '@/features/sync/components/SyncIndicator'
@@ -101,9 +113,9 @@ function MemoryNotice() {
   return (
     <p
       role="alert"
-      className="mt-6 flex items-start gap-2 rounded-tag bg-yellow-block px-3 py-2 text-ui text-yellow"
+      className="axn-memory-notice mt-6 flex items-start gap-2 rounded-tag px-3 py-2 text-ui text-yellow"
     >
-      <TriangleAlertIcon className="mt-0.5 size-4 shrink-0" aria-hidden="true" />
+      <TriangleAlertIcon className="axn-memory-notice-icon size-4 shrink-0" aria-hidden="true" />
       {t('editor.memoryNotice')}
     </p>
   )
@@ -118,6 +130,9 @@ function LoadedEditor({
   pageId: string
   editable: boolean
 }) {
+  const touch = useMediaQuery('(pointer: coarse)')
+  // iPad (toque largo): alça ⋮⋮ na margem, além da barra.
+  const touchWide = useMediaQuery('(pointer: coarse) and (min-width: 768px)')
   const editor = useCreateBlockNote(
     withCollaboration({
       ...EDITOR_OPTIONS,
@@ -125,6 +140,13 @@ function LoadedEditor({
     }),
     [pageDoc],
   )
+  // Desfazer/Refazer (Ctrl+Z e a barra do toque) pelo Yjs: religa a pilha se a view foi recriada.
+  useEffect(() => {
+    ensureYUndoAttached(editor)
+    return editor.onMount(() => {
+      ensureYUndoAttached(editor)
+    })
+  }, [editor])
   // Destaque cujo emoji está sendo trocado (o bloco só pede; o seletor é do app).
   const [calloutIconFor, setCalloutIconFor] = useState<string | null>(null)
   useEffect(() => handleCalloutIconClicks(editor, setCalloutIconFor), [editor])
@@ -160,12 +182,21 @@ function LoadedEditor({
   )
 
   // Menu do bloco (⋮⋮ ou Ctrl/⌘+/): popover no desktop, bottom sheet no toque.
-  const touch = useMediaQuery('(pointer: coarse)')
   const apple = useMemo(() => isApplePlatform(), [])
   const [menuTarget, setMenuTarget] = useState<BlockMenuTarget | null>(null)
-  const openBlockMenu = useCallback((blockId: string, anchor: HTMLElement) => {
-    setMenuTarget({ blockId, anchor })
-  }, [])
+  const openBlockMenu = useCallback(
+    (blockId: string, anchor: HTMLElement, options?: BlockMenuOpenOptions) => {
+      // Do toque: o teclado fecha antes (o bottom sheet ficaria atrás dele no iPhone).
+      if (options?.fromTouch) editor.blur()
+      setMenuTarget({
+        blockId,
+        anchor,
+        view: options?.view,
+        returnFocus: options?.fromTouch !== true,
+      })
+    },
+    [editor],
+  )
   const closeBlockMenu = useCallback(() => {
     setMenuTarget(null)
     editor.getExtension(SideMenuExtension)?.unfreezeMenu()
@@ -180,6 +211,7 @@ function LoadedEditor({
   // Atalhos do bloco (só com o foco dentro do editor) e o link para o bloco no endereço.
   const homeId = useWorkspace().data?.homePageId ?? null
   const sectionRef = useRef<HTMLElement>(null)
+  const [section, setSection] = useState<HTMLElement | null>(null)
   useEffect(() => {
     const root = sectionRef.current
     if (!root) return
@@ -207,6 +239,27 @@ function LoadedEditor({
   }, [editor, homeId, navigate, openBlockMenu, runCommand])
   useRevealBlock(editor, useLocation().hash)
 
+  // Barra acima do teclado (toque): as mesmas fontes decidem se ela aparece e se a barra flutuante do
+  // desktop some, então nunca há duas barras (DECISÃO-031).
+  const keyboardOpen = useVirtualKeyboard()
+  const focused = useEditorFocus({ includeEditorUI: true }, editor)
+  const zoomed = useZoomed()
+  const modalOpen = menuTarget !== null || calloutIconFor !== null || linkPickerAt !== undefined
+  const touchBarShown = shouldShowTouchBar({
+    touch,
+    keyboardOpen,
+    focused,
+    editable,
+    modalOpen,
+    zoomed,
+  })
+  const [dockHeight, setDockHeight] = useState(0)
+  const slashOpen = useExtensionState(SuggestionMenu, {
+    editor,
+    selector: (menu) => menu?.show === true && menu.triggerCharacter === '/',
+  })
+  useKeepCursorVisible(editor, { active: touchBarShown, section, dockHeight, slashOpen })
+
   // Texto de busca e prévias saem dos blocos do editor (page_texts).
   useEffect(() => {
     const session = pageDoc.session
@@ -217,7 +270,14 @@ function LoadedEditor({
   }, [pageDoc, editor])
 
   return (
-    <section ref={sectionRef} aria-label={t('editor.label')} className="mt-4">
+    <section
+      ref={(element) => {
+        sectionRef.current = element
+        setSection(element)
+      }}
+      aria-label={t('editor.label')}
+      className="relative mt-4"
+    >
       <OpenBlockMenuContext.Provider value={openBlockMenu}>
         <BlockNoteView
           editor={editor}
@@ -230,14 +290,24 @@ function LoadedEditor({
           linkToolbar={false}
           className="axn-editor"
         >
-          <SideMenuController sideMenu={AxnSideMenu} />
-          <FormattingToolbarController formattingToolbar={AxnFormattingToolbar} />
+          {/* No toque o side menu (que nasce do hover) não existe: a alça é a da barra e, no iPad, a
+              da margem (TouchBlockHandle). Nunca duas alças. */}
+          {touch ? null : <SideMenuController sideMenu={AxnSideMenu} />}
+          {touchBarShown ? (
+            <TouchToolbarController onHeightChange={setDockHeight} />
+          ) : (
+            <DesktopFormattingToolbarController formattingToolbar={AxnFormattingToolbar} />
+          )}
           <LinkToolbarController linkToolbar={AxnLinkToolbar} />
-          <SuggestionMenuController
-            triggerCharacter="/"
+          <SlashMenuController
             getItems={(query) => Promise.resolve(slashMenuItems(editor, query, slashActions))}
+            touchBar={touchBarShown}
+            dockHeight={dockHeight}
           />
         </BlockNoteView>
+        {touchWide && editable && focused && !modalOpen ? (
+          <TouchBlockHandle editor={editor} container={section} />
+        ) : null}
       </OpenBlockMenuContext.Provider>
       <BlockMenu
         editor={editor}

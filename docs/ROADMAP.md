@@ -102,11 +102,16 @@ code-splitting por rota (dois chunks lazy + vendors `react`, `supabase` e `vendo
     estados de lixeira e indisponível), menu do bloco (Transformar em, Cor, Link para o bloco, Duplicar, Excluir, com
     busca; popover no desktop, bottom sheet no toque), link para o bloco com destaque, links externos só
     http/https/mailto. Home de referência (`01-home.jpg`) recriada sem colunas (`e2e/home-referencia.spec.ts`).
-  - **2c-2 — editor no mobile (próximo):** alça ao tocar (iPhone: na barra; iPad: na margem), barra acima do teclado
-    (`MobileFormattingToolbarController` do BlockNote, que segue o `visualViewport`), meta viewport
-    `interactive-widget=resizes-content`, "/" e "Transformar em" em bottom sheet, prévia ao passar o mouse sobre o
-    link de página (item 06 da UI-REFERENCE).
+  - **2c-2 — editor no toque (feita):** barra acima do teclado no iPhone, no iPad e no Android (⋮⋮ Opções do
+    bloco, "/" Inserir, Aa, Tarefa, Transformar em, Desfazer, Refazer, Fechar teclado), painéis não modais Aa e "/"
+    acima da barra, alça ⋮⋮ de 44 px na margem no iPad, "Transformar em" e ⋮⋮ no bottom sheet da 2c-1, meta viewport
+    `interactive-widget=resizes-content`, cursor sempre acima da barra e do painel "/", orçamentos do bundle
+    recalibrados (com o CSS do editor) e o aviso de chunk do Vite resolvido. Decisões: DECISÃO-031.
     **Pronto quando:** no iPhone e no iPad, inserir e transformar blocos só com toque, com a barra acima do teclado.
+- **Fase 2 fechada** com a 2c-2 (2026-10-26). **Pendências que ficam para depois** (nenhuma bloqueia o uso):
+  - prévia ao passar o mouse sobre o link de página (`06-home-preview-link-hover.jpg` da UI-REFERENCE);
+  - arrastar blocos por toque (no toque o ⋮⋮ só abre o menu do bloco; no desktop continua arrastando);
+  - botão "imagem" na barra do teclado: entra com o bloco de imagem, na Fase 3.
 
 Escopo original da fase (repartido acima entre 2a, 2b e 2c):
 - BlockNote + `@blocknote/shadcn`, tema escuro com nossos tokens, idioma pt-BR. (2a)

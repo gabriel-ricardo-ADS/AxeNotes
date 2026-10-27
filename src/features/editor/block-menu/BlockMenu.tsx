@@ -1,5 +1,5 @@
 import { Popover } from 'radix-ui'
-import { useMemo } from 'react'
+import { useEffect, useMemo, useRef } from 'react'
 import { Sheet, SheetContent, SheetDescription, SheetTitle } from '@/components/ui/sheet'
 import {
   buildBlockMenu,
@@ -15,6 +15,10 @@ import { t } from '@/i18n'
 export interface BlockMenuTarget {
   blockId: string
   anchor: HTMLElement
+  /** Abre direto numa subtela ("Transformar em" da barra do toque). */
+  view?: 'transform'
+  /** Ao fechar, o foco volta ao editor (false quando o menu veio de um toque: ver BlockMenuOpenOptions). */
+  returnFocus?: boolean
 }
 
 interface BlockMenuProps {
@@ -46,6 +50,11 @@ function typeLabel(type: string): string {
  */
 export function BlockMenu({ editor, target, onClose, onCommand, touch, apple }: BlockMenuProps) {
   const block = target ? editor.getBlock(target.blockId) : undefined
+  // O alvo já é null quando o Radix pede o foco de volta (fechar limpa o alvo antes da animação).
+  const returnFocus = useRef(true)
+  useEffect(() => {
+    if (target) returnFocus.current = target.returnFocus !== false
+  }, [target])
   const model = useMemo(() => {
     if (!block) return null
     const colors = editor.dictionary.color_picker.colors
@@ -82,13 +91,14 @@ export function BlockMenu({ editor, target, onClose, onCommand, touch, apple }: 
   }
   const focusEditor = (event: Event) => {
     event.preventDefault()
-    editor.focus()
+    if (returnFocus.current) editor.focus()
   }
 
   const panel = model ? (
     <BlockMenuPanel
-      // Outro bloco = menu do zero (sem busca nem submenu do anterior).
-      key={target?.blockId}
+      // Outro bloco (ou outra subtela) = menu do zero (sem busca nem submenu do anterior).
+      key={`${target?.blockId ?? ''}:${target?.view ?? ''}`}
+      initialSubmenu={target?.view}
       title={model.title}
       entries={model.entries}
       onCommand={run}
@@ -113,7 +123,7 @@ export function BlockMenu({ editor, target, onClose, onCommand, touch, apple }: 
         >
           <SheetTitle className="sr-only">{t('editor.blockMenu.label')}</SheetTitle>
           <SheetDescription className="sr-only">{model?.title}</SheetDescription>
-          <div aria-hidden="true" className="mx-auto mb-1 h-1 w-10 rounded-full bg-hover" />
+          <div aria-hidden="true" className="axn-sheet-grabber" />
           {panel}
         </SheetContent>
       </Sheet>
@@ -131,7 +141,7 @@ export function BlockMenu({ editor, target, onClose, onCommand, touch, apple }: 
           collisionPadding={8}
           aria-label={t('editor.blockMenu.label')}
           onCloseAutoFocus={focusEditor}
-          className="z-50 flex max-h-[min(var(--radix-popover-content-available-height),26rem)] w-64 flex-col overflow-hidden rounded-card border bg-popover text-popover-foreground shadow-lg"
+          className="axn-block-menu-popover z-50 flex flex-col overflow-hidden rounded-card border bg-popover text-popover-foreground shadow-lg"
         >
           {panel}
         </Popover.Content>

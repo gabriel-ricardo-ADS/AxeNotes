@@ -5,6 +5,7 @@ import type { BlockCommand, TransformTarget } from '@/features/editor/block-menu
 import { blockLinkUrl } from '@/features/editor/block-link'
 import { CALLOUT_DEFAULT_BACKGROUND } from '@/features/editor/blocks/callout/callout'
 import type { AxnBlock, AxnEditor, editorSchema } from '@/features/editor/schema'
+import { checklistToggleTarget } from '@/features/editor/touch/touch-editor'
 import { t } from '@/i18n'
 
 type AxnPartialBlock = PartialBlock<
@@ -80,6 +81,17 @@ export function transformBlock(
     } as AxnPartialBlock)
     placeCursor(editor, updated, 'end')
   })
+}
+
+/**
+ * Botão "Tarefa" da barra do toque: checklist volta a texto; outro bloco com texto vira checklist
+ * (`checklistToggleTarget`). Bloco sem texto não muda. Um passo de desfazer.
+ */
+export function toggleChecklist(editor: AxnEditor, blockId: string) {
+  const block = editor.getBlock(blockId)
+  if (!block) return
+  const target = checklistToggleTarget(block.type, editor.schema.blockSchema[block.type].content)
+  if (target) transformBlock(editor, blockId, target)
 }
 
 /** Muda a cor do texto ou do fundo do bloco. */
