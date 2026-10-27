@@ -125,7 +125,7 @@ test('"/" → "Link para página" links an existing page and follows it to the t
 test.describe('block menu (⋮⋮)', () => {
   test.skip(
     ({ viewport }) => (viewport?.width ?? 0) < 768,
-    'alça do iPhone na barra do teclado: Fase 2c-2',
+    'iPhone: a alça mora na barra do teclado (e2e/editor-mobile.spec.ts)',
   )
 
   test('transforms, colors (also by searching), duplicates and deletes blocks', async ({

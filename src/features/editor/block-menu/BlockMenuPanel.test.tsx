@@ -72,7 +72,7 @@ const ENTRIES: MenuEntry[] = [
   },
 ]
 
-function setup(focusOnOpen = true) {
+function setup(focusOnOpen = true, initialSubmenu?: string) {
   const onCommand = vi.fn()
   render(
     <BlockMenuPanel
@@ -82,6 +82,7 @@ function setup(focusOnOpen = true) {
       apple={false}
       touch={false}
       focusOnOpen={focusOnOpen}
+      initialSubmenu={initialSubmenu}
     />,
   )
   const input = screen.getByRole('combobox', { name: 'Pesquisar ações do bloco' })
@@ -104,6 +105,29 @@ describe('BlockMenuPanel', () => {
       'Duplicar',
       'Excluir',
     ])
+  })
+
+  it('can open straight into "Transformar em" ("Transformar em" of the touch bar)', async () => {
+    const { onCommand } = setup(false, 'transform')
+    expect(screen.getByRole('listbox', { name: 'Transformar em' })).toBeInTheDocument()
+    expect(optionNames()).toEqual(['Parágrafo', 'Título 1'])
+    await userEvent.click(screen.getByRole('option', { name: 'Título 1' }))
+    expect(onCommand).toHaveBeenLastCalledWith({
+      kind: 'transform',
+      type: 'heading',
+      props: { level: 1 },
+    })
+  })
+
+  it('"Voltar" from the initial submenu goes to the main menu', async () => {
+    setup(false, 'transform')
+    await userEvent.click(screen.getByRole('button', { name: /Voltar/ }))
+    expect(optionNames()).toHaveLength(5)
+  })
+
+  it('opens on the main menu when the submenu does not exist (block without text)', () => {
+    setup(false, 'nao-existe')
+    expect(optionNames()).toHaveLength(5)
   })
 
   it('does not take the focus on touch (the keyboard would pop up)', () => {

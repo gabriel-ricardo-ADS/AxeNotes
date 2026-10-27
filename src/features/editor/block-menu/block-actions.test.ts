@@ -4,6 +4,7 @@ import {
   removeBlock,
   runBlockCommand,
   setBlockColor,
+  toggleChecklist,
   transformBlock,
   withoutIds,
 } from '@/features/editor/block-menu/block-actions'
@@ -197,5 +198,38 @@ describe('runBlockCommand', () => {
     expect(editor.document[0]?.type).toBe('quote')
     await runBlockCommand(editor, next, { kind: 'color', prop: 'textColor', color: 'red' }, context)
     expect(editor.document[0]?.props).toMatchObject({ textColor: 'red' })
+  })
+})
+
+describe('toggleChecklist', () => {
+  it('turns text into a checklist and back into text, keeping the content', () => {
+    const editor = createTestEditor()
+    editor.replaceBlocks(editor.document, [{ type: 'paragraph', content: 'Comprar pão' }])
+    const id = editor.document[0]?.id ?? ''
+
+    toggleChecklist(editor, id)
+    expect(editor.getBlock(id)).toMatchObject({ type: 'checkListItem', props: { checked: false } })
+    toggleChecklist(editor, id)
+    expect(editor.getBlock(id)?.type).toBe('paragraph')
+    expect(blocksToPlainText(editor.document)).toBe('Comprar pão')
+  })
+
+  it('turns a bulleted list into a checklist, and the second tap gives text (not the list)', () => {
+    const editor = createTestEditor()
+    editor.replaceBlocks(editor.document, [{ type: 'bulletListItem', content: 'item' }])
+    const id = editor.document[0]?.id ?? ''
+
+    toggleChecklist(editor, id)
+    expect(editor.getBlock(id)?.type).toBe('checkListItem')
+    toggleChecklist(editor, id)
+    expect(editor.getBlock(id)?.type).toBe('paragraph')
+  })
+
+  it('leaves blocks without text alone', () => {
+    const editor = createTestEditor()
+    editor.replaceBlocks(editor.document, [{ type: 'divider' }, { type: 'paragraph' }])
+    const id = editor.document[0]?.id ?? ''
+    toggleChecklist(editor, id)
+    expect(editor.getBlock(id)?.type).toBe('divider')
   })
 })

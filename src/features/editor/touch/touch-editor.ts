@@ -96,7 +96,7 @@ export function slashPanelRect(
 }
 
 /** Tamanho da alça ⋮⋮ do iPad (alvo de toque). */
-export const TOUCH_HANDLE_SIZE = 44
+const TOUCH_HANDLE_SIZE = 44
 
 /**
  * Onde fica a alça ⋮⋮ do iPad, relativa à seção do editor (que rola junto com o conteúdo): na margem
